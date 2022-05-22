@@ -1,20 +1,35 @@
 import * as utils from "./utils";
 import * as build from "./build";
 
-export function atPrefix<TContext>(
+export function atPrefix<TContext, TValidationError>(
   prefix: string,
-  ...endpoints: Array<build.AppEndpoint<TContext>>
-): build.AppEndpoint<TContext, build.DynamicHandlerGetter<TContext>>;
-export function atPrefix<TContext>(
+  ...endpoints: Array<build.AppEndpoint<TContext, TValidationError>>
+): build.AppEndpoint<
+  TContext,
+  TValidationError,
+  build.DynamicHandlerGetter<TContext, TValidationError>
+>;
+export function atPrefix<TContext, TValidationError>(
   prefix: string,
   regexpGroupNamePrefix: string,
-  ...endpoints: Array<build.AppEndpoint<TContext>>
-): build.AppEndpoint<TContext, build.DynamicHandlerGetter<TContext>>;
-export function atPrefix<TContext>(
+  ...endpoints: Array<build.AppEndpoint<TContext, TValidationError>>
+): build.AppEndpoint<
+  TContext,
+  TValidationError,
+  build.DynamicHandlerGetter<TContext, TValidationError>
+>;
+export function atPrefix<TContext, TValidationError>(
   prefix: string,
-  endpointOrGroupNamePrefix: build.AppEndpoint<TContext> | string | undefined,
-  ...endpoints: Array<build.AppEndpoint<TContext>>
-): build.AppEndpoint<TContext, build.DynamicHandlerGetter<TContext>> {
+  endpointOrGroupNamePrefix:
+    | build.AppEndpoint<TContext, TValidationError>
+    | string
+    | undefined,
+  ...endpoints: Array<build.AppEndpoint<TContext, TValidationError>>
+): build.AppEndpoint<
+  TContext,
+  TValidationError,
+  build.DynamicHandlerGetter<TContext, TValidationError>
+> {
   const allEndpoints =
     typeof endpointOrGroupNamePrefix === "string" || !endpointOrGroupNamePrefix
       ? endpoints
@@ -64,8 +79,8 @@ export function atPrefix<TContext>(
 const makeEndpointRegExpGroupName = (prefix: string, idx: number) =>
   `${prefix}${idx}`;
 
-const buildEndpoints = <TContext>(
-  endpoints: ReadonlyArray<build.AppEndpoint<TContext>>,
+const buildEndpoints = <TContext, TValidationError>(
+  endpoints: ReadonlyArray<build.AppEndpoint<TContext, TValidationError>>,
   regExpGroupNamePrefix?: string,
 ) => {
   const isTopLevel = !regExpGroupNamePrefix;
