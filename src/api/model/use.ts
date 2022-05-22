@@ -51,7 +51,7 @@ export function atPrefix<TContext, TValidationError>(
           const matchingHandler = findFirstMatching(
             builtEndpoints,
             ({ regExpGroupName, handler, methods }) => {
-              if (groups[regExpGroupName]) {
+              if (groups[regExpGroupName] !== undefined) {
                 return methods.indexOf(method) >= 0
                   ? typeof handler === "function"
                     ? handler(method, groups)

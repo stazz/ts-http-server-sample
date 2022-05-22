@@ -29,12 +29,12 @@ export type AppEndpointBuilderProvider<TValidationError> = {
     ) => URLDataNames<TValidationError, TArgs[number]>);
 };
 
-function atURL<TValidationError, TArgs extends Array<string>>(
+const atURL = <TValidationError, TArgs extends Array<string>>(
   fragments: TemplateStringsArray,
   args: TArgs,
 ):
   | URLDataNames<TValidationError, TArgs[number]>
-  | AppEndpointBuilder<TValidationError, Record<string, never>> {
+  | AppEndpointBuilder<TValidationError, Record<string, never>> => {
   return args.length > 0
     ? // URL template has arguments -> return URL data validator which allows to build endpoints
       {
@@ -129,7 +129,7 @@ function atURL<TValidationError, TArgs extends Array<string>>(
           },
         }),
       };
-}
+};
 
 const getMethodsWithoutBody = (
   methods: ReadonlyArray<HttpMethod>,

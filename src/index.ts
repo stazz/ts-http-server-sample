@@ -33,8 +33,6 @@ const endpointsAsKoaMiddleware = (
       "/api",
       model.atPrefix(
         "/thing",
-        // If anything else than string is used in atURL template string, there will be compile-time error.
-        // If string mentioned in template will be changed, there will be compile-time error.
         // Endpoint: query thing by ID.
         urlBuilder.atURL`/${"id"}`
           .validateURLData({
@@ -55,7 +53,7 @@ const endpointsAsKoaMiddleware = (
               {
                 property: idInBody,
               },
-              "CreateThingBody",
+              "CreateThingBody", // Friendly name for error messages
             ).decode,
           ),
           // Request handler
@@ -65,7 +63,7 @@ const endpointsAsKoaMiddleware = (
             {
               property: idInBody,
             },
-            "CreateThingOutput",
+            "CreateThingOutput", // Friendly name for error messages
           ).encode,
           // Optional accepted methods (default just "POST")
           "PUT",
@@ -82,7 +80,7 @@ const endpointsAsKoaMiddleware = (
                 {
                   anotherThingId: idInBody,
                 },
-                "ConnectThingBody",
+                "ConnectThingBody", // Friendly name for error messages
               ).decode,
             ),
             ({ id }, { anotherThingId }) =>
@@ -93,7 +91,7 @@ const endpointsAsKoaMiddleware = (
                 connected: t.boolean,
                 connectedAt: tt.DateFromISOString,
               },
-              "ConnectThingOutput",
+              "ConnectThingOutput", // Friendly name for error messages
             ).encode,
           ),
       ),
@@ -113,7 +111,11 @@ const uuidRegex =
 // Create middleware in such way that IDs are valid UUID strings (instead of any strings).
 const middlewareFactory = endpointsAsKoaMiddleware(
   model.regexpParameter(uuidRegex),
-  t.refinement(t.string, (str) => uuidRegex.exec(str) !== null, "UUID"),
+  t.refinement(
+    t.string,
+    (str) => uuidRegex.exec(str) !== null,
+    "UUID", // Friendly name for error messages
+  ),
 );
 
 // This is just a dummy for demonstration purposes
@@ -139,16 +141,38 @@ new Koa<KoaState>()
   // Then perform our task (read context's state in event handler)
   .use(
     middlewareFactory.createMiddleware<KoaState>({
-      onInvalidBody: ({ ctx: { state, url }, validationError }) => {
+      onInvalidBody: ({ ctx: { state, method, url }, validationError }) => {
         // eslint-disable-next-line no-console
-        console.log(
-          `Invalid body: ${url} (user: ${
+        console.info(
+          `Invalid body: ${method} ${url} (user: ${
             state.username
           }), validation error:\n${tPlugin.getHumanReadableErrorMessage(
             validationError,
           )}`,
         );
       },
+      onInvalidUrl: ({ ctx: { state, method, url } }) => {
+        // eslint-disable-next-line no-console
+        console.info(
+          `Invalid URL supplied: ${method} ${url} (user: ${state.username})`,
+        );
+      },
+      onInvalidMethod: ({ ctx: { state, method, url } }) => {
+        // eslint-disable-next-line no-console
+        console.info(
+          `Invalid Method supplied: ${method} ${url} (user: ${state.username})`,
+        );
+      },
+      onBodyJSONParseError: ({ ctx: { state, method, url }, exception }) => {
+        // eslint-disable-next-line no-console
+        console.info(
+          `Failed to parse body JSON ${method} ${url} (user: ${state.username})\n${exception}`,
+        );
+      },
     }),
   )
-  .listen(3000);
+  .listen(3000)
+  .once("listening", () =>
+    // eslint-disable-next-line no-console
+    console.info("Koa server started"),
+  );

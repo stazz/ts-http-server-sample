@@ -12,8 +12,8 @@
     "url": "https://github.com/stazz/server-ts-sample"
   },
   "scripts": {
-    "build": "npm run tsc && npm run lint",
-    "run": "ts-node src",
+    "build": "yarn run tsc && yarn run lint",
+    "server": "ts-node src",
     "tsc": "tsc --project tsconfig.json",
     "lint": "eslint ./src --ext .ts,.tsx",
     "test": "nyc ava"

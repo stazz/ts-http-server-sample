@@ -82,11 +82,13 @@ export const koaMiddlewareFactory = <TValidationError>(
           case "invalid-method":
             ctx.status = 405; // Method Not Allowed
             ctx.set("Allow", foundHandler.allowedMethods.join(","));
+            events?.onInvalidMethod?.({ ...eventArgs });
             break;
         }
       } else {
         ctx.status = 404; // Not Found
         ctx.body = ""; // Otherwise it will have text "Not Found"
+        events?.onInvalidUrl?.({ ctx, regExp: url });
       }
     },
   };
@@ -100,7 +102,7 @@ export interface EventArguments<TState> {
 
 export interface KoaMiddlewareEvents<TValidationError, TState> {
   onInvalidMethod?: (args: EventArguments<TState>) => unknown;
-  onInvalidUrl?: (args: EventArguments<TState>) => unknown;
+  onInvalidUrl?: (args: Omit<EventArguments<TState>, "groups">) => unknown;
   onBodyJSONParseError?: (
     args: EventArguments<TState> & { exception: unknown },
   ) => unknown;
