@@ -2,31 +2,10 @@ import type * as koa from "koa";
 import * as model from "../model";
 import * as rawbody from "raw-body";
 
-export interface EventArguments<TState> {
-  ctx: koa.ParameterizedContext<TState>;
-  groups: Record<string, string>;
-  regExp: RegExp;
-}
-
-export interface KoaMiddlewareEvents<TValidationError, TState> {
-  onInvalidMethod?: (args: EventArguments<TState>) => unknown;
-  onInvalidUrl?: (args: EventArguments<TState>) => unknown;
-  onBodyJSONParseError?: (
-    args: EventArguments<TState> & { exception: unknown },
-  ) => unknown;
-  onInvalidBody?: (
-    args: EventArguments<TState> & { validationError: TValidationError },
-  ) => unknown;
-}
-
-export interface KoaMiddlewareFactory<TValidationError> {
-  createMiddleware: <TState>(
-    events?: KoaMiddlewareEvents<TValidationError, TState>,
-  ) => koa.Middleware<TState>;
-}
-
+// Using given various endpoints, create object which is able to create Koa middlewares.
+// The factory object accepts callbacks to execute on certain scenarios (mostly on errors).
 export const koaMiddlewareFactory = <TValidationError>(
-  endpoints: Array<model.AppEndpoint<koa.Context, TValidationError>>,
+  ...endpoints: Array<model.AppEndpoint<koa.Context, TValidationError>>
 ): KoaMiddlewareFactory<TValidationError> => {
   // Combine given endpoints into top-level entrypoint
   const { url, handler } = model
@@ -112,3 +91,26 @@ export const koaMiddlewareFactory = <TValidationError>(
     },
   };
 };
+
+export interface EventArguments<TState> {
+  ctx: koa.ParameterizedContext<TState>;
+  groups: Record<string, string>;
+  regExp: RegExp;
+}
+
+export interface KoaMiddlewareEvents<TValidationError, TState> {
+  onInvalidMethod?: (args: EventArguments<TState>) => unknown;
+  onInvalidUrl?: (args: EventArguments<TState>) => unknown;
+  onBodyJSONParseError?: (
+    args: EventArguments<TState> & { exception: unknown },
+  ) => unknown;
+  onInvalidBody?: (
+    args: EventArguments<TState> & { validationError: TValidationError },
+  ) => unknown;
+}
+
+export interface KoaMiddlewareFactory<TValidationError> {
+  createMiddleware: <TState>(
+    events?: KoaMiddlewareEvents<TValidationError, TState>,
+  ) => koa.Middleware<TState>;
+}
