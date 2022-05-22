@@ -1,4 +1,4 @@
-# Sample Project on Minimalistic and Unopinionated HTTP Server
+# Sample Project on Unopinionated and Typesafe HTTP Server
 This Git repository contains a sample TypeScript project to demonstrate one way of writing HTTP server exposing a set of configurable REST API endpoints.
 Each endpoint has its own URL/body validation, and output transforms.
 
