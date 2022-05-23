@@ -174,7 +174,7 @@ export interface AppEndpointBuilder<TValidationError, T> {
     AppEndpointHandlerWithoutBody<TContext>
   >;
   withBody: <U, V, TOutput, TContext = unknown>(
-    bodyDataValidator: BodyDataValidator<V, TValidationError>,
+    bodyDataValidator: DataValidator<V, TValidationError>,
     handler: (urlData: T, bodyData: V, context: TContext) => U,
     transformOutput: (this: void, output: U) => TOutput,
     ...httpMethods: Array<HttpMethodWithBody>
@@ -185,12 +185,12 @@ export interface AppEndpointBuilder<TValidationError, T> {
   >;
 }
 
-export type BodyDataValidator<TData, TError> = (
+export type DataValidator<TData, TError, TInput = unknown> = (
   this: void,
-  data: unknown,
-) => BodyDataValidatorResponse<TData, TError>;
+  data: TInput,
+) => DataValidatorResponse<TData, TError>;
 
-export type BodyDataValidatorResponse<TData, TError> =
+export type DataValidatorResponse<TData, TError> =
   | {
       error: "none";
       data: TData;
@@ -275,7 +275,7 @@ export type AppEndpointHandlerWithoutBody<TContext> = {
 
 export type AppEndpointHandlerWithBody<TContext, TBodyError> = {
   body: "required";
-  isBodyValid: BodyDataValidator<unknown, TBodyError>;
+  isBodyValid: DataValidator<unknown, TBodyError>;
   handler: (
     body: unknown,
     ...args: Parameters<AppEndpointHandlerWithoutBody<TContext>["handler"]>

@@ -14,8 +14,10 @@ import Koa from "koa";
 // Import plugin from generic REST-related things to Koa framework
 import * as koa from "./api/plugins/koa";
 
-// Function to create REST API specification, utilizing generic REST API things in ./api and our functionality in ./lib.
+// This is just a dummy for demonstration purposes
+type KoaState = Partial<{ username: string }>;
 const urlBuilder = model.bindValidationType<tPlugin.ValidationError>();
+// Function to create REST API specification, utilizing generic REST API things in ./api and our functionality in ./lib.
 const endpointsAsKoaMiddleware = (
   idInURL?: model.URLDataTransformer<string>,
   idInBody?: t.Type<string>,
@@ -28,6 +30,14 @@ const endpointsAsKoaMiddleware = (
   }
   // Any amount of endpoint informations can be passed to createKoaMiddleware - there always will be exactly one RegExp generated to perform endpoint match.
   return koa.koaMiddlewareFactory(
+    tPlugin.validatorFromType(
+      t.type(
+        {
+          username: t.string,
+        },
+        "KoaState", // Friendly name for error messages
+      ).decode,
+    ),
     // Prefixes can be combined to any depth.
     // Note that it is technically possible to define prefixes in separate files, but for this sample, let's just define everything here.
     model.atPrefix(
@@ -49,7 +59,7 @@ const endpointsAsKoaMiddleware = (
         // Endpoint: create thing with some property set.
         urlBuilder.atURL``.withBody(
           // Body validator (will be called on JSON-parsed entity)
-          tPlugin.bodyValidatorFromType(
+          tPlugin.validatorFromType(
             t.type(
               {
                 property: idInBody,
@@ -76,7 +86,7 @@ const endpointsAsKoaMiddleware = (
           })
           .withBody(
             // Body validator (will be called on JSON-parsed entity)
-            tPlugin.bodyValidatorFromType(
+            tPlugin.validatorFromType(
               t.type(
                 {
                   anotherThingId: idInBody,
@@ -120,8 +130,6 @@ const middlewareFactory = endpointsAsKoaMiddleware(
   ),
 );
 
-// This is just a dummy for demonstration purposes
-type KoaState = Partial<{ username: string }>;
 const middleWareToSetUsernameFromJWTToken = (): Koa.Middleware<KoaState> => {
   // Simulate lazy fetching of JWT info from remote server.
   let jwtInfo: Promise<string> | undefined;
@@ -142,7 +150,7 @@ new Koa<KoaState>()
   .use(middleWareToSetUsernameFromJWTToken())
   // Then perform our task (read context's state in event handler)
   .use(
-    middlewareFactory.createMiddleware<KoaState>({
+    middlewareFactory.createMiddleware({
       onInvalidBody: ({ ctx: { state, method, url }, validationError }) => {
         // eslint-disable-next-line no-console
         console.info(

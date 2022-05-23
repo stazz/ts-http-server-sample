@@ -2,11 +2,16 @@ import type * as koa from "koa";
 import * as model from "../model";
 import * as rawbody from "raw-body";
 
+export type KoaContext<TState> = koa.ParameterizedContext<TState>;
+
 // Using given various endpoints, create object which is able to create Koa middlewares.
 // The factory object accepts callbacks to execute on certain scenarios (mostly on errors).
-export const koaMiddlewareFactory = <TValidationError>(
-  ...endpoints: Array<model.AppEndpoint<koa.Context, TValidationError>>
-): KoaMiddlewareFactory<TValidationError> => {
+export const koaMiddlewareFactory = <TValidationError, TState>(
+  stateValidator: model.DataValidator<TState, TValidationError>,
+  ...endpoints: Array<
+    model.AppEndpoint<koa.ParameterizedContext<TState>, TValidationError>
+  >
+): KoaMiddlewareFactory<TValidationError, TState> => {
   // Combine given endpoints into top-level entrypoint
   const { url, handler } = model
     .atPrefix("", ...endpoints)
@@ -111,8 +116,8 @@ export interface KoaMiddlewareEvents<TValidationError, TState> {
   ) => unknown;
 }
 
-export interface KoaMiddlewareFactory<TValidationError> {
-  createMiddleware: <TState>(
+export interface KoaMiddlewareFactory<TValidationError, TState> {
+  createMiddleware: (
     events?: KoaMiddlewareEvents<TValidationError, TState>,
   ) => koa.Middleware<TState>;
 }

@@ -1,7 +1,7 @@
 import * as utils from "./utils";
 import * as build from "./build";
 
-export function atPrefix<TContext, TValidationError>(
+export function atPrefix<TValidationError, TContext>(
   prefix: string,
   ...endpoints: Array<build.AppEndpoint<TContext, TValidationError>>
 ): build.AppEndpoint<
@@ -9,7 +9,7 @@ export function atPrefix<TContext, TValidationError>(
   TValidationError,
   build.DynamicHandlerGetter<TContext, TValidationError>
 >;
-export function atPrefix<TContext, TValidationError>(
+export function atPrefix<TValidationError, TContext>(
   prefix: string,
   regexpGroupNamePrefix: string,
   ...endpoints: Array<build.AppEndpoint<TContext, TValidationError>>
@@ -18,7 +18,7 @@ export function atPrefix<TContext, TValidationError>(
   TValidationError,
   build.DynamicHandlerGetter<TContext, TValidationError>
 >;
-export function atPrefix<TContext, TValidationError>(
+export function atPrefix<TValidationError, TContext>(
   prefix: string,
   endpointOrGroupNamePrefix:
     | build.AppEndpoint<TContext, TValidationError>

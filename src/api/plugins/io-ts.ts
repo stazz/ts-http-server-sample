@@ -4,10 +4,10 @@ import { PathReporter } from "io-ts/PathReporter";
 
 export type ValidationError = t.Errors;
 
-export const bodyValidatorFromType =
+export const validatorFromType =
   <T>(
     validation: (this: void, data: unknown) => t.Validation<T>,
-  ): model.BodyDataValidator<T, ValidationError> =>
+  ): model.DataValidator<T, ValidationError> =>
   (body: unknown) => {
     const validationResult = validation(body);
     return validationResult._tag === "Right"
