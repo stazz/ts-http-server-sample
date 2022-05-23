@@ -110,9 +110,10 @@ export const koaMiddlewareFactory = <TValidationError, TState>(
                   switch (retVal.error) {
                     case "none":
                       {
-                        if (retVal !== undefined) {
+                        const output = retVal.data;
+                        if (output !== undefined) {
                           ctx.set("Content-Type", "application/json");
-                          ctx.body = JSON.stringify(retVal);
+                          ctx.body = JSON.stringify(output);
                         }
                       }
                       break;

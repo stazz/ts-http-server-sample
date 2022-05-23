@@ -105,7 +105,8 @@ const endpointsAsKoaMiddleware = (
               t.type(
                 {
                   connected: t.boolean,
-                  connectedAt: tt.DateFromISOString,
+                  // TODO this needs to be used as encoder, actually
+                  //connectedAt: tt.DateFromISOString,
                 },
                 "ConnectThingOutput", // Friendly name for error messages
               ),
