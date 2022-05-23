@@ -6,10 +6,10 @@ export type ValidationError = t.Errors;
 
 export const validatorFromType =
   <T>(
-    validation: (this: void, data: unknown) => t.Validation<T>,
+    validation: t.Decoder<unknown, T>,
   ): model.DataValidator<T, ValidationError> =>
   (body: unknown) => {
-    const validationResult = validation(body);
+    const validationResult = validation.decode(body);
     return validationResult._tag === "Right"
       ? {
           error: "none",

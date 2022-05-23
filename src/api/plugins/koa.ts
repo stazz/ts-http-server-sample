@@ -18,83 +18,127 @@ export const koaMiddlewareFactory = <TValidationError, TState>(
     .getRegExpAndHandler("");
   // Return Koa middleware handler factory
   return {
-    createMiddleware: (events) => async (ctx) => {
-      const groups = url.exec(ctx.URL.pathname)?.groups;
-      if (groups) {
-        // TODO check query too, if specified
-        const eventArgs = {
-          ctx,
-          groups,
-          regExp: url,
-        };
-        // We have a match -> get the handler that will handle our match
-        const foundHandler = handler(ctx.method as model.HttpMethod, groups);
-        switch (foundHandler.found) {
-          case "handler":
-            {
-              let retVal: unknown;
-              const { handler } = foundHandler;
-              switch (handler.body) {
-                case "none":
-                  // No body -> just handle based on URL
-                  retVal = handler.handler(ctx, groups);
-                  break;
-                case "required":
-                  // The body must be present -> read and validate, and pass on to handler
-                  {
-                    let body: unknown;
-                    try {
-                      body = JSON.parse(
-                        await rawbody.default(ctx.req, { encoding: "utf8" }),
-                      );
-                    } catch (e) {
-                      events?.onBodyJSONParseError?.({
-                        ...eventArgs,
-                        exception: e,
-                      });
-                      // This is not a showstopper - our body validation might as well accept situations without the body.
+    createMiddleware: (events) => {
+      const checkContextForHandler = (
+        ctx: koa.Context,
+        eventArgs: EventArguments<TState>,
+      ) => {
+        const stateValidation = stateValidator(ctx.state);
+        const isError = stateValidation.error === "error";
+        if (isError) {
+          ctx.status = 500; // Internal server error
+          events?.onInvalidKoaState?.({
+            ...eventArgs,
+            validationError: stateValidation.errorInfo,
+          });
+        }
+        return !isError;
+      };
+      return async (ctx) => {
+        const groups = url.exec(ctx.URL.pathname)?.groups;
+        if (groups) {
+          // TODO check query too, if specified
+          const eventArgs = {
+            ctx,
+            groups,
+            regExp: url,
+          };
+          // We have a match -> get the handler that will handle our match
+          const foundHandler = handler(ctx.method as model.HttpMethod, groups);
+          switch (foundHandler.found) {
+            case "handler":
+              {
+                let retVal:
+                  | model.DataValidatorResponse<unknown, TValidationError>
+                  | undefined;
+                const { handler } = foundHandler;
+                switch (handler.body) {
+                  case "none":
+                    // No body -> just handle based on URL
+                    if (checkContextForHandler(ctx, eventArgs)) {
+                      retVal = handler.handler(ctx, groups);
+                      if (retVal === undefined) {
+                        // Remember to still set the status code
+                        ctx.status = 200;
+                      }
                     }
-                    const bodyValidationResponse = handler.isBodyValid(body);
-                    switch (bodyValidationResponse.error) {
-                      case "none":
-                        retVal = handler.handler(
-                          bodyValidationResponse.data,
-                          ctx,
-                          groups,
+                    break;
+                  case "required":
+                    // The body must be present -> read and validate, and pass on to handler
+                    {
+                      let body: unknown;
+                      try {
+                        body = JSON.parse(
+                          await rawbody.default(ctx.req, { encoding: "utf8" }),
                         );
-                        if (retVal === undefined) {
-                          // Remember to still set the status code
-                          ctx.status = 200;
-                        }
-                        break;
-                      case "error":
-                        ctx.status = 422;
-                        events?.onInvalidBody?.({
+                      } catch (e) {
+                        events?.onBodyJSONParseError?.({
                           ...eventArgs,
-                          validationError: bodyValidationResponse.errorInfo,
+                          exception: e,
                         });
-                        break;
+                        // This is not a showstopper - our body validation might as well accept situations without the body.
+                      }
+                      const bodyValidationResponse = handler.isBodyValid(body);
+                      switch (bodyValidationResponse.error) {
+                        case "none":
+                          if (checkContextForHandler(ctx, eventArgs)) {
+                            retVal = handler.handler(
+                              bodyValidationResponse.data,
+                              ctx,
+                              groups,
+                            );
+                            if (retVal === undefined) {
+                              // Remember to still set the status code
+                              ctx.status = 200;
+                            }
+                          }
+                          break;
+                        case "error":
+                          ctx.status = 422;
+                          events?.onInvalidBody?.({
+                            ...eventArgs,
+                            validationError: bodyValidationResponse.errorInfo,
+                          });
+                          break;
+                      }
+                    }
+                    break;
+                }
+
+                // Check result
+                if (retVal) {
+                  switch (retVal.error) {
+                    case "none":
+                      {
+                        if (retVal !== undefined) {
+                          ctx.set("Content-Type", "application/json");
+                          ctx.body = JSON.stringify(retVal);
+                        }
+                      }
+                      break;
+                    case "error": {
+                      ctx.status = 500; // Internal Server Error
+                      events?.onInvalidResponse?.({
+                        ...eventArgs,
+                        validationError: retVal.errorInfo,
+                      });
                     }
                   }
-                  break;
+                }
               }
-              if (retVal !== undefined) {
-                ctx.set("Content-Type", "application/json");
-                ctx.body = JSON.stringify(retVal);
-              }
-            }
-            break;
-          case "invalid-method":
-            ctx.status = 405; // Method Not Allowed
-            ctx.set("Allow", foundHandler.allowedMethods.join(","));
-            events?.onInvalidMethod?.({ ...eventArgs });
-            break;
+              break;
+            case "invalid-method":
+              ctx.status = 405; // Method Not Allowed
+              ctx.set("Allow", foundHandler.allowedMethods.join(","));
+              events?.onInvalidMethod?.({ ...eventArgs });
+              break;
+          }
+        } else {
+          ctx.status = 404; // Not Found
+          ctx.body = ""; // Otherwise it will have text "Not Found"
+          events?.onInvalidUrl?.({ ctx, regExp: url });
         }
-      } else {
-        ctx.status = 404; // Not Found
-        ctx.body = ""; // Otherwise it will have text "Not Found"
-        events?.onInvalidUrl?.({ ctx, regExp: url });
-      }
+      };
     },
   };
 };
@@ -105,14 +149,23 @@ export interface EventArguments<TState> {
   regExp: RegExp;
 }
 
+export interface ValidationErrorArgs<TValidationError> {
+  validationError: TValidationError;
+}
 export interface KoaMiddlewareEvents<TValidationError, TState> {
+  onInvalidKoaState?: (
+    args: EventArguments<TState> & ValidationErrorArgs<TValidationError>,
+  ) => unknown;
   onInvalidMethod?: (args: EventArguments<TState>) => unknown;
   onInvalidUrl?: (args: Omit<EventArguments<TState>, "groups">) => unknown;
   onBodyJSONParseError?: (
     args: EventArguments<TState> & { exception: unknown },
   ) => unknown;
   onInvalidBody?: (
-    args: EventArguments<TState> & { validationError: TValidationError },
+    args: EventArguments<TState> & ValidationErrorArgs<TValidationError>,
+  ) => unknown;
+  onInvalidResponse?: (
+    args: EventArguments<TState> & ValidationErrorArgs<TValidationError>,
   ) => unknown;
 }
 

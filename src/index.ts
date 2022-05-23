@@ -15,29 +15,32 @@ import Koa from "koa";
 import * as koa from "./api/plugins/koa";
 
 // This is just a dummy for demonstration purposes
-type KoaState = Partial<{ username: string }>;
-const urlBuilder = model.bindValidationType<tPlugin.ValidationError>();
+tt.UUID;
+const koaState = t.type(
+  {
+    username: t.string,
+  },
+  "KoaState", // Friendly name for error messages
+);
+type KoaState = t.TypeOf<typeof koaState>;
 // Function to create REST API specification, utilizing generic REST API things in ./api and our functionality in ./lib.
 const endpointsAsKoaMiddleware = (
   idInURL?: model.URLDataTransformer<string>,
-  idInBody?: t.Type<string>,
+  idInBody?: t.BrandC<t.StringC, unknown>,
 ) => {
   if (!idInURL) {
     idInURL = model.defaultParameter();
   }
   if (!idInBody) {
-    idInBody = t.string;
+    idInBody = t.string as unknown as t.BrandC<t.StringC, never>;
   }
+  const urlBuilder = model.bindNecessaryTypes<
+    tPlugin.ValidationError,
+    koa.KoaContext<KoaState>
+  >();
   // Any amount of endpoint informations can be passed to createKoaMiddleware - there always will be exactly one RegExp generated to perform endpoint match.
   return koa.koaMiddlewareFactory(
-    tPlugin.validatorFromType(
-      t.type(
-        {
-          username: t.string,
-        },
-        "KoaState", // Friendly name for error messages
-      ).decode,
-    ),
+    tPlugin.validatorFromType(koaState),
     // Prefixes can be combined to any depth.
     // Note that it is technically possible to define prefixes in separate files, but for this sample, let's just define everything here.
     model.atPrefix(
@@ -54,7 +57,7 @@ const endpointsAsKoaMiddleware = (
             // Invoke functionality
             ({ id }) => functionality.queryThing(id),
             // Transform functionality output to REST output
-            t.string.encode,
+            tPlugin.validatorFromType(t.string),
           ),
         // Endpoint: create thing with some property set.
         urlBuilder.atURL``.withBody(
@@ -65,17 +68,19 @@ const endpointsAsKoaMiddleware = (
                 property: idInBody,
               },
               "CreateThingBody", // Friendly name for error messages
-            ).decode,
+            ),
           ),
           // Request handler
           (_, { property }) => functionality.createThing(property),
           // Transform functionality output to REST output
-          t.type(
-            {
-              property: idInBody,
-            },
-            "CreateThingOutput", // Friendly name for error messages
-          ).encode,
+          tPlugin.validatorFromType(
+            t.type(
+              {
+                property: idInBody,
+              },
+              "CreateThingOutput", // Friendly name for error messages
+            ),
+          ),
           // Optional accepted methods (default just "POST")
           "PUT",
         ),
@@ -92,25 +97,27 @@ const endpointsAsKoaMiddleware = (
                   anotherThingId: idInBody,
                 },
                 "ConnectThingBody", // Friendly name for error messages
-              ).decode,
+              ),
             ),
             ({ id }, { anotherThingId }) =>
               functionality.connectToAnotherThing(id, anotherThingId),
             // Transform functionality output to REST output
-            t.type(
-              {
-                connected: t.boolean,
-                connectedAt: tt.DateFromISOString,
-              },
-              "ConnectThingOutput", // Friendly name for error messages
-            ).encode,
+            tPlugin.validatorFromType(
+              t.type(
+                {
+                  connected: t.boolean,
+                  connectedAt: tt.DateFromISOString,
+                },
+                "ConnectThingOutput", // Friendly name for error messages
+              ),
+            ),
           ),
       ),
     ),
     // Endpoint: (fake) API docs
     urlBuilder.atURL`/doc`.withoutBody(
       () => "This is our documentation",
-      (output) => t.string.encode(output),
+      tPlugin.validatorFromType(t.string),
     ),
   );
 };
@@ -122,12 +129,13 @@ const uuidRegex =
 // Create middleware in such way that IDs are valid UUID strings (instead of any strings).
 const middlewareFactory = endpointsAsKoaMiddleware(
   model.regexpParameter(uuidRegex),
+  tt.UUID,
   // t.refinement is deprecated, but replacement t.brand does a bit too much for this case, so just use refinement.
-  t.refinement(
-    t.string,
-    (str) => uuidRegex.exec(str) !== null,
-    "UUID", // Friendly name for error messages
-  ),
+  // t.refinement(
+  //   t.string,
+  //   (str) => uuidRegex.exec(str) !== null,
+  //   "UUID", // Friendly name for error messages
+  // ),
 );
 
 const middleWareToSetUsernameFromJWTToken = (): Koa.Middleware<KoaState> => {
@@ -153,7 +161,7 @@ new Koa<KoaState>()
     middlewareFactory.createMiddleware({
       onInvalidBody: ({ ctx: { state, method, url }, validationError }) => {
         // eslint-disable-next-line no-console
-        console.info(
+        console.error(
           `Invalid body: ${method} ${url} (user: ${
             state.username
           }), validation error:\n${tPlugin.getHumanReadableErrorMessage(
@@ -163,20 +171,38 @@ new Koa<KoaState>()
       },
       onInvalidUrl: ({ ctx: { state, method, url } }) => {
         // eslint-disable-next-line no-console
-        console.info(
+        console.error(
           `Invalid URL supplied: ${method} ${url} (user: ${state.username})`,
         );
       },
       onInvalidMethod: ({ ctx: { state, method, url } }) => {
         // eslint-disable-next-line no-console
-        console.info(
+        console.error(
           `Invalid Method supplied: ${method} ${url} (user: ${state.username})`,
         );
       },
       onBodyJSONParseError: ({ ctx: { state, method, url }, exception }) => {
         // eslint-disable-next-line no-console
-        console.info(
+        console.error(
           `Failed to parse body JSON ${method} ${url} (user: ${state.username})\n${exception}`,
+        );
+      },
+      onInvalidKoaState: ({ ctx: { state }, validationError }) => {
+        // eslint-disable-next-line no-console
+        console.error(
+          `Internal error: state validation failed for ${JSON.stringify(
+            state,
+          )}.\n${tPlugin.getHumanReadableErrorMessage(validationError)}`,
+        );
+      },
+      onInvalidResponse: ({ ctx: { state, method, url }, validationError }) => {
+        // eslint-disable-next-line no-console
+        console.error(
+          `Invalid response: ${method} ${url} (user: ${
+            state.username
+          }), validation error:\n${tPlugin.getHumanReadableErrorMessage(
+            validationError,
+          )}`,
         );
       },
     }),

@@ -4,37 +4,38 @@ export type HttpMethod = HttpMethodNoBody | HttpMethodWithBody;
 export type HttpMethodNoBody = "GET";
 export type HttpMethodWithBody = "POST" | "PUT" | "DELETE"; // And others...
 
-export const bindValidationType = <
+export const bindNecessaryTypes = <
   TValidationError,
->(): AppEndpointBuilderProvider<TValidationError> => ({
+  TContext,
+>(): AppEndpointBuilderProvider<TValidationError, TContext> => ({
   atURL: (<TArgs extends Array<string>>(
     fragments: TemplateStringsArray,
     ...args: TArgs
   ):
-    | URLDataNames<TValidationError, TArgs[number]>
-    | AppEndpointBuilder<TValidationError, Record<string, never>> =>
-    atURL(
-      fragments,
-      args,
-    )) as AppEndpointBuilderProvider<TValidationError>["atURL"],
+    | URLDataNames<TValidationError, TContext, TArgs[number]>
+    | AppEndpointBuilder<TValidationError, TContext, Record<string, never>> =>
+    atURL(fragments, args)) as AppEndpointBuilderProvider<
+    TValidationError,
+    TContext
+  >["atURL"],
 });
 
-export type AppEndpointBuilderProvider<TValidationError> = {
+export type AppEndpointBuilderProvider<TValidationError, TContext> = {
   atURL: ((
     fragments: TemplateStringsArray,
-  ) => AppEndpointBuilder<TValidationError, Record<string, never>>) &
+  ) => AppEndpointBuilder<TValidationError, TContext, Record<string, never>>) &
     (<TArgs extends [string, ...Array<string>]>(
       fragments: TemplateStringsArray,
       ...args: TArgs
-    ) => URLDataNames<TValidationError, TArgs[number]>);
+    ) => URLDataNames<TValidationError, TContext, TArgs[number]>);
 };
 
-const atURL = <TValidationError, TArgs extends Array<string>>(
+const atURL = <TValidationError, TContext, TArgs extends Array<string>>(
   fragments: TemplateStringsArray,
   args: TArgs,
 ):
-  | URLDataNames<TValidationError, TArgs[number]>
-  | AppEndpointBuilder<TValidationError, Record<string, never>> => {
+  | URLDataNames<TValidationError, TContext, TArgs[number]>
+  | AppEndpointBuilder<TValidationError, TContext, Record<string, never>> => {
   return args.length > 0
     ? // URL template has arguments -> return URL data validator which allows to build endpoints
       {
@@ -139,11 +140,16 @@ const getMethodsWithBody = (
   methods: ReadonlyArray<HttpMethod>,
 ): ReadonlyArray<HttpMethod> => (methods.length <= 0 ? ["POST"] : [...methods]);
 
-export interface URLDataNames<TValidationError, TNames extends string> {
+export interface URLDataNames<
+  TValidationError,
+  TContext,
+  TNames extends string,
+> {
   validateURLData: <TValidation extends URLNamedDataValidation<TNames>>(
     validation: TValidation,
   ) => AppEndpointBuilder<
     TValidationError,
+    TContext,
     {
       [P in TNames]: ReturnType<TValidation[P]["transform"]>;
     }
@@ -163,25 +169,27 @@ export interface URLDataTransformer<T> {
   ) => T;
 }
 
-export interface AppEndpointBuilder<TValidationError, T> {
-  withoutBody: <U, TOutput, TContext = unknown>(
+export interface AppEndpointBuilder<TValidationError, TContext, T> {
+  withoutBody: <U, TOutput>(
     handler: (urlData: T, context: TContext) => U,
-    transformOutput: (this: void, output: U) => TOutput,
+    transformOutput: DataValidator<TOutput, TValidationError, U>,
     ...httpMethods: Array<HttpMethod>
   ) => AppEndpoint<
     TContext,
     TValidationError,
-    AppEndpointHandlerWithoutBody<TContext>
+    TOutput,
+    AppEndpointHandlerWithoutBody<TContext, TValidationError, TOutput>
   >;
-  withBody: <U, V, TOutput, TContext = unknown>(
+  withBody: <U, V, TOutput>(
     bodyDataValidator: DataValidator<V, TValidationError>,
     handler: (urlData: T, bodyData: V, context: TContext) => U,
-    transformOutput: (this: void, output: U) => TOutput,
+    transformOutput: DataValidator<TOutput, TValidationError, U>,
     ...httpMethods: Array<HttpMethodWithBody>
   ) => AppEndpoint<
     TContext,
     TValidationError,
-    AppEndpointHandlerWithBody<TContext, TValidationError>
+    TOutput,
+    AppEndpointHandlerWithBody<TContext, TValidationError, TOutput>
   >;
 }
 
@@ -251,10 +259,11 @@ const buildURLDataObject = (
 export interface AppEndpoint<
   TContext,
   TBodyValidationError,
+  TOutput = unknown,
   THandler =
-    | AppEndpointHandlerWithoutBody<TContext>
-    | AppEndpointHandlerWithBody<TContext, TBodyValidationError>
-    | DynamicHandlerGetter<TContext, TBodyValidationError>,
+    | AppEndpointHandlerWithoutBody<TContext, TBodyValidationError, TOutput>
+    | AppEndpointHandlerWithBody<TContext, TBodyValidationError, TOutput>
+    | DynamicHandlerGetter<TContext, TBodyValidationError, TOutput>,
 > {
   methods: ReadonlyArray<HttpMethod>;
   getRegExpAndHandler: (groupNamePrefix: string) => {
@@ -263,26 +272,32 @@ export interface AppEndpoint<
   };
 }
 
-export type DynamicHandlerGetter<TContext, TBodyValidationError> = (
+export type DynamicHandlerGetter<TContext, TBodyValidationError, TOutput> = (
   method: HttpMethod,
   groups: Record<string, string>,
-) => DynamicHandlerResponse<TContext, TBodyValidationError>;
+) => DynamicHandlerResponse<TContext, TBodyValidationError, TOutput>;
 
-export type AppEndpointHandlerWithoutBody<TContext> = {
-  body: "none";
-  handler: (context: TContext, groups: Record<string, string>) => unknown;
-};
+export type AppEndpointHandlerWithoutBody<TContext, TValidationError, TOutput> =
+  {
+    body: "none";
+    handler: (
+      context: TContext,
+      groups: Record<string, string>,
+    ) => DataValidatorResponse<TOutput, TValidationError>;
+  };
 
-export type AppEndpointHandlerWithBody<TContext, TBodyError> = {
+export type AppEndpointHandlerWithBody<TContext, TBodyError, TOutput> = {
   body: "required";
   isBodyValid: DataValidator<unknown, TBodyError>;
   handler: (
     body: unknown,
-    ...args: Parameters<AppEndpointHandlerWithoutBody<TContext>["handler"]>
-  ) => unknown;
+    ...args: Parameters<
+      AppEndpointHandlerWithoutBody<TContext, TBodyError, TOutput>["handler"]
+    >
+  ) => DataValidatorResponse<TOutput, TBodyError>;
 };
 
-export type DynamicHandlerResponse<TContext, TBodyValidationError> =
+export type DynamicHandlerResponse<TContext, TBodyValidationError, TOutput> =
   | {
       found: "invalid-method";
       allowedMethods: Array<HttpMethod>;
@@ -290,8 +305,8 @@ export type DynamicHandlerResponse<TContext, TBodyValidationError> =
   | {
       found: "handler";
       handler:
-        | AppEndpointHandlerWithoutBody<TContext>
-        | AppEndpointHandlerWithBody<TContext, TBodyValidationError>;
+        | AppEndpointHandlerWithoutBody<TContext, TBodyValidationError, TOutput>
+        | AppEndpointHandlerWithBody<TContext, TBodyValidationError, TOutput>;
     };
 
 // For example, from URL string "/api/${id}" and the id parameter adhering to regexp X, build regexp:
