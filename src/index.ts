@@ -15,7 +15,6 @@ import Koa from "koa";
 import * as koa from "./api/plugins/koa";
 
 // This is just a dummy for demonstration purposes
-tt.UUID;
 const koaState = t.type(
   {
     username: t.string,
@@ -130,12 +129,6 @@ const uuidRegex =
 const middlewareFactory = endpointsAsKoaMiddleware(
   model.regexpParameter(uuidRegex),
   tt.UUID,
-  // t.refinement is deprecated, but replacement t.brand does a bit too much for this case, so just use refinement.
-  // t.refinement(
-  //   t.string,
-  //   (str) => uuidRegex.exec(str) !== null,
-  //   "UUID", // Friendly name for error messages
-  // ),
 );
 
 const middleWareToSetUsernameFromJWTToken = (): Koa.Middleware<KoaState> => {
