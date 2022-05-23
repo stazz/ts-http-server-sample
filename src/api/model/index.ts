@@ -1,2 +1,2 @@
 export * from "./build";
-export * from "./use";
+export * from "./prefix";

@@ -14,7 +14,7 @@ import Koa from "koa";
 // Import plugin from generic REST-related things to Koa framework
 import * as koa from "./api/plugins/koa";
 
-// Glue between generic REST API things in ./api and our functionality in ./lib
+// Function to create REST API specification, utilizing generic REST API things in ./api and our functionality in ./lib.
 const urlBuilder = model.bindValidationType<tPlugin.ValidationError>();
 const endpointsAsKoaMiddleware = (
   idInURL?: model.URLDataTransformer<string>,
@@ -29,6 +29,7 @@ const endpointsAsKoaMiddleware = (
   // Any amount of endpoint informations can be passed to createKoaMiddleware - there always will be exactly one RegExp generated to perform endpoint match.
   return koa.koaMiddlewareFactory(
     // Prefixes can be combined to any depth.
+    // Note that it is technically possible to define prefixes in separate files, but for this sample, let's just define everything here.
     model.atPrefix(
       "/api",
       model.atPrefix(
@@ -111,6 +112,7 @@ const uuidRegex =
 // Create middleware in such way that IDs are valid UUID strings (instead of any strings).
 const middlewareFactory = endpointsAsKoaMiddleware(
   model.regexpParameter(uuidRegex),
+  // t.refinement is deprecated, but replacement t.brand does a bit too much for this case, so just use refinement.
   t.refinement(
     t.string,
     (str) => uuidRegex.exec(str) !== null,
@@ -128,7 +130,7 @@ const middleWareToSetUsernameFromJWTToken = (): Koa.Middleware<KoaState> => {
     if (!jwtInfo) {
       jwtInfo = fetchJwtInfo();
     }
-    await fetchJwtInfo(); // Once awaited, the Promise will not be executed again.
+    await fetchJwtInfo(); // Once awaited, the Promise will not be executed again. It is safe to await on already awaited Promise.
     ctx.state.username = "username-from-jwt-token-or-error";
     await next();
   };

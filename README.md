@@ -30,17 +30,20 @@ yarn install --frozen-lockfile
 
 Good starting point is file `src/index.ts`.
 The following things are good experiments to kick off full project exploration:
-- On line `37` ( ``urlBuilder.atURL`/${"id"}` ``), try change the literal `"id"` into other literal, like `"id_typoed"`.
+- On line `38` ( ``urlBuilder.atURL`/${"id"}` ``), try change the literal `"id"` into other literal, like `"id_typoed"`.
   Observe immediate compile-time errors.
 - On same line, try to change the literal `"id"` into e.g. number `42` or even reference to some string variable.
   Observe immediate compile-time errors.
-- On line `40` ( `id: idInURL,` ), try change the property name from `id` to something else, like `id_typoed`.
+- On line `41` ( `id: idInURL,` ), try change the property name from `id` to something else, like `id_typoed`.
   Observe immediate compile-time errors.
-- On line `44` ( `({ id }) => functionality.queryThing(id),` ), try to change the property name of the argument (`{ id }` into something else, like `{ id_typoed }`).
+- On line `45` ( `({ id }) => functionality.queryThing(id),` ), try to change the property name of the argument (`{ id }` into something else, like `{ id_typoed }`).
   Observe immediate compile-time errors.
-- On line `46` ( `t.string.encode,` ), try change the output type `t.string` to something else, like `t.number`, so that the line becomes `t.number.encode`.
+- On line `47` ( `t.string.encode,` ), try change the output type `t.string` to something else, like `t.number`, so that the line becomes `t.number.encode`.
   Observe immediate compile-time errors.
-- Feel free to try similar things with other endpoints.
+- On line `50` ( ```urlBuilder.atURL``.withBody()```), try adding template parameter to string given to `atURL` so the line will become something like this: ``urlBuilder.atURL`/${dummy}`.withBody(``.
+  Observe immediate compile-time errors.
+- Feel free to try similar things with other endpoints, and other places in the code.
+  All folder in [source code folder](src) also contain `README.md` files for documentation.
 
 Before delving deeper into the code, try starting the HTTP server with command `yarn run server`, and after seeing message `Koa server started`, try the following `curl` commands:
 - `curl -v http://localhost:3000/api/thing/00000000-0000-0000-0000-000000000000` to test endpoint in `src/lib/query.ts`.
@@ -84,6 +87,8 @@ This is how this project achieves the goal:
   Furthermore, these methods further adher to previously mentioned principle, as they convey the expectations of endpoint towards the HTTP body to the compiler (via different return types), allowing further compile-time error checking.
 - The type definitions and functions in `src/api/model` folder try to be as un-opinionated as possible - none of the files has any external dependencies apart from TS standard library.
   This agnosticism allows to shift the decisions and control about library decisions higher in the architectural layers, thus widening the selection of libraries to use, up to the highest level of design.
+- The type definitions and functions in `src/api/model` are also minimal, to avoid maintenance burden.
+  The core file `src/api/model/build.ts` is jut a bit over 300 LOC, written in prettified format.
 - The minimalism and agnosticism allow for better *class decoupling*:
     - The http-server/data-validation library dependencies are introduced in `src/api/plugins` folder as a glue between dependenless things in `src/api/model` folder, and actual libraries one decides to use.
     - The actual code which *does* the business-specific things is in `lib` folder and its subfolders.
