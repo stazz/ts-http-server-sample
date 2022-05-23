@@ -95,6 +95,10 @@ This is how this project achieves the goal:
       It is **not aware of REST API** or much other things than the things it cares about, and thus it is **easily unit-testable**, and also **easily invokable** if e.g. published as a library to be consumed by 3rd party.
     - The entrypoint file `src/index.ts` is acting as highest architectural layer, seeing all of libraries that will actually be used (`koa` and `io-ts`, in this case), the generic REST API functionality in `src/api/model` folder, and the glue between generic REST API functionality and `koa` and `io-ts` library in `src/api/plugins` folder.
       It has absolute control over both the REST API endpoints and which libraries are used, and change to those things will result changes only in that file (assuming the glue in `src/api/plugins` is available for libraries in question).
+- Last but not least - the project strives to achieve good runtime performance.
+  Part of that is already done by keeping things minimalistic and doing things in simple way when it is possible.
+  Furthermore, some additional runtime performance benefit is achieved by e.g. composing all URL matching RegExps into one RegExp, so URL is ran through exactly one RegExp once per request (instead of each endpoint having separate RegExp, and matching endpoint would be searched by running URL through RegExps one by one).
+
 
 # Architecture Layers of This Project
 On a higher level, this project architectural layers can be described as following:
