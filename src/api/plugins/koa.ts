@@ -7,7 +7,7 @@ export type KoaContext<TState> = koa.ParameterizedContext<TState>;
 // Using given various endpoints, create object which is able to create Koa middlewares.
 // The factory object accepts callbacks to execute on certain scenarios (mostly on errors).
 export const koaMiddlewareFactory = <TValidationError, TState>(
-  stateValidator: model.DataValidator<TState, TValidationError>,
+  stateValidator: model.DataValidatorInput<TState, TValidationError>,
   ...endpoints: Array<
     model.AppEndpoint<koa.ParameterizedContext<TState>, TValidationError>
   >
@@ -24,7 +24,7 @@ export const koaMiddlewareFactory = <TValidationError, TState>(
         eventArgs: EventArguments<TState>,
       ) => {
         const stateValidation = stateValidator(ctx.state);
-        const isError = stateValidation.error === "error";
+        const isError = stateValidation.error === "in-error";
         if (isError) {
           ctx.status = 500; // Internal server error
           events?.onInvalidKoaState?.({
@@ -49,7 +49,7 @@ export const koaMiddlewareFactory = <TValidationError, TState>(
             case "handler":
               {
                 let retVal:
-                  | model.DataValidatorResponse<unknown, TValidationError>
+                  | model.DataValidatorResponseOutput<unknown, TValidationError>
                   | undefined;
                 const { handler } = foundHandler;
                 switch (handler.body) {
@@ -80,7 +80,7 @@ export const koaMiddlewareFactory = <TValidationError, TState>(
                       }
                       const bodyValidationResponse = handler.isBodyValid(body);
                       switch (bodyValidationResponse.error) {
-                        case "none":
+                        case "in-none":
                           if (checkContextForHandler(ctx, eventArgs)) {
                             retVal = handler.handler(
                               bodyValidationResponse.data,
@@ -93,7 +93,7 @@ export const koaMiddlewareFactory = <TValidationError, TState>(
                             }
                           }
                           break;
-                        case "error":
+                        case "in-error":
                           ctx.status = 422;
                           events?.onInvalidBody?.({
                             ...eventArgs,
@@ -108,7 +108,7 @@ export const koaMiddlewareFactory = <TValidationError, TState>(
                 // Check result
                 if (retVal) {
                   switch (retVal.error) {
-                    case "none":
+                    case "out-none":
                       {
                         const output = retVal.data;
                         if (output !== undefined) {
@@ -117,7 +117,7 @@ export const koaMiddlewareFactory = <TValidationError, TState>(
                         }
                       }
                       break;
-                    case "error": {
+                    case "out-error": {
                       ctx.status = 500; // Internal Server Error
                       events?.onInvalidResponse?.({
                         ...eventArgs,

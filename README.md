@@ -30,15 +30,17 @@ yarn install --frozen-lockfile
 
 Good starting point is file `src/index.ts`.
 The following things are good experiments to kick off full project exploration:
-- On line `51` ( ``urlBuilder.atURL`/${"id"}` ``), try change the literal `"id"` into other literal, like `"id_typoed"`.
+- On line `50` ( ``urlBuilder.atURL`/${"id"}` ``), try change the literal `"id"` into other literal, like `"id_typoed"`.
   Observe immediate compile-time errors.
 - On same line, try to change the literal `"id"` into e.g. number `42` or even reference to some string variable.
   Observe immediate compile-time errors.
-- On line `54` ( `id: idInURL,` ), try change the property name from `id` to something else, like `id_typoed`.
+- On line `53` ( `id: idInURL,` ), try change the property name from `id` to something else, like `id_typoed`.
   Observe immediate compile-time errors.
-- On line `58` ( `({ id }) => functionality.queryThing(id),` ), try to change the property name of the argument (`{ id }` into something else, like `{ id_typoed }`).
+- On line `57` ( `({ id }) => functionality.queryThing(id),` ), try to change the property name of the argument (`{ id }` into something else, like `{ id_typoed }`).
   Observe immediate compile-time errors.
-- On line `63` ( ```urlBuilder.atURL``.withBody()```), try adding template parameter to string given to `atURL` so the line will become something like this: ``urlBuilder.atURL`/${dummy}`.withBody(``.
+- On line `59` ( `tPlugin.outputValidator(t.string)` ), try change the output type `t.string` to something else, like `t.number`, so that the line becomes `tPlugin.outputValidator(t.number)`.
+  Observe immediate compile-time errors.
+- On line `62` ( ```urlBuilder.atURL``.withBody()```), try adding template parameter to string given to `atURL` so the line will become something like this: ``urlBuilder.atURL`/${dummy}`.withBody(``.
   Observe immediate compile-time errors.
 - Feel free to try similar things with other endpoints, and other places in the code.
   All folder in [source code folder](src) also contain `README.md` files for documentation.

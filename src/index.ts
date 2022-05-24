@@ -39,7 +39,7 @@ const endpointsAsKoaMiddleware = (
   >();
   // Any amount of endpoint informations can be passed to createKoaMiddleware - there always will be exactly one RegExp generated to perform endpoint match.
   return koa.koaMiddlewareFactory(
-    tPlugin.validatorFromType(koaState),
+    tPlugin.inputValidator(koaState),
     // Prefixes can be combined to any depth.
     // Note that it is technically possible to define prefixes in separate files, but for this sample, let's just define everything here.
     model.atPrefix(
@@ -56,12 +56,12 @@ const endpointsAsKoaMiddleware = (
             // Invoke functionality
             ({ id }) => functionality.queryThing(id),
             // Transform functionality output to REST output
-            tPlugin.validatorFromType(t.string),
+            tPlugin.outputValidator(t.string),
           ),
         // Endpoint: create thing with some property set.
         urlBuilder.atURL``.withBody(
           // Body validator (will be called on JSON-parsed entity)
-          tPlugin.validatorFromType(
+          tPlugin.inputValidator(
             t.type(
               {
                 property: idInBody,
@@ -70,12 +70,13 @@ const endpointsAsKoaMiddleware = (
             ),
           ),
           // Request handler
-          (_, { property }) => functionality.createThing(property),
+          (_, { property }, { state: { username } }) =>
+            functionality.createThing(property, username),
           // Transform functionality output to REST output
-          tPlugin.validatorFromType(
+          tPlugin.outputValidator(
             t.type(
               {
-                property: idInBody,
+                property: t.string,
               },
               "CreateThingOutput", // Friendly name for error messages
             ),
@@ -90,7 +91,7 @@ const endpointsAsKoaMiddleware = (
           })
           .withBody(
             // Body validator (will be called on JSON-parsed entity)
-            tPlugin.validatorFromType(
+            tPlugin.inputValidator(
               t.type(
                 {
                   anotherThingId: idInBody,
@@ -101,12 +102,11 @@ const endpointsAsKoaMiddleware = (
             ({ id }, { anotherThingId }) =>
               functionality.connectToAnotherThing(id, anotherThingId),
             // Transform functionality output to REST output
-            tPlugin.validatorFromType(
+            tPlugin.outputValidator(
               t.type(
                 {
                   connected: t.boolean,
-                  // TODO this needs to be used as encoder, actually
-                  //connectedAt: tt.DateFromISOString,
+                  connectedAt: tt.DateFromISOString,
                 },
                 "ConnectThingOutput", // Friendly name for error messages
               ),
@@ -117,7 +117,7 @@ const endpointsAsKoaMiddleware = (
     // Endpoint: (fake) API docs
     urlBuilder.atURL`/doc`.withoutBody(
       () => "This is our documentation",
-      tPlugin.validatorFromType(t.string),
+      tPlugin.outputValidator(t.string),
     ),
   );
 };
@@ -129,7 +129,7 @@ const uuidRegex =
 // Create middleware in such way that IDs are valid UUID strings (instead of any strings).
 const middlewareFactory = endpointsAsKoaMiddleware(
   model.regexpParameter(uuidRegex),
-  tt.UUID,
+  tt.UUID, // Too bad that io-ts-types does not expose UUID regex it uses
 );
 
 const middleWareToSetUsernameFromJWTToken = (): Koa.Middleware<KoaState> => {

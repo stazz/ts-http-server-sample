@@ -172,7 +172,7 @@ export interface URLDataTransformer<T> {
 export interface AppEndpointBuilder<TValidationError, TContext, T> {
   withoutBody: <U, TOutput>(
     handler: (urlData: T, context: TContext) => U,
-    transformOutput: DataValidator<TOutput, TValidationError, U>,
+    transformOutput: DataValidatorOutput<TOutput, TValidationError, U>,
     ...httpMethods: Array<HttpMethod>
   ) => AppEndpoint<
     TContext,
@@ -181,9 +181,9 @@ export interface AppEndpointBuilder<TValidationError, TContext, T> {
     AppEndpointHandlerWithoutBody<TContext, TValidationError, TOutput>
   >;
   withBody: <U, V, TOutput>(
-    bodyDataValidator: DataValidator<V, TValidationError>,
+    bodyDataValidator: DataValidatorInput<V, TValidationError>,
     handler: (urlData: T, bodyData: V, context: TContext) => U,
-    transformOutput: DataValidator<TOutput, TValidationError, U>,
+    transformOutput: DataValidatorOutput<TOutput, TValidationError, U>,
     ...httpMethods: Array<HttpMethodWithBody>
   ) => AppEndpoint<
     TContext,
@@ -193,20 +193,53 @@ export interface AppEndpointBuilder<TValidationError, TContext, T> {
   >;
 }
 
-export type DataValidator<TData, TError, TInput = unknown> = (
+export type DataValidator<
+  TData,
+  TError,
+  TInput,
+  TOKString extends string,
+  TErrorString extends string,
+> = (
   this: void,
   data: TInput,
-) => DataValidatorResponse<TData, TError>;
+) => DataValidatorResponse<TData, TError, TOKString, TErrorString>;
 
-export type DataValidatorResponse<TData, TError> =
+export type DataValidatorInput<TData, TError> = DataValidator<
+  TData,
+  TError,
+  unknown,
+  "in-none",
+  "in-error"
+>;
+export type DataValidatorOutput<TData, TError, TInput> = DataValidator<
+  TData,
+  TError,
+  TInput,
+  "out-none",
+  "out-error"
+>;
+
+export type DataValidatorResponse<
+  TData,
+  TError,
+  TOKString extends string,
+  TErrorString extends string,
+> =
   | {
-      error: "none";
+      error: TOKString;
       data: TData;
     }
   | {
-      error: "error";
+      error: TErrorString;
       errorInfo: TError;
     };
+
+export type DataValidatorResponseOutput<TData, TError> = DataValidatorResponse<
+  TData,
+  TError,
+  "out-none",
+  "out-error"
+>;
 
 const DEFAULT_PARAM_REGEXP = /[^/]+/;
 export function defaultParameter(): URLDataTransformer<string>;
@@ -283,18 +316,18 @@ export type AppEndpointHandlerWithoutBody<TContext, TValidationError, TOutput> =
     handler: (
       context: TContext,
       groups: Record<string, string>,
-    ) => DataValidatorResponse<TOutput, TValidationError>;
+    ) => DataValidatorResponseOutput<TOutput, TValidationError>;
   };
 
 export type AppEndpointHandlerWithBody<TContext, TBodyError, TOutput> = {
   body: "required";
-  isBodyValid: DataValidator<unknown, TBodyError>;
+  isBodyValid: DataValidatorInput<unknown, TBodyError>;
   handler: (
     body: unknown,
     ...args: Parameters<
       AppEndpointHandlerWithoutBody<TContext, TBodyError, TOutput>["handler"]
     >
-  ) => DataValidatorResponse<TOutput, TBodyError>;
+  ) => DataValidatorResponseOutput<TOutput, TBodyError>;
 };
 
 export type DynamicHandlerResponse<TContext, TBodyValidationError, TOutput> =
