@@ -1,8 +1,7 @@
 import * as utils from "./utils";
-
-export type HttpMethod = HttpMethodNoBody | HttpMethodWithBody;
-export type HttpMethodNoBody = "GET";
-export type HttpMethodWithBody = "POST" | "PUT" | "DELETE"; // And others...
+import * as url from "./url";
+import * as data from "./data";
+import * as ep from "./endpoint";
 
 export const bindNecessaryTypes = <
   TValidationError,
@@ -40,12 +39,12 @@ const atURL = <TValidationError, TContext, TArgs extends Array<string>>(
     ? // URL template has arguments -> return URL data validator which allows to build endpoints
       {
         validateURLData: (validation) => {
-          const url = buildURLRegExp(fragments, args, validation);
+          const urlRegExp = buildURLRegExp(fragments, args, validation);
           return {
             withoutBody: (handler, transformOutput, ...methods) => ({
               methods: getMethodsWithoutBody(methods),
               getRegExpAndHandler: (groupNamePrefix) => ({
-                url: url(groupNamePrefix),
+                url: urlRegExp(groupNamePrefix),
                 handler: {
                   body: "none",
                   handler: (context, groups) =>
@@ -71,7 +70,7 @@ const atURL = <TValidationError, TContext, TArgs extends Array<string>>(
             ) => ({
               methods: getMethodsWithBody(methods),
               getRegExpAndHandler: (groupNamePrefix) => ({
-                url: url(groupNamePrefix),
+                url: urlRegExp(groupNamePrefix),
                 handler: {
                   body: "required",
                   isBodyValid: bodyDataValidator,
@@ -133,12 +132,14 @@ const atURL = <TValidationError, TContext, TArgs extends Array<string>>(
 };
 
 const getMethodsWithoutBody = (
-  methods: ReadonlyArray<HttpMethod>,
-): ReadonlyArray<HttpMethod> => (methods.length <= 0 ? ["GET"] : [...methods]);
+  methods: ReadonlyArray<ep.HttpMethod>,
+): ReadonlyArray<ep.HttpMethod> =>
+  methods.length <= 0 ? ["GET"] : [...methods];
 
 const getMethodsWithBody = (
-  methods: ReadonlyArray<HttpMethod>,
-): ReadonlyArray<HttpMethod> => (methods.length <= 0 ? ["POST"] : [...methods]);
+  methods: ReadonlyArray<ep.HttpMethod>,
+): ReadonlyArray<ep.HttpMethod> =>
+  methods.length <= 0 ? ["POST"] : [...methods];
 
 export interface URLDataNames<
   TValidationError,
@@ -158,119 +159,34 @@ export interface URLDataNames<
 
 export type URLNamedDataValidation<TNames extends PropertyKey> = Record<
   TNames,
-  URLDataTransformer<unknown>
+  url.URLDataTransformer<unknown>
 >;
-
-export interface URLDataTransformer<T> {
-  regexp: RegExp;
-  transform: (
-    matchedString: string,
-    /* later - groups: Array<string> */
-  ) => T;
-}
 
 export interface AppEndpointBuilder<TValidationError, TContext, T> {
   withoutBody: <U, TOutput>(
     handler: (urlData: T, context: TContext) => U,
-    transformOutput: DataValidatorOutput<TOutput, TValidationError, U>,
-    ...httpMethods: Array<HttpMethod>
-  ) => AppEndpoint<
+    transformOutput: data.DataValidatorOutput<TOutput, TValidationError, U>,
+    ...httpMethods: Array<ep.HttpMethod>
+  ) => ep.AppEndpoint<
     TContext,
     TValidationError,
     TOutput,
-    AppEndpointHandlerWithoutBody<TContext, TValidationError, TOutput>
+    ep.AppEndpointHandlerWithoutBody<TContext, TValidationError, TOutput>
   >;
   withBody: <U, V, TOutput>(
-    bodyDataValidator: DataValidatorInput<V, TValidationError>,
+    bodyDataValidator: data.DataValidatorInput<V, TValidationError>,
     handler: (urlData: T, bodyData: V, context: TContext) => U,
-    transformOutput: DataValidatorOutput<TOutput, TValidationError, U>,
+    transformOutput: data.DataValidatorOutput<TOutput, TValidationError, U>,
     ...httpMethods: Array<HttpMethodWithBody>
-  ) => AppEndpoint<
+  ) => ep.AppEndpoint<
     TContext,
     TValidationError,
     TOutput,
-    AppEndpointHandlerWithBody<TContext, TValidationError, TOutput>
+    ep.AppEndpointHandlerWithBody<TContext, TValidationError, TOutput>
   >;
 }
 
-export type DataValidator<
-  TData,
-  TError,
-  TInput,
-  TOKString extends string,
-  TErrorString extends string,
-> = (
-  this: void,
-  data: TInput,
-) => DataValidatorResponse<TData, TError, TOKString, TErrorString>;
-
-export type DataValidatorInput<TData, TError> = DataValidator<
-  TData,
-  TError,
-  unknown,
-  "in-none",
-  "in-error"
->;
-export type DataValidatorOutput<TData, TError, TInput> = DataValidator<
-  TData,
-  TError,
-  TInput,
-  "out-none",
-  "out-error"
->;
-
-export type DataValidatorResponse<
-  TData,
-  TError,
-  TOKString extends string,
-  TErrorString extends string,
-> =
-  | {
-      error: TOKString;
-      data: TData;
-    }
-  | {
-      error: TErrorString;
-      errorInfo: TError;
-    };
-
-export type DataValidatorResponseOutput<TData, TError> = DataValidatorResponse<
-  TData,
-  TError,
-  "out-none",
-  "out-error"
->;
-
-const DEFAULT_PARAM_REGEXP = /[^/]+/;
-export function defaultParameter(): URLDataTransformer<string>;
-export function defaultParameter<T>(
-  transform: (matchedString: string) => T,
-): URLDataTransformer<T>;
-export function defaultParameter<T>(
-  transform?: (matchedString: string) => T,
-): URLDataTransformer<T> {
-  return {
-    regexp: DEFAULT_PARAM_REGEXP,
-    transform: transform ?? ((str) => str as unknown as T),
-  };
-}
-
-export function regexpParameter(
-  regexp: URLDataTransformer<string>["regexp"],
-): URLDataTransformer<string>;
-export function regexpParameter<T>(
-  regexp: URLDataTransformer<T>["regexp"],
-  transform: URLDataTransformer<T>["transform"],
-): URLDataTransformer<T>;
-export function regexpParameter<T>(
-  regexp: URLDataTransformer<T>["regexp"],
-  transform?: URLDataTransformer<T>["transform"],
-): URLDataTransformer<T> {
-  return {
-    regexp,
-    transform: transform ?? ((str) => str as unknown as T),
-  };
-}
+export type HttpMethodWithBody = Exclude<ep.HttpMethod, "GET">;
 
 const buildURLDataObject = (
   args: ReadonlyArray<string>,
@@ -289,66 +205,13 @@ const buildURLDataObject = (
   );
 };
 
-export interface AppEndpoint<
-  TContext,
-  TBodyValidationError,
-  TOutput = unknown,
-  THandler =
-    | AppEndpointHandlerWithoutBody<TContext, TBodyValidationError, TOutput>
-    | AppEndpointHandlerWithBody<TContext, TBodyValidationError, TOutput>
-    | DynamicHandlerGetter<TContext, TBodyValidationError, TOutput>,
-> {
-  methods: ReadonlyArray<HttpMethod>;
-  getRegExpAndHandler: (groupNamePrefix: string) => {
-    url: RegExp;
-    handler: THandler;
-  };
-}
-
-export type DynamicHandlerGetter<TContext, TBodyValidationError, TOutput> = (
-  method: HttpMethod,
-  groups: Record<string, string>,
-) => DynamicHandlerResponse<TContext, TBodyValidationError, TOutput>;
-
-export type AppEndpointHandlerWithoutBody<TContext, TValidationError, TOutput> =
-  {
-    body: "none";
-    handler: (
-      context: TContext,
-      groups: Record<string, string>,
-    ) => DataValidatorResponseOutput<TOutput, TValidationError>;
-  };
-
-export type AppEndpointHandlerWithBody<TContext, TBodyError, TOutput> = {
-  body: "required";
-  isBodyValid: DataValidatorInput<unknown, TBodyError>;
-  handler: (
-    body: unknown,
-    ...args: Parameters<
-      AppEndpointHandlerWithoutBody<TContext, TBodyError, TOutput>["handler"]
-    >
-  ) => DataValidatorResponseOutput<TOutput, TBodyError>;
-};
-
-export type DynamicHandlerResponse<TContext, TBodyValidationError, TOutput> =
-  | {
-      found: "invalid-method";
-      allowedMethods: Array<HttpMethod>;
-    }
-  | {
-      found: "handler";
-      handler:
-        | AppEndpointHandlerWithoutBody<TContext, TBodyValidationError, TOutput>
-        | AppEndpointHandlerWithBody<TContext, TBodyValidationError, TOutput>;
-    };
-
 // For example, from URL string "/api/${id}" and the id parameter adhering to regexp X, build regexp:
 // "/api/(?<ep_prefix_id>X)"
 // Don't add start/end marks ^/$, since we want to allow prefixing URLs.
 const buildURLRegExp = (
   fragments: TemplateStringsArray,
   names: ReadonlyArray<string>,
-  validation: Record<string, URLDataTransformer<unknown>>,
+  validation: Record<string, url.URLDataTransformer<unknown>>,
 ) => {
   return (groupNamePrefix: string) =>
     new RegExp(

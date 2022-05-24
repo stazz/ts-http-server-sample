@@ -1,37 +1,37 @@
 import * as utils from "./utils";
-import * as build from "./build";
+import * as ep from "./endpoint";
 
 export function atPrefix<TValidationError, TContext>(
   prefix: string,
-  ...endpoints: Array<build.AppEndpoint<TContext, TValidationError>>
-): build.AppEndpoint<
+  ...endpoints: Array<ep.AppEndpoint<TContext, TValidationError>>
+): ep.AppEndpoint<
   TContext,
   TValidationError,
   unknown,
-  build.DynamicHandlerGetter<TContext, TValidationError, unknown>
+  ep.DynamicHandlerGetter<TContext, TValidationError, unknown>
 >;
 export function atPrefix<TValidationError, TContext>(
   prefix: string,
   regexpGroupNamePrefix: string,
-  ...endpoints: Array<build.AppEndpoint<TContext, TValidationError>>
-): build.AppEndpoint<
+  ...endpoints: Array<ep.AppEndpoint<TContext, TValidationError>>
+): ep.AppEndpoint<
   TContext,
   TValidationError,
   unknown,
-  build.DynamicHandlerGetter<TContext, TValidationError, unknown>
+  ep.DynamicHandlerGetter<TContext, TValidationError, unknown>
 >;
 export function atPrefix<TValidationError, TContext>(
   prefix: string,
   endpointOrGroupNamePrefix:
-    | build.AppEndpoint<TContext, TValidationError>
+    | ep.AppEndpoint<TContext, TValidationError>
     | string
     | undefined,
-  ...endpoints: Array<build.AppEndpoint<TContext, TValidationError>>
-): build.AppEndpoint<
+  ...endpoints: Array<ep.AppEndpoint<TContext, TValidationError>>
+): ep.AppEndpoint<
   TContext,
   TValidationError,
   unknown,
-  build.DynamicHandlerGetter<TContext, TValidationError, unknown>
+  ep.DynamicHandlerGetter<TContext, TValidationError, unknown>
 > {
   const allEndpoints =
     typeof endpointOrGroupNamePrefix === "string" || !endpointOrGroupNamePrefix
@@ -83,7 +83,7 @@ const makeEndpointRegExpGroupName = (prefix: string, idx: number) =>
   `${prefix}${idx}`;
 
 const buildEndpoints = <TContext, TValidationError>(
-  endpoints: ReadonlyArray<build.AppEndpoint<TContext, TValidationError>>,
+  endpoints: ReadonlyArray<ep.AppEndpoint<TContext, TValidationError>>,
   regExpGroupNamePrefix?: string,
 ) => {
   const isTopLevel = !regExpGroupNamePrefix;
