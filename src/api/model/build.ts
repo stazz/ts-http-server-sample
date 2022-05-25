@@ -41,105 +41,128 @@ const atURL = <TContext, TValidationError, TArgs extends Array<string>>(
         validateURLData: (validation) => {
           const urlRegExp = buildURLRegExp(fragments, args, validation);
           return {
-            withoutBody: (handler, transformOutput, ...methods) => ({
-              methods: getMethodsWithoutBody(methods),
-              getRegExpAndHandler: (groupNamePrefix) => ({
-                url: urlRegExp(groupNamePrefix),
-                handler: {
-                  body: "none",
-                  handler: (context, groups) =>
-                    transformOutput(
-                      handler(
-                        buildURLDataObject(
-                          args,
-                          validation,
-                          groups,
-                          groupNamePrefix,
-                        ) as unknown as Parameters<typeof handler>[0],
-                        context,
-                      ),
-                    ),
-                },
-              }),
-            }),
+            withoutBody: (handler, transformOutput, ...methodsParams) => {
+              const methods = getMethodsWithoutBody(methodsParams);
+              return {
+                getRegExpAndHandler: (groupNamePrefix) => ({
+                  url: urlRegExp(groupNamePrefix),
+                  handler: (method, groups) =>
+                    checkMethodsForHandler(methods, method, {
+                      handler: (context) =>
+                        transformOutput(
+                          handler(
+                            buildURLDataObject(
+                              args,
+                              validation,
+                              groups,
+                              groupNamePrefix,
+                            ) as unknown as Parameters<typeof handler>[0],
+                            context,
+                          ),
+                        ),
+                    }),
+                }),
+              };
+            },
             withBody: (
               bodyDataValidator,
               handler,
               transformOutput,
-              ...methods
-            ) => ({
-              methods: getMethodsWithBody(methods),
-              getRegExpAndHandler: (groupNamePrefix) => ({
-                url: urlRegExp(groupNamePrefix),
-                handler: {
-                  body: "required",
-                  isBodyValid: bodyDataValidator,
-                  handler: (body, context, groups) =>
-                    transformOutput(
-                      handler(
-                        buildURLDataObject(
-                          args,
-                          validation,
-                          groups,
-                          groupNamePrefix,
-                        ) as unknown as Parameters<typeof handler>[0],
-                        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
-                        body as any,
-                        context,
-                      ),
-                    ),
-                },
-              }),
-            }),
+              ...methodsParams
+            ) => {
+              const methods = getMethodsWithBody(methodsParams);
+              return {
+                getRegExpAndHandler: (groupNamePrefix) => ({
+                  url: urlRegExp(groupNamePrefix),
+                  handler: (method, groups) =>
+                    checkMethodsForHandler(methods, method, {
+                      isBodyValid: bodyDataValidator,
+                      handler: (context, body) =>
+                        transformOutput(
+                          handler(
+                            buildURLDataObject(
+                              args,
+                              validation,
+                              groups,
+                              groupNamePrefix,
+                            ) as unknown as Parameters<typeof handler>[0],
+                            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+                            body as any,
+                            context,
+                          ),
+                        ),
+                    }),
+                }),
+              };
+            },
           };
         },
       }
     : // URL has no arguments -> return builder which can build endpoints without URL validation
       {
-        withoutBody: (handler, transformOutput, ...methods) => ({
-          methods: getMethodsWithoutBody(methods),
-          getRegExpAndHandler: () => {
-            return {
-              url: new RegExp(utils.escapeRegExp(fragments.join(""))),
-              handler: {
-                body: "none",
-                handler: (ctx) => transformOutput(handler({}, ctx)),
-              },
-            };
-          },
-        }),
+        withoutBody: (handler, transformOutput, ...methodsParams) => {
+          const methods = getMethodsWithoutBody(methodsParams);
+          return {
+            getRegExpAndHandler: () => {
+              return {
+                url: new RegExp(utils.escapeRegExp(fragments.join(""))),
+                handler: (method) =>
+                  checkMethodsForHandler(methods, method, {
+                    handler: (ctx) => transformOutput(handler({}, ctx)),
+                  }),
+              };
+            },
+          };
+        },
         withBody: (
           bodyDataValidator,
           handler,
           transformOutput,
-          ...methods
-        ) => ({
-          methods: getMethodsWithBody(methods),
-          getRegExpAndHandler: () => {
-            return {
-              url: new RegExp(utils.escapeRegExp(fragments.join(""))),
-              handler: {
-                body: "required",
-                isBodyValid: bodyDataValidator,
-                handler: (body, ctx) =>
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
-                  transformOutput(handler({}, body as any, ctx)),
-              },
-            };
-          },
-        }),
+          ...methodsParams
+        ) => {
+          const methods = getMethodsWithBody(methodsParams);
+          return {
+            getRegExpAndHandler: () => {
+              return {
+                url: new RegExp(utils.escapeRegExp(fragments.join(""))),
+                handler: (method) =>
+                  checkMethodsForHandler(methods, method, {
+                    isBodyValid: bodyDataValidator,
+                    handler: (ctx, body) =>
+                      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+                      transformOutput(handler({}, body as any, ctx)),
+                  }),
+              };
+            },
+          };
+        },
       };
 };
 
 const getMethodsWithoutBody = (
   methods: ReadonlyArray<ep.HttpMethod>,
-): ReadonlyArray<ep.HttpMethod> =>
-  methods.length <= 0 ? ["GET"] : [...methods];
+): ReadonlySet<ep.HttpMethod> =>
+  new Set(methods.length <= 0 ? ["GET"] : [...methods]);
 
 const getMethodsWithBody = (
   methods: ReadonlyArray<ep.HttpMethod>,
-): ReadonlyArray<ep.HttpMethod> =>
-  methods.length <= 0 ? ["POST"] : [...methods];
+): ReadonlySet<ep.HttpMethod> =>
+  new Set(methods.length <= 0 ? ["POST"] : [...methods]);
+
+const checkMethodsForHandler = <TContext, TValidationError>(
+  methods: ReadonlySet<ep.HttpMethod>,
+  method: ep.HttpMethod,
+  handler: ep.StaticAppEndpointHandler<TContext, TValidationError>,
+): ep.DynamicHandlerResponse<TContext, TValidationError> =>
+  methods.has(method)
+    ? {
+        found: "handler" as const,
+        handler,
+      }
+    : {
+        found: "invalid-method" as const,
+        allowedMethods: [...methods],
+      };
 
 export interface URLDataNames<
   TContext,
@@ -172,30 +195,23 @@ export interface AppEndpointBuilder<
     handler: (urlData: TDataInURL, context: TContext) => U,
     transformOutput: data.DataValidatorOutput<TOutput, TValidationError, U>,
     ...httpMethods: Array<TAllowedMethods>
-  ) => ep.AppEndpoint<
-    TContext,
-    TValidationError,
-    ep.AppEndpointHandlerWithoutBody<TContext, TValidationError>
-  >;
+  ) => ep.AppEndpoint<TContext, TValidationError>;
   withBody: <U, V, TOutput>(
     bodyDataValidator: data.DataValidatorInput<V, TValidationError>,
     handler: (urlData: TDataInURL, bodyData: V, context: TContext) => U,
     transformOutput: data.DataValidatorOutput<TOutput, TValidationError, U>,
-    ...httpMethods:
-      | [
+    ...httpMethods: // When specifying body spec and non-body accepting method, it must be followed by at least one body-accepting method.
+    | [
           TAllowedMethods & HttpMethodWithoutBody,
           TAllowedMethods & HttpMethodWithBody,
-          ...Array<TAllowedMethods & HttpMethodWithBody>,
+          ...Array<TAllowedMethods>,
         ]
+      // When specifying body spec and body-accepting method, any acceptable method may follow
       | [
           TAllowedMethods & HttpMethodWithBody,
           ...Array<TAllowedMethods & HttpMethodWithBody>,
         ]
-  ) => ep.AppEndpoint<
-    TContext,
-    TValidationError,
-    ep.AppEndpointHandlerWithBody<TContext, TValidationError>
-  >;
+  ) => ep.AppEndpoint<TContext, TValidationError>;
 }
 
 export type HttpMethodWithoutBody = ep.HttpMethod & "GET";

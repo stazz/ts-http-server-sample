@@ -19,21 +19,6 @@ export const koaMiddlewareFactory = <TValidationError, TState>(
   // Return Koa middleware handler factory
   return {
     createMiddleware: (events) => {
-      const checkContextForHandler = (
-        ctx: koa.Context,
-        eventArgs: EventArguments<TState>,
-      ) => {
-        const stateValidation = stateValidator(ctx.state);
-        const isError = stateValidation.error === "in-error";
-        if (isError) {
-          ctx.status = 500; // Internal server error
-          events?.onInvalidKoaState?.({
-            ...eventArgs,
-            validationError: stateValidation.errorInfo,
-          });
-        }
-        return !isError;
-      };
       return async (ctx) => {
         const groups = url.exec(ctx.URL.pathname)?.groups;
         if (groups) {
@@ -48,53 +33,58 @@ export const koaMiddlewareFactory = <TValidationError, TState>(
           switch (foundHandler.found) {
             case "handler":
               {
+                const {
+                  handler: { isBodyValid, handler },
+                } = foundHandler;
+                let body: unknown;
+                let proceedToInvokeHandler = true;
+                if (isBodyValid) {
+                  let unvalidatedBody: unknown;
+                  try {
+                    unvalidatedBody = JSON.parse(
+                      await rawbody.default(ctx.req, { encoding: "utf8" }),
+                    );
+                  } catch (e) {
+                    events?.onBodyJSONParseError?.({
+                      ...eventArgs,
+                      exception: e,
+                    });
+                    // This is not a showstopper - our body validation might as well accept situations without the body.
+                  }
+                  const bodyValidationResponse = isBodyValid(unvalidatedBody);
+                  switch (bodyValidationResponse.error) {
+                    case "in-none":
+                      body = bodyValidationResponse.data;
+                      break;
+                    case "in-error":
+                      ctx.status = 422;
+                      proceedToInvokeHandler = false;
+                      events?.onInvalidBody?.({
+                        ...eventArgs,
+                        validationError: bodyValidationResponse.errorInfo,
+                      });
+                      break;
+                  }
+                }
+
                 let retVal:
                   | model.DataValidatorResponseOutput<unknown, TValidationError>
                   | undefined;
-                const { handler } = foundHandler;
-                switch (handler.body) {
-                  case "none":
-                    // No body -> just handle based on URL
-                    if (checkContextForHandler(ctx, eventArgs)) {
-                      retVal = handler.handler(ctx, groups);
-                    }
-                    break;
-                  case "required":
-                    // The body must be present -> read and validate, and pass on to handler
-                    {
-                      let body: unknown;
-                      try {
-                        body = JSON.parse(
-                          await rawbody.default(ctx.req, { encoding: "utf8" }),
-                        );
-                      } catch (e) {
-                        events?.onBodyJSONParseError?.({
-                          ...eventArgs,
-                          exception: e,
-                        });
-                        // This is not a showstopper - our body validation might as well accept situations without the body.
-                      }
-                      const bodyValidationResponse = handler.isBodyValid(body);
-                      switch (bodyValidationResponse.error) {
-                        case "in-none":
-                          if (checkContextForHandler(ctx, eventArgs)) {
-                            retVal = handler.handler(
-                              bodyValidationResponse.data,
-                              ctx,
-                              groups,
-                            );
-                          }
-                          break;
-                        case "in-error":
-                          ctx.status = 422;
-                          events?.onInvalidBody?.({
-                            ...eventArgs,
-                            validationError: bodyValidationResponse.errorInfo,
-                          });
-                          break;
-                      }
-                    }
-                    break;
+                if (proceedToInvokeHandler) {
+                  // Body (if supplied) was OK, now check state
+                  const stateValidation = stateValidator(ctx.state);
+                  switch (stateValidation.error) {
+                    case "in-none":
+                      retVal = handler(ctx, body);
+                      break;
+                    case "in-error":
+                      ctx.status = 500; // Internal server error
+                      events?.onInvalidKoaState?.({
+                        ...eventArgs,
+                        validationError: stateValidation.errorInfo,
+                      });
+                      break;
+                  }
                 }
 
                 // Check result

@@ -4,20 +4,12 @@ import * as ep from "./endpoint";
 export function atPrefix<TValidationError, TContext>(
   prefix: string,
   ...endpoints: Array<ep.AppEndpoint<TContext, TValidationError>>
-): ep.AppEndpoint<
-  TContext,
-  TValidationError,
-  ep.DynamicHandlerGetter<TContext, TValidationError>
->;
+): ep.AppEndpoint<TContext, TValidationError>;
 export function atPrefix<TValidationError, TContext>(
   prefix: string,
   regexpGroupNamePrefix: string,
   ...endpoints: Array<ep.AppEndpoint<TContext, TValidationError>>
-): ep.AppEndpoint<
-  TContext,
-  TValidationError,
-  ep.DynamicHandlerGetter<TContext, TValidationError>
->;
+): ep.AppEndpoint<TContext, TValidationError>;
 export function atPrefix<TValidationError, TContext>(
   prefix: string,
   endpointOrGroupNamePrefix:
@@ -25,19 +17,12 @@ export function atPrefix<TValidationError, TContext>(
     | string
     | undefined,
   ...endpoints: Array<ep.AppEndpoint<TContext, TValidationError>>
-): ep.AppEndpoint<
-  TContext,
-  TValidationError,
-  ep.DynamicHandlerGetter<TContext, TValidationError>
-> {
+): ep.AppEndpoint<TContext, TValidationError> {
   const allEndpoints =
     typeof endpointOrGroupNamePrefix === "string" || !endpointOrGroupNamePrefix
       ? endpoints
       : [endpointOrGroupNamePrefix, ...endpoints];
   return {
-    methods: Array.from(
-      new Set(allEndpoints.flatMap(({ methods }) => methods)).values(),
-    ),
     getRegExpAndHandler: (groupNamePrefix) => {
       const { builtEndpoints, regExp } = buildEndpoints(
         allEndpoints,
@@ -50,16 +35,9 @@ export function atPrefix<TValidationError, TContext>(
         handler: (method, groups) => {
           const matchingHandler = findFirstMatching(
             builtEndpoints,
-            ({ regExpGroupName, handler, methods }) => {
+            ({ regExpGroupName, handler }) => {
               if (groups[regExpGroupName] !== undefined) {
-                return methods.indexOf(method) >= 0
-                  ? typeof handler === "function"
-                    ? handler(method, groups)
-                    : { found: "handler" as const, handler }
-                  : {
-                      found: "invalid-method" as const,
-                      allowedMethods: [...methods],
-                    };
+                return handler(method, groups);
               }
             },
           );
@@ -85,16 +63,13 @@ const buildEndpoints = <TContext, TValidationError>(
 ) => {
   const isTopLevel = !regExpGroupNamePrefix;
   const groupNamePrefix = isTopLevel ? "e_" : regExpGroupNamePrefix;
-  const builtEndpointInfo = endpoints.map(
-    ({ methods, getRegExpAndHandler }, idx) => {
-      const regExpGroupName = makeEndpointRegExpGroupName(groupNamePrefix, idx);
-      return {
-        methods,
-        regExpGroupName,
-        builtEndpoint: getRegExpAndHandler(`${regExpGroupName}_`),
-      };
-    },
-  );
+  const builtEndpointInfo = endpoints.map(({ getRegExpAndHandler }, idx) => {
+    const regExpGroupName = makeEndpointRegExpGroupName(groupNamePrefix, idx);
+    return {
+      regExpGroupName,
+      builtEndpoint: getRegExpAndHandler(`${regExpGroupName}_`),
+    };
+  });
 
   const getNewRegExpSource: (source: string) => string = isTopLevel
     ? (source) => `^${source}`
@@ -102,8 +77,7 @@ const buildEndpoints = <TContext, TValidationError>(
 
   return {
     builtEndpoints: builtEndpointInfo.map(
-      ({ methods, regExpGroupName, builtEndpoint }) => ({
-        methods,
+      ({ regExpGroupName, builtEndpoint }) => ({
         regExpGroupName,
         handler: builtEndpoint.handler,
       }),
