@@ -34,8 +34,8 @@ const endpointsAsKoaMiddleware = (
     idInBody = t.string as unknown as t.BrandC<t.StringC, never>;
   }
   const urlBuilder = model.bindNecessaryTypes<
-    tPlugin.ValidationError,
-    koa.KoaContext<KoaState>
+    koa.KoaContext<KoaState>,
+    tPlugin.ValidationError
   >();
   // Any amount of endpoint informations can be passed to createKoaMiddleware - there always will be exactly one RegExp generated to perform endpoint match.
   return koa.koaMiddlewareFactory(

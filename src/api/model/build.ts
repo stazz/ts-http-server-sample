@@ -4,37 +4,37 @@ import * as data from "./data";
 import * as ep from "./endpoint";
 
 export const bindNecessaryTypes = <
-  TValidationError,
   TContext,
->(): AppEndpointBuilderProvider<TValidationError, TContext> => ({
+  TValidationError,
+>(): AppEndpointBuilderProvider<TContext, TValidationError> => ({
   atURL: (<TArgs extends Array<string>>(
     fragments: TemplateStringsArray,
     ...args: TArgs
   ):
-    | URLDataNames<TValidationError, TContext, TArgs[number]>
-    | AppEndpointBuilder<TValidationError, TContext, Record<string, never>> =>
+    | URLDataNames<TContext, TValidationError, TArgs[number]>
+    | AppEndpointBuilder<TContext, TValidationError, Record<string, never>> =>
     atURL(fragments, args)) as AppEndpointBuilderProvider<
-    TValidationError,
-    TContext
+    TContext,
+    TValidationError
   >["atURL"],
 });
 
-export type AppEndpointBuilderProvider<TValidationError, TContext> = {
+export type AppEndpointBuilderProvider<TContext, TValidationError> = {
   atURL: ((
     fragments: TemplateStringsArray,
-  ) => AppEndpointBuilder<TValidationError, TContext, Record<string, never>>) &
+  ) => AppEndpointBuilder<TContext, TValidationError, Record<string, never>>) &
     (<TArgs extends [string, ...Array<string>]>(
       fragments: TemplateStringsArray,
       ...args: TArgs
-    ) => URLDataNames<TValidationError, TContext, TArgs[number]>);
+    ) => URLDataNames<TContext, TValidationError, TArgs[number]>);
 };
 
-const atURL = <TValidationError, TContext, TArgs extends Array<string>>(
+const atURL = <TContext, TValidationError, TArgs extends Array<string>>(
   fragments: TemplateStringsArray,
   args: TArgs,
 ):
-  | URLDataNames<TValidationError, TContext, TArgs[number]>
-  | AppEndpointBuilder<TValidationError, TContext, Record<string, never>> => {
+  | URLDataNames<TContext, TValidationError, TArgs[number]>
+  | AppEndpointBuilder<TContext, TValidationError, Record<string, never>> => {
   return args.length > 0
     ? // URL template has arguments -> return URL data validator which allows to build endpoints
       {
@@ -142,15 +142,15 @@ const getMethodsWithBody = (
   methods.length <= 0 ? ["POST"] : [...methods];
 
 export interface URLDataNames<
-  TValidationError,
   TContext,
+  TValidationError,
   TNames extends string,
 > {
   validateURLData: <TValidation extends URLNamedDataValidation<TNames>>(
     validation: TValidation,
   ) => AppEndpointBuilder<
-    TValidationError,
     TContext,
+    TValidationError,
     {
       [P in TNames]: ReturnType<TValidation[P]["transform"]>;
     }
@@ -162,26 +162,9 @@ export type URLNamedDataValidation<TNames extends PropertyKey> = Record<
   url.URLDataTransformer<unknown>
 >;
 
-// export interface AppEndpointBuilderr<
-//   TValidationError,
-//   TContext,
-//   TDataInURL,
-//   TAllowedMethods extends ep.HttpMethod = ep.HttpMethod,
-// > {
-//   forMethods: <TMethods extends TAllowedMethods>(
-//     ...methods: Array<TMethods>
-//   ) => AppEndpointBuilder<TValidationError, TContext, TDataInURL, TMethods>;
-//   createEndpoint: () => ep.AppEndpoint<
-//     TContext,
-//     TValidationError,
-//     TOutput,
-//     ep.AppEndpointHandlerWithoutBody<TContext, TValidationError, TOutput>
-//   >;
-// }
-
 export interface AppEndpointBuilder<
-  TValidationError,
   TContext,
+  TValidationError,
   TDataInURL,
   TAllowedMethods extends ep.HttpMethod = ep.HttpMethod,
 > {
