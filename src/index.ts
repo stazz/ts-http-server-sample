@@ -111,6 +111,7 @@ const endpointsAsKoaMiddleware = (
                 "ConnectThingOutput", // Friendly name for error messages
               ),
             ),
+            "POST",
           ),
       ),
     ),

@@ -162,11 +162,16 @@ export type URLNamedDataValidation<TNames extends PropertyKey> = Record<
   url.URLDataTransformer<unknown>
 >;
 
-export interface AppEndpointBuilder<TValidationError, TContext, T> {
+export interface AppEndpointBuilder<
+  TValidationError,
+  TContext,
+  TDataInURL,
+  TAllowedMethods extends ep.HttpMethod = ep.HttpMethod,
+> {
   withoutBody: <U, TOutput>(
-    handler: (urlData: T, context: TContext) => U,
+    handler: (urlData: TDataInURL, context: TContext) => U,
     transformOutput: data.DataValidatorOutput<TOutput, TValidationError, U>,
-    ...httpMethods: Array<ep.HttpMethod>
+    ...httpMethods: Array<TAllowedMethods>
   ) => ep.AppEndpoint<
     TContext,
     TValidationError,
@@ -175,9 +180,18 @@ export interface AppEndpointBuilder<TValidationError, TContext, T> {
   >;
   withBody: <U, V, TOutput>(
     bodyDataValidator: data.DataValidatorInput<V, TValidationError>,
-    handler: (urlData: T, bodyData: V, context: TContext) => U,
+    handler: (urlData: TDataInURL, bodyData: V, context: TContext) => U,
     transformOutput: data.DataValidatorOutput<TOutput, TValidationError, U>,
-    ...httpMethods: Array<HttpMethodWithBody>
+    ...httpMethods:
+      | [
+          TAllowedMethods & HttpMethodWithoutBody,
+          TAllowedMethods & HttpMethodWithBody,
+          ...Array<TAllowedMethods & HttpMethodWithBody>,
+        ]
+      | [
+          TAllowedMethods & HttpMethodWithBody,
+          ...Array<TAllowedMethods & HttpMethodWithBody>,
+        ]
   ) => ep.AppEndpoint<
     TContext,
     TValidationError,
@@ -186,7 +200,8 @@ export interface AppEndpointBuilder<TValidationError, TContext, T> {
   >;
 }
 
-export type HttpMethodWithBody = Exclude<ep.HttpMethod, "GET">;
+export type HttpMethodWithoutBody = ep.HttpMethod & "GET";
+export type HttpMethodWithBody = Exclude<ep.HttpMethod, HttpMethodWithoutBody>;
 
 const buildURLDataObject = (
   args: ReadonlyArray<string>,
