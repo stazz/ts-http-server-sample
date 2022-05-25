@@ -162,6 +162,23 @@ export type URLNamedDataValidation<TNames extends PropertyKey> = Record<
   url.URLDataTransformer<unknown>
 >;
 
+// export interface AppEndpointBuilderr<
+//   TValidationError,
+//   TContext,
+//   TDataInURL,
+//   TAllowedMethods extends ep.HttpMethod = ep.HttpMethod,
+// > {
+//   forMethods: <TMethods extends TAllowedMethods>(
+//     ...methods: Array<TMethods>
+//   ) => AppEndpointBuilder<TValidationError, TContext, TDataInURL, TMethods>;
+//   createEndpoint: () => ep.AppEndpoint<
+//     TContext,
+//     TValidationError,
+//     TOutput,
+//     ep.AppEndpointHandlerWithoutBody<TContext, TValidationError, TOutput>
+//   >;
+// }
+
 export interface AppEndpointBuilder<
   TValidationError,
   TContext,
@@ -175,8 +192,7 @@ export interface AppEndpointBuilder<
   ) => ep.AppEndpoint<
     TContext,
     TValidationError,
-    TOutput,
-    ep.AppEndpointHandlerWithoutBody<TContext, TValidationError, TOutput>
+    ep.AppEndpointHandlerWithoutBody<TContext, TValidationError>
   >;
   withBody: <U, V, TOutput>(
     bodyDataValidator: data.DataValidatorInput<V, TValidationError>,
@@ -195,8 +211,7 @@ export interface AppEndpointBuilder<
   ) => ep.AppEndpoint<
     TContext,
     TValidationError,
-    TOutput,
-    ep.AppEndpointHandlerWithBody<TContext, TValidationError, TOutput>
+    ep.AppEndpointHandlerWithBody<TContext, TValidationError>
   >;
 }
 

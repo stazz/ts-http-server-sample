@@ -57,10 +57,6 @@ export const koaMiddlewareFactory = <TValidationError, TState>(
                     // No body -> just handle based on URL
                     if (checkContextForHandler(ctx, eventArgs)) {
                       retVal = handler.handler(ctx, groups);
-                      if (retVal === undefined) {
-                        // Remember to still set the status code
-                        ctx.status = 200;
-                      }
                     }
                     break;
                   case "required":
@@ -87,10 +83,6 @@ export const koaMiddlewareFactory = <TValidationError, TState>(
                               ctx,
                               groups,
                             );
-                            if (retVal === undefined) {
-                              // Remember to still set the status code
-                              ctx.status = 200;
-                            }
                           }
                           break;
                         case "in-error":
@@ -111,6 +103,7 @@ export const koaMiddlewareFactory = <TValidationError, TState>(
                     case "out-none":
                       {
                         const output = retVal.data;
+                        ctx.status = 200; // OK
                         if (output !== undefined) {
                           ctx.set("Content-Type", "application/json");
                           ctx.body = JSON.stringify(output);

@@ -7,8 +7,7 @@ export function atPrefix<TValidationError, TContext>(
 ): ep.AppEndpoint<
   TContext,
   TValidationError,
-  unknown,
-  ep.DynamicHandlerGetter<TContext, TValidationError, unknown>
+  ep.DynamicHandlerGetter<TContext, TValidationError>
 >;
 export function atPrefix<TValidationError, TContext>(
   prefix: string,
@@ -17,8 +16,7 @@ export function atPrefix<TValidationError, TContext>(
 ): ep.AppEndpoint<
   TContext,
   TValidationError,
-  unknown,
-  ep.DynamicHandlerGetter<TContext, TValidationError, unknown>
+  ep.DynamicHandlerGetter<TContext, TValidationError>
 >;
 export function atPrefix<TValidationError, TContext>(
   prefix: string,
@@ -30,8 +28,7 @@ export function atPrefix<TValidationError, TContext>(
 ): ep.AppEndpoint<
   TContext,
   TValidationError,
-  unknown,
-  ep.DynamicHandlerGetter<TContext, TValidationError, unknown>
+  ep.DynamicHandlerGetter<TContext, TValidationError>
 > {
   const allEndpoints =
     typeof endpointOrGroupNamePrefix === "string" || !endpointOrGroupNamePrefix
