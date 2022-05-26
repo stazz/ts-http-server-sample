@@ -2,7 +2,7 @@ import type * as koa from "koa";
 import * as model from "../model";
 import * as rawbody from "raw-body";
 
-export type KoaContext<TState> = koa.ParameterizedContext<TState>;
+export type KoaContext = koa.Context;
 
 // Using given various endpoints, create object which is able to create Koa middlewares.
 // The factory object accepts callbacks to execute on certain scenarios (mostly on errors).
@@ -126,6 +126,38 @@ export const koaMiddlewareFactory = <TValidationError, TState>(
     },
   };
 };
+
+export const validateContextState =
+  <TData, TError, TInput>(
+    validator: model.DataValidator<
+      TData,
+      TError,
+      TInput,
+      "in-none",
+      "in-error"
+    >,
+  ): model.DataValidator<
+    koa.ParameterizedContext<TData>,
+    TError,
+    koa.ParameterizedContext<TInput>,
+    "none",
+    "error"
+  > =>
+  (ctx) => {
+    const transformed = validator(ctx.state);
+    switch (transformed.error) {
+      case "in-none":
+        return {
+          error: "none" as const,
+          data: ctx as unknown as koa.ParameterizedContext<TData>,
+        };
+      default:
+        return {
+          error: "error",
+          errorInfo: transformed.errorInfo,
+        };
+    }
+  };
 
 export interface EventArguments<TState> {
   ctx: koa.ParameterizedContext<TState>;

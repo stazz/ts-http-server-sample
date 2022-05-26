@@ -6,28 +6,55 @@ import * as ep from "./endpoint";
 export const bindNecessaryTypes = <
   TContext,
   TValidationError,
->(): AppEndpointBuilderProvider<TContext, TValidationError> =>
-  new AppEndpointBuilderProvider<TContext, TValidationError>();
+>(): AppEndpointBuilderProvider<TContext, TContext, TValidationError> =>
+  new AppEndpointBuilderProvider<TContext, TContext, TValidationError>(
+    (ctx) => ({ error: "none", data: ctx }),
+  );
 
-export class AppEndpointBuilderProvider<TContext, TValidationError> {
+export class AppEndpointBuilderProvider<
+  TContext,
+  TRefinedContext,
+  TValidationError,
+> {
+  public constructor(
+    private readonly _contextTransform: data.DataValidator<
+      TRefinedContext,
+      TValidationError,
+      TContext,
+      "none",
+      "error"
+    >,
+  ) {}
+
   public atURL(
     fragments: TemplateStringsArray,
-  ): AppEndpointBuilderInitial<TContext, TValidationError, ep.HttpMethod>;
+  ): AppEndpointBuilderInitial<
+    TContext,
+    TRefinedContext,
+    TValidationError,
+    ep.HttpMethod
+  >;
   public atURL<TArgs extends [string, ...Array<string>]>(
     fragments: TemplateStringsArray,
     ...args: TArgs
-  ): URLDataNames<TContext, TValidationError, TArgs[number]>;
+  ): URLDataNames<TContext, TRefinedContext, TValidationError, TArgs[number]>;
   public atURL<TArgs extends [string, ...Array<string>]>(
     fragments: TemplateStringsArray,
     ...args: TArgs
   ):
-    | AppEndpointBuilderInitial<TContext, TValidationError, ep.HttpMethod>
-    | URLDataNames<TContext, TValidationError, TArgs[number]> {
+    | AppEndpointBuilderInitial<
+        TContext,
+        TRefinedContext,
+        TValidationError,
+        ep.HttpMethod
+      >
+    | URLDataNames<TContext, TRefinedContext, TValidationError, TArgs[number]> {
     if (args.length > 0) {
       // URL template has arguments -> return URL data validator which allows to build endpoints
       return {
         validateURLData: (validation) => {
           return new AppEndpointBuilderWithURLDataInitial({
+            contextTransform: this._contextTransform,
             fragments,
             args,
             validation,
@@ -38,15 +65,37 @@ export class AppEndpointBuilderProvider<TContext, TValidationError> {
     } else {
       // URL has no arguments -> return builder which can build endpoints without URL validation
       return new AppEndpointBuilderInitial({
+        contextTransform: this._contextTransform,
         fragments,
         methods: {},
       });
     }
   }
+
+  public refineContext<TNewContext>(
+    transform: data.DataValidator<
+      TNewContext,
+      TValidationError,
+      TRefinedContext,
+      "none",
+      "error"
+    >,
+  ): AppEndpointBuilderProvider<TContext, TNewContext, TValidationError> {
+    return new AppEndpointBuilderProvider((ctx) => {
+      const transformed = this._contextTransform(ctx);
+      switch (transformed.error) {
+        case "none":
+          return transform(transformed.data);
+        default:
+          return transformed;
+      }
+    });
+  }
 }
 
 export interface URLDataNames<
   TContext,
+  TRefinedContext,
   TValidationError,
   TNames extends string,
 > {
@@ -54,6 +103,7 @@ export interface URLDataNames<
     validation: TValidation,
   ) => AppEndpointBuilderWithURLDataInitial<
     TContext,
+    TRefinedContext,
     TValidationError,
     {
       [P in TNames]: ReturnType<TValidation[P]["transform"]>;
@@ -69,6 +119,7 @@ export type URLNamedDataValidation<TNames extends PropertyKey> = Record<
 
 class AppEndpointBuilderWithURLDataInitial<
   TContext,
+  TRefinedContext,
   TValidationError,
   TDataInURL,
   TAllowedMethods extends ep.HttpMethod,
@@ -76,6 +127,7 @@ class AppEndpointBuilderWithURLDataInitial<
   public constructor(
     protected readonly _state: AppEndpointBuilderWithURLDataState<
       TContext,
+      TRefinedContext,
       TValidationError
     >,
   ) {}
@@ -85,6 +137,7 @@ class AppEndpointBuilderWithURLDataInitial<
     ...methods: Array<TMethods>
   ): AppEndpointBuilderForURLDataAndMethods<
     TContext,
+    TRefinedContext,
     TValidationError,
     TDataInURL,
     TMethods
@@ -94,6 +147,7 @@ class AppEndpointBuilderWithURLDataInitial<
     ...httpMethods: Array<TMethods>
   ): AppEndpointBuilderForURLDataAndMethodsAndBody<
     TContext,
+    TRefinedContext,
     TValidationError,
     TDataInURL,
     TMethods
@@ -104,12 +158,14 @@ class AppEndpointBuilderWithURLDataInitial<
   ):
     | AppEndpointBuilderForURLDataAndMethods<
         TContext,
+        TRefinedContext,
         TValidationError,
         TDataInURL,
         TMethods
       >
     | AppEndpointBuilderForURLDataAndMethodsAndBody<
         TContext,
+        TRefinedContext,
         TValidationError,
         TDataInURL,
         TMethods
@@ -133,26 +189,38 @@ type StaticAppEndpointBuilder<TContext, TBodyError> = (
   groups: Record<string, string>,
 ) => ep.StaticAppEndpointHandler<TContext, TBodyError>;
 
-interface AppEndpointBuilderState<TContext, TValidationError> {
+interface AppEndpointBuilderState<TContext, TRefinedContext, TValidationError> {
   fragments: TemplateStringsArray;
   methods: Partial<
     Record<ep.HttpMethod, StaticAppEndpointBuilder<TContext, TValidationError>>
   >;
+  contextTransform: data.DataValidator<
+    TRefinedContext,
+    TValidationError,
+    TContext,
+    "none",
+    "error"
+  >;
 }
 
-interface AppEndpointBuilderWithURLDataState<TContext, TValidationError>
-  extends AppEndpointBuilderState<TContext, TValidationError> {
+interface AppEndpointBuilderWithURLDataState<
+  TContext,
+  TRefinedContext,
+  TValidationError,
+> extends AppEndpointBuilderState<TContext, TRefinedContext, TValidationError> {
   args: ReadonlyArray<string>;
   validation: Record<string, url.URLDataTransformer<unknown>>;
 }
 
 export class AppEndpointBuilderWithURLData<
   TContext,
+  TRefinedContext,
   TValidationError,
   TDataInURL,
   TAllowedMethods extends ep.HttpMethod,
 > extends AppEndpointBuilderWithURLDataInitial<
   TContext,
+  TRefinedContext,
   TValidationError,
   TDataInURL,
   TAllowedMethods
@@ -185,6 +253,7 @@ export class AppEndpointBuilderWithURLData<
 
 export class AppEndpointBuilderForURLDataAndMethods<
   TContext,
+  TRefinedContext,
   TValidationError,
   TDataInURL,
   TAllowedMethods extends ep.HttpMethod,
@@ -192,13 +261,17 @@ export class AppEndpointBuilderForURLDataAndMethods<
   public constructor(
     protected readonly _state: AppEndpointBuilderWithURLDataState<
       TContext,
+      TRefinedContext,
       TValidationError
     >,
     protected readonly _methods: Set<TAllowedMethods>,
   ) {}
 
   public withoutBody<THandlerResult, TOutput>(
-    endpointHandler: (urlData: TDataInURL, context: TContext) => THandlerResult,
+    endpointHandler: (
+      urlData: TDataInURL,
+      context: TRefinedContext,
+    ) => THandlerResult,
     transformOutput: data.DataValidatorOutput<
       TOutput,
       TValidationError,
@@ -206,6 +279,7 @@ export class AppEndpointBuilderForURLDataAndMethods<
     >,
   ): AppEndpointBuilderWithURLData<
     TContext,
+    TRefinedContext,
     TValidationError,
     TDataInURL,
     Exclude<ep.HttpMethod, TAllowedMethods>
@@ -215,15 +289,17 @@ export class AppEndpointBuilderForURLDataAndMethods<
       groups,
     ) => ({
       handler: (ctx) =>
-        transformOutput(
-          endpointHandler(
-            buildURLDataObject(
-              this._state.args,
-              this._state.validation,
-              groups,
-              groupNamePrefix,
-            ) as unknown as TDataInURL,
-            ctx,
+        postTransform(ctx, this._state.contextTransform, (transformedContext) =>
+          transformOutput(
+            endpointHandler(
+              buildURLDataObject(
+                this._state.args,
+                this._state.validation,
+                groups,
+                groupNamePrefix,
+              ) as unknown as TDataInURL,
+              transformedContext,
+            ),
           ),
         ),
     });
@@ -242,21 +318,28 @@ export class AppEndpointBuilderForURLDataAndMethods<
 
 export class AppEndpointBuilderForURLDataAndMethodsAndBody<
   TContext,
+  TRefinedContext,
   TValidationError,
   TDataInURL,
   TAllowedMethods extends ep.HttpMethod,
 > extends AppEndpointBuilderForURLDataAndMethods<
   TContext,
+  TRefinedContext,
   TValidationError,
   TDataInURL,
   TAllowedMethods
 > {
   public withBody<U, V, TOutput>(
     bodyDataValidator: data.DataValidatorInput<V, TValidationError>,
-    endpointHandler: (urlData: TDataInURL, bodyData: V, context: TContext) => U,
+    endpointHandler: (
+      urlData: TDataInURL,
+      bodyData: V,
+      context: TRefinedContext,
+    ) => U,
     transformOutput: data.DataValidatorOutput<TOutput, TValidationError, U>,
   ): AppEndpointBuilderWithURLData<
     TContext,
+    TRefinedContext,
     TValidationError,
     TDataInURL,
     Exclude<ep.HttpMethod, TAllowedMethods>
@@ -267,16 +350,18 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
     ) => ({
       isBodyValid: bodyDataValidator,
       handler: (ctx, body) =>
-        transformOutput(
-          endpointHandler(
-            buildURLDataObject(
-              this._state.args,
-              this._state.validation,
-              groups,
-              groupNamePrefix,
-            ) as unknown as TDataInURL,
-            body as V,
-            ctx,
+        postTransform(ctx, this._state.contextTransform, (transformedContext) =>
+          transformOutput(
+            endpointHandler(
+              buildURLDataObject(
+                this._state.args,
+                this._state.validation,
+                groups,
+                groupNamePrefix,
+              ) as unknown as TDataInURL,
+              body as V,
+              transformedContext,
+            ),
           ),
         ),
     });
@@ -303,12 +388,14 @@ export type HttpMethodWithBody = Exclude<ep.HttpMethod, HttpMethodWithoutBody>;
 
 export class AppEndpointBuilderInitial<
   TContext,
+  TRefinedContext,
   TValidationError,
   TAllowedMethods extends ep.HttpMethod,
 > {
   public constructor(
     protected readonly _state: AppEndpointBuilderState<
       TContext,
+      TRefinedContext,
       TValidationError
     >,
   ) {}
@@ -316,18 +403,34 @@ export class AppEndpointBuilderInitial<
   public forMethods<TMethods extends TAllowedMethods>(
     method: TMethods & HttpMethodWithoutBody,
     ...methods: Array<TMethods>
-  ): AppEndpointBuilderForMethods<TContext, TValidationError, TMethods>;
+  ): AppEndpointBuilderForMethods<
+    TContext,
+    TRefinedContext,
+    TValidationError,
+    TMethods
+  >;
   public forMethods<TMethods extends TAllowedMethods>(
     method: TMethods & HttpMethodWithBody,
     ...httpMethods: Array<TMethods>
-  ): AppEndpointBuilderForMethodsAndBody<TContext, TValidationError, TMethods>;
+  ): AppEndpointBuilderForMethodsAndBody<
+    TContext,
+    TRefinedContext,
+    TValidationError,
+    TMethods
+  >;
   public forMethods<TMethods extends TAllowedMethods>(
     method: TMethods,
     ...methods: Array<TMethods>
   ):
-    | AppEndpointBuilderForMethods<TContext, TValidationError, TMethods>
+    | AppEndpointBuilderForMethods<
+        TContext,
+        TRefinedContext,
+        TValidationError,
+        TMethods
+      >
     | AppEndpointBuilderForMethodsAndBody<
         TContext,
+        TRefinedContext,
         TValidationError,
         TMethods
       > {
@@ -344,10 +447,12 @@ export class AppEndpointBuilderInitial<
 
 export class AppEndpointBuilder<
   TContext,
+  TRefinedContext,
   TValidationError,
   TAllowedMethods extends ep.HttpMethod,
 > extends AppEndpointBuilderInitial<
   TContext,
+  TRefinedContext,
   TValidationError,
   TAllowedMethods
 > {
@@ -375,22 +480,25 @@ export class AppEndpointBuilder<
 
 export class AppEndpointBuilderForMethods<
   TContext,
+  TRefinedContext,
   TValidationError,
   TAllowedMethods extends ep.HttpMethod,
 > {
   public constructor(
     protected readonly _state: AppEndpointBuilderState<
       TContext,
+      TRefinedContext,
       TValidationError
     >,
     protected readonly _methods: Set<TAllowedMethods>,
   ) {}
 
   public withoutBody<U, TOutput>(
-    endpointHandler: (context: TContext) => U,
+    endpointHandler: (context: TRefinedContext) => U,
     transformOutput: data.DataValidatorOutput<TOutput, TValidationError, U>,
   ): AppEndpointBuilder<
     TContext,
+    TRefinedContext,
     TValidationError,
     Exclude<ep.HttpMethod, TAllowedMethods>
   > {
@@ -398,7 +506,10 @@ export class AppEndpointBuilderForMethods<
       TContext,
       TValidationError
     > = () => ({
-      handler: (ctx) => transformOutput(endpointHandler(ctx)),
+      handler: (ctx) =>
+        postTransform(ctx, this._state.contextTransform, (transformedContext) =>
+          transformOutput(endpointHandler(transformedContext)),
+        ),
     });
     return new AppEndpointBuilder({
       ...this._state,
@@ -415,16 +526,21 @@ export class AppEndpointBuilderForMethods<
 
 export class AppEndpointBuilderForMethodsAndBody<
   TContext,
+  TRefinedContext,
   TValidationError,
   TAllowedMethods extends ep.HttpMethod,
 > extends AppEndpointBuilderForMethods<
   TContext,
+  TRefinedContext,
   TValidationError,
   TAllowedMethods
 > {
   public withBody<THandlerResult, TBody, TOutput>(
     bodyDataValidator: data.DataValidatorInput<TBody, TValidationError>,
-    endpointHandler: (bodyData: TBody, context: TContext) => THandlerResult,
+    endpointHandler: (
+      bodyData: TBody,
+      context: TRefinedContext,
+    ) => THandlerResult,
     transformOutput: data.DataValidatorOutput<
       TOutput,
       TValidationError,
@@ -432,6 +548,7 @@ export class AppEndpointBuilderForMethodsAndBody<
     >,
   ): AppEndpointBuilder<
     TContext,
+    TRefinedContext,
     TValidationError,
     Exclude<ep.HttpMethod, TAllowedMethods>
   > {
@@ -441,7 +558,9 @@ export class AppEndpointBuilderForMethodsAndBody<
     > = () => ({
       isBodyValid: bodyDataValidator,
       handler: (ctx, body) =>
-        transformOutput(endpointHandler(body as TBody, ctx)),
+        postTransform(ctx, this._state.contextTransform, (transformedContext) =>
+          transformOutput(endpointHandler(body as TBody, transformedContext)),
+        ),
     });
     return new AppEndpointBuilder({
       ...this._state,
@@ -531,4 +650,27 @@ const buildURLRegExp = (
         return `${currentRegExp}${fragmentRegExp}`;
       }, ""),
     );
+};
+
+const postTransform = <TContext, TRefinedContext, TValidationError, TResult>(
+  ctx: TContext,
+  contextTransform: data.DataValidator<
+    TRefinedContext,
+    TValidationError,
+    TContext,
+    "none",
+    "error"
+  >,
+  useTransformed: (transformed: TRefinedContext) => TResult,
+) => {
+  const transformedContext = contextTransform(ctx);
+  switch (transformedContext.error) {
+    case "none":
+      return useTransformed(transformedContext.data);
+    default:
+      return {
+        error: "out-error" as const,
+        errorInfo: transformedContext.errorInfo,
+      };
+  }
 };

@@ -34,9 +34,13 @@ const endpointsAsKoaMiddleware = (
     idInBody = t.string as unknown as t.BrandC<t.StringC, never>;
   }
   const urlBuilder = model.bindNecessaryTypes<
-    koa.KoaContext<KoaState>,
+    koa.KoaContext,
     tPlugin.ValidationError
   >();
+
+  const urlBuilderWithUsername = urlBuilder.refineContext(
+    koa.validateContextState(tPlugin.inputValidator(koaState)),
+  );
   // Any amount of endpoint informations can be passed to createKoaMiddleware - there always will be exactly one RegExp generated to perform endpoint match.
   return koa.koaMiddlewareFactory(
     tPlugin.inputValidator(koaState),
@@ -47,7 +51,7 @@ const endpointsAsKoaMiddleware = (
       model.atPrefix(
         "/thing",
         // Endpoint: query thing by ID.
-        urlBuilder.atURL`/${"id"}`
+        urlBuilderWithUsername.atURL`/${"id"}`
           .validateURLData({
             // All parameters present in URL template string must be mentioned here, otherwise there will be compile-time error.
             id: idInURL,
@@ -61,7 +65,7 @@ const endpointsAsKoaMiddleware = (
           )
           .createEndpoint(),
         // Endpoint: create thing with some property set.
-        urlBuilder.atURL``
+        urlBuilderWithUsername.atURL``
           .forMethods("PUT")
           .withBody(
             // Body validator (will be called on JSON-parsed entity)
@@ -88,7 +92,7 @@ const endpointsAsKoaMiddleware = (
           )
           .createEndpoint(),
         // Endpoint: connect thing to another thing.
-        urlBuilder.atURL`/${"id"}/connectToAnotherThing`
+        urlBuilderWithUsername.atURL`/${"id"}/connectToAnotherThing`
           .validateURLData({
             id: idInURL,
           })
