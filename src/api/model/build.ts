@@ -6,55 +6,44 @@ import * as ep from "./endpoint";
 export const bindNecessaryTypes = <
   TContext,
   TValidationError,
->(): AppEndpointBuilderProvider<TContext, TValidationError> => ({
-  atURL: (<TArgs extends Array<string>>(
+>(): AppEndpointBuilderProvider<TContext, TValidationError> =>
+  new AppEndpointBuilderProvider<TContext, TValidationError>();
+
+export class AppEndpointBuilderProvider<TContext, TValidationError> {
+  public atURL(
+    fragments: TemplateStringsArray,
+  ): AppEndpointBuilderInitial<TContext, TValidationError, ep.HttpMethod>;
+  public atURL<TArgs extends [string, ...Array<string>]>(
+    fragments: TemplateStringsArray,
+    ...args: TArgs
+  ): URLDataNames<TContext, TValidationError, TArgs[number]>;
+  public atURL<TArgs extends [string, ...Array<string>]>(
     fragments: TemplateStringsArray,
     ...args: TArgs
   ):
-    | URLDataNames<TContext, TValidationError, TArgs[number]>
-    | AppEndpointBuilderInitial<TContext, TValidationError, ep.HttpMethod> =>
-    atURL(fragments, args)) as AppEndpointBuilderProvider<
-    TContext,
-    TValidationError
-  >["atURL"],
-});
-
-export interface AppEndpointBuilderProvider<TContext, TValidationError> {
-  atURL: ((
-    fragments: TemplateStringsArray,
-  ) => AppEndpointBuilderInitial<TContext, TValidationError, ep.HttpMethod>) &
-    (<TArgs extends [string, ...Array<string>]>(
-      fragments: TemplateStringsArray,
-      ...args: TArgs
-    ) => URLDataNames<TContext, TValidationError, TArgs[number]>);
-}
-
-const atURL = <TContext, TValidationError, TArgs extends Array<string>>(
-  fragments: TemplateStringsArray,
-  args: TArgs,
-):
-  | URLDataNames<TContext, TValidationError, TArgs[number]>
-  | AppEndpointBuilderInitial<TContext, TValidationError, ep.HttpMethod> => {
-  if (args.length > 0) {
-    // URL template has arguments -> return URL data validator which allows to build endpoints
-    return {
-      validateURLData: (validation) => {
-        return new AppEndpointBuilderWithURLDataInitial({
-          fragments,
-          args,
-          validation,
-          methods: {},
-        });
-      },
-    };
-  } else {
-    // URL has no arguments -> return builder which can build endpoints without URL validation
-    return new AppEndpointBuilderInitial({
-      fragments,
-      methods: {},
-    });
+    | AppEndpointBuilderInitial<TContext, TValidationError, ep.HttpMethod>
+    | URLDataNames<TContext, TValidationError, TArgs[number]> {
+    if (args.length > 0) {
+      // URL template has arguments -> return URL data validator which allows to build endpoints
+      return {
+        validateURLData: (validation) => {
+          return new AppEndpointBuilderWithURLDataInitial({
+            fragments,
+            args,
+            validation,
+            methods: {},
+          });
+        },
+      };
+    } else {
+      // URL has no arguments -> return builder which can build endpoints without URL validation
+      return new AppEndpointBuilderInitial({
+        fragments,
+        methods: {},
+      });
+    }
   }
-};
+}
 
 export interface URLDataNames<
   TContext,
