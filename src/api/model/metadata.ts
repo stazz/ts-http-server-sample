@@ -2,6 +2,10 @@ export type AppEndpointMetadata<TDataSchemaTypes> =
   | AppEndpointMetadataConcrete<TDataSchemaTypes>
   | AppEndpointMetadataCombined<TDataSchemaTypes>;
 
+// TDataSchemaTypes could be for example:
+// {
+//    "application/json": t.Type<unknown>
+// }
 export interface AppEndpointMetadataConcrete<TDataSchemaTypes> {
   urlValidation?: ReadonlyArray<string | RegExp>;
   dataValidation: {

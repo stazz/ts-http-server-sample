@@ -52,43 +52,47 @@ const endpointsAsKoaMiddleware = (
             // All parameters present in URL template string must be mentioned here, otherwise there will be compile-time error.
             id: idInURL,
           })
+          .forMethods("GET")
           .withoutBody(
             // Invoke functionality
             ({ id }) => functionality.queryThing(id),
             // Transform functionality output to REST output
             tPlugin.outputValidator(t.string),
-          ),
+          )
+          .createEndpoint(),
         // Endpoint: create thing with some property set.
-        urlBuilder.atURL``.withBody(
-          // Body validator (will be called on JSON-parsed entity)
-          tPlugin.inputValidator(
-            t.type(
-              {
-                property: idInBody,
-              },
-              "CreateThingBody", // Friendly name for error messages
+        urlBuilder.atURL``
+          .forMethods("PUT")
+          .withBody(
+            // Body validator (will be called on JSON-parsed entity)
+            tPlugin.inputValidator(
+              t.type(
+                {
+                  property: idInBody,
+                },
+                "CreateThingBody", // Friendly name for error messages
+              ),
             ),
-          ),
-          // Request handler
-          (_, { property }, { state: { username } }) =>
-            functionality.createThing(property, username),
-          // Transform functionality output to REST output
-          tPlugin.outputValidator(
-            t.type(
-              {
-                property: t.string,
-              },
-              "CreateThingOutput", // Friendly name for error messages
+            // Request handler
+            ({ property }, { state: { username } }) =>
+              functionality.createThing(property, username),
+            // Transform functionality output to REST output
+            tPlugin.outputValidator(
+              t.type(
+                {
+                  property: t.string,
+                },
+                "CreateThingOutput", // Friendly name for error messages
+              ),
             ),
-          ),
-          // Optional accepted methods (default just "POST")
-          "PUT",
-        ),
+          )
+          .createEndpoint(),
         // Endpoint: connect thing to another thing.
         urlBuilder.atURL`/${"id"}/connectToAnotherThing`
           .validateURLData({
             id: idInURL,
           })
+          .forMethods("POST")
           .withBody(
             // Body validator (will be called on JSON-parsed entity)
             tPlugin.inputValidator(
@@ -111,15 +115,18 @@ const endpointsAsKoaMiddleware = (
                 "ConnectThingOutput", // Friendly name for error messages
               ),
             ),
-            "POST",
-          ),
+          )
+          .createEndpoint(),
       ),
     ),
     // Endpoint: (fake) API docs
-    urlBuilder.atURL`/doc`.withoutBody(
-      () => "This is our documentation",
-      tPlugin.outputValidator(t.string),
-    ),
+    urlBuilder.atURL`/doc`
+      .forMethods("GET")
+      .withoutBody(
+        () => "This is our documentation",
+        tPlugin.outputValidator(t.string),
+      )
+      .createEndpoint(),
   );
 };
 

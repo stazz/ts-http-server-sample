@@ -17,11 +17,13 @@ export type DynamicHandlerGetter<TContext, TBodyValidationError> = (
 
 export type StaticAppEndpointHandler<TContext, TBodyError> = {
   isBodyValid?: data.DataValidatorInput<unknown, TBodyError>;
-  handler: (
-    context: TContext,
-    body: unknown,
-  ) => data.DataValidatorResponseOutput<unknown, TBodyError>;
+  handler: StaticAppEndpointHandlerFunction<TContext, TBodyError>;
 };
+
+export type StaticAppEndpointHandlerFunction<TContext, TBodyError> = (
+  context: TContext,
+  body: unknown,
+) => data.DataValidatorResponseOutput<unknown, TBodyError>;
 
 export type DynamicHandlerResponse<TContext, TBodyValidationError> =
   | {

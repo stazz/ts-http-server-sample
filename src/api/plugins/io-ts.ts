@@ -6,7 +6,7 @@ export type ValidationError = t.Errors;
 
 export const inputValidator =
   <T>(
-    validation: t.Decoder<unknown, T>,
+    validation: t.Decoder<unknown, T> & { _tag: string },
   ): model.DataValidatorInput<T, ValidationError> =>
   (body) => {
     const validationResult = validation.decode(body);
@@ -23,7 +23,7 @@ export const inputValidator =
 
 export const outputValidator =
   <TOutput, TSerialized>(
-    validation: t.Encoder<TOutput, TSerialized>,
+    validation: t.Encoder<TOutput, TSerialized> & { _tag: string },
   ): model.DataValidatorOutput<TSerialized, ValidationError, TOutput> =>
   (output) => {
     try {

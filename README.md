@@ -36,11 +36,11 @@ The following things are good experiments to kick off full project exploration:
   Observe immediate compile-time errors.
 - On line `53` ( `id: idInURL,` ), try change the property name from `id` to something else, like `id_typoed`.
   Observe immediate compile-time errors.
-- On line `57` ( `({ id }) => functionality.queryThing(id),` ), try to change the property name of the argument (`{ id }` into something else, like `{ id_typoed }`).
+- On line `56` ( `.withoutBody(` ), try change the invoked method name to `withBody`.
+  Observe immediate compile-time errors (because `"GET"` handlers can not specify body).
+- On line `58` ( `({ id }) => functionality.queryThing(id),` ), try to change the property name of the argument (`{ id }` into something else, like `{ id_typoed }`).
   Observe immediate compile-time errors.
-- On line `59` ( `tPlugin.outputValidator(t.string)` ), try change the output type `t.string` to something else, like `t.number`, so that the line becomes `tPlugin.outputValidator(t.number)`.
-  Observe immediate compile-time errors.
-- On line `62` ( ```urlBuilder.atURL``.withBody()```), try adding template parameter to string given to `atURL` so the line will become something like this: ``urlBuilder.atURL`/${dummy}`.withBody(``.
+- On line `60` ( `tPlugin.outputValidator(t.string)` ), try change the output type `t.string` to something else, like `t.number`, so that the line becomes `tPlugin.outputValidator(t.number)`.
   Observe immediate compile-time errors.
 - Feel free to try similar things with other endpoints, and other places in the code.
   All folder in [source code folder](src) also contain `README.md` files for documentation.
