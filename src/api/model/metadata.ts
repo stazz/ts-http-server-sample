@@ -7,7 +7,12 @@ import * as method from "./method";
 export interface AppEndpointMetadata<TContentTypes> {
   method: method.HttpMethod;
   urlValidation?: ReadonlyArray<string | RegExp>;
-  dataValidation: {
+  inputValidation: {
+    [P in keyof TContentTypes]: P extends string
+      ? AppEndpointDataForContentType<P, TContentTypes[P]>
+      : never;
+  };
+  outputValidation: {
     [P in keyof TContentTypes]: P extends string
       ? AppEndpointDataForContentType<P, TContentTypes[P]>
       : never;
@@ -20,5 +25,4 @@ export interface AppEndpointDataForContentType<
 > {
   contentType: TContentType;
   bodyValidation?: TDataSchema;
-  outputValidation?: TDataSchema;
 }

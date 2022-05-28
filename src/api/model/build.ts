@@ -251,7 +251,8 @@ export class AppEndpointBuilderWithURLData<
             this._state.fragments,
             this._state.args,
             this._state.validation,
-          )(groupNamePrefix),
+            groupNamePrefix,
+          ),
           handler: (method, groups) =>
             checkMethodsForHandler(
               this._state.methods,
@@ -268,6 +269,22 @@ export class AppEndpointBuilderWithURLData<
     }
   }
 }
+
+export interface EndpointHandlerArgs<TContext> {
+  context: TContext;
+}
+
+export interface EndpointHandlerArgsWithURL<TDataInURL> {
+  url: TDataInURL;
+}
+
+export interface EndpointHandlerArgsWithBody<TBody> {
+  body: TBody;
+}
+
+export type EndpointHandler<TArgs, THandlerResult> = (
+  args: TArgs,
+) => THandlerResult;
 
 export class AppEndpointBuilderForURLDataAndMethods<
   TContext,
@@ -286,10 +303,11 @@ export class AppEndpointBuilderForURLDataAndMethods<
   ) {}
 
   public withoutBody<THandlerResult>(
-    endpointHandler: (
-      urlData: TDataInURL,
-      context: TRefinedContext,
-    ) => THandlerResult,
+    endpointHandler: EndpointHandler<
+      EndpointHandlerArgs<TRefinedContext> &
+        EndpointHandlerArgsWithURL<TDataInURL>,
+      THandlerResult
+    >,
     {
       validator,
       ...outputSpec
@@ -311,15 +329,15 @@ export class AppEndpointBuilderForURLDataAndMethods<
             this._state.contextTransform,
             (transformedContext) =>
               validator(
-                endpointHandler(
-                  buildURLDataObject(
+                endpointHandler({
+                  context: transformedContext,
+                  url: buildURLDataObject(
                     this._state.args,
                     this._state.validation,
                     groups,
                     groupNamePrefix,
                   ) as unknown as TDataInURL,
-                  transformedContext,
-                ),
+                }),
               ),
           ),
       }),
@@ -355,11 +373,12 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
       validator: inputValidator,
       ...inputSpec
     }: data.DataValidatorRequestInputSpec<TBody, TValidationError>,
-    endpointHandler: (
-      urlData: TDataInURL,
-      bodyData: TBody,
-      context: TRefinedContext,
-    ) => TResult,
+    endpointHandler: EndpointHandler<
+      EndpointHandlerArgs<TRefinedContext> &
+        EndpointHandlerArgsWithURL<TDataInURL> &
+        EndpointHandlerArgsWithBody<TBody>,
+      TResult
+    >,
     {
       validator: outputValidator,
       ...outputSpec
@@ -383,16 +402,16 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
             this._state.contextTransform,
             (transformedContext) =>
               outputValidator(
-                endpointHandler(
-                  buildURLDataObject(
+                endpointHandler({
+                  context: transformedContext,
+                  url: buildURLDataObject(
                     this._state.args,
                     this._state.validation,
                     groups,
                     groupNamePrefix,
                   ) as unknown as TDataInURL,
-                  body as TBody,
-                  transformedContext,
-                ),
+                  body: body as TBody,
+                }),
               ),
           ),
       }),
@@ -529,7 +548,10 @@ export class AppEndpointBuilderForMethods<
   ) {}
 
   public withoutBody<TOutput>(
-    endpointHandler: (context: TRefinedContext) => TOutput,
+    endpointHandler: EndpointHandler<
+      EndpointHandlerArgs<TRefinedContext>,
+      TOutput
+    >,
     {
       validator,
       ...outputSpec
@@ -549,7 +571,11 @@ export class AppEndpointBuilderForMethods<
             ctx,
             this._state.contextTransform,
             (transformedContext) =>
-              validator(endpointHandler(transformedContext)),
+              validator(
+                endpointHandler({
+                  context: transformedContext,
+                }),
+              ),
           ),
       }),
     };
@@ -582,10 +608,10 @@ export class AppEndpointBuilderForMethodsAndBody<
       validator: inputValidator,
       ...inputSpec
     }: data.DataValidatorRequestInputSpec<TBody, TValidationError>,
-    endpointHandler: (
-      bodyData: TBody,
-      context: TRefinedContext,
-    ) => THandlerResult,
+    endpointHandler: EndpointHandler<
+      EndpointHandlerArgs<TRefinedContext> & EndpointHandlerArgsWithBody<TBody>,
+      THandlerResult
+    >,
     {
       validator: outputValidator,
       ...outputSpec
@@ -608,7 +634,10 @@ export class AppEndpointBuilderForMethodsAndBody<
             this._state.contextTransform,
             (transformedContext) =>
               outputValidator(
-                endpointHandler(body as TBody, transformedContext),
+                endpointHandler({
+                  context: transformedContext,
+                  body: body as TBody,
+                }),
               ),
           ),
       }),
@@ -689,18 +718,18 @@ const buildURLRegExp = (
   fragments: TemplateStringsArray,
   names: ReadonlyArray<string>,
   validation: Record<string, url.URLDataTransformer<unknown>>,
+  groupNamePrefix: string,
 ) => {
-  return (groupNamePrefix: string) =>
-    new RegExp(
-      fragments.reduce((currentRegExp, fragment, idx) => {
-        let fragmentRegExp = utils.escapeRegExp(fragment);
-        if (idx < names.length) {
-          const name = names[idx];
-          fragmentRegExp = `${fragmentRegExp}(?<${groupNamePrefix}${name}>${validation[name].regexp.source})`;
-        }
-        return `${currentRegExp}${fragmentRegExp}`;
-      }, ""),
-    );
+  return new RegExp(
+    fragments.reduce((currentRegExp, fragment, idx) => {
+      let fragmentRegExp = utils.escapeRegExp(fragment);
+      if (idx < names.length) {
+        const name = names[idx];
+        fragmentRegExp = `${fragmentRegExp}(?<${groupNamePrefix}${name}>${validation[name].regexp.source})`;
+      }
+      return `${currentRegExp}${fragmentRegExp}`;
+    }, ""),
+  );
 };
 
 const postTransform = <TContext, TRefinedContext, TValidationError, TResult>(

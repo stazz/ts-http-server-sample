@@ -58,7 +58,7 @@ const endpointsAsKoaMiddleware = (
           .forMethods("GET")
           .withoutBody(
             // Invoke functionality
-            ({ id }) => functionality.queryThing(id),
+            ({ url: { id } }) => functionality.queryThing(id),
             // Transform functionality output to REST output
             tPlugin.outputValidator(t.string),
           )
@@ -77,8 +77,12 @@ const endpointsAsKoaMiddleware = (
               ),
             ),
             // Request handler
-            ({ property }, { state: { username } }) =>
-              functionality.createThing(property, username),
+            ({
+              body: { property },
+              context: {
+                state: { username },
+              },
+            }) => functionality.createThing(property, username),
             // Transform functionality output to REST output
             tPlugin.outputValidator(
               t.type(
@@ -106,7 +110,7 @@ const endpointsAsKoaMiddleware = (
                 "ConnectThingBody", // Friendly name for error messages
               ),
             ),
-            ({ id }, { anotherThingId }) =>
+            ({ url: { id }, body: { anotherThingId } }) =>
               functionality.connectToAnotherThing(id, anotherThingId),
             // Transform functionality output to REST output
             tPlugin.outputValidator(
