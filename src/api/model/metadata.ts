@@ -6,7 +6,13 @@ import * as method from "./method";
 // }
 export interface AppEndpointMetadata<TContentTypes> {
   method: method.HttpMethod;
-  urlValidation?: ReadonlyArray<string | RegExp>;
+  urlValidation?: ReadonlyArray<
+    | string
+    | {
+        name: string;
+        match: RegExp;
+      }
+  >;
   inputValidation: {
     [P in keyof TContentTypes]: P extends string
       ? AppEndpointDataForContentType<P, TContentTypes[P]>

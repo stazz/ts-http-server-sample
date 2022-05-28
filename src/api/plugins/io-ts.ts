@@ -5,6 +5,15 @@ import * as rawbody from "raw-body";
 
 export type ValidationError = t.Errors;
 
+export const queryValidator = <T>(
+  validation: t.Decoder<unknown, T> & { _tag: string },
+): model.QueryValidatorSpec<T, ValidationError> => ({
+  validator: {
+    query: "object",
+    validator: plainValidator(validation),
+  },
+});
+
 // We only support json things for io-ts validation.
 const CONTENT_TYPE = "application/json" as const;
 

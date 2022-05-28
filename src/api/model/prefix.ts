@@ -1,23 +1,29 @@
 import * as utils from "./utils";
 import * as ep from "./endpoint";
 
-export function atPrefix<TValidationError, TContext>(
+export function atPrefix<TValidationError, TRefinedContext, TContext>(
   prefix: string,
-  ...endpoints: Array<ep.AppEndpoint<TContext, TValidationError>>
-): ep.AppEndpoint<TContext, TValidationError>;
-export function atPrefix<TValidationError, TContext>(
+  ...endpoints: Array<
+    ep.AppEndpoint<TContext, TRefinedContext, TValidationError>
+  >
+): ep.AppEndpoint<TContext, TRefinedContext, TValidationError>;
+export function atPrefix<TValidationError, TRefinedContext, TContext>(
   prefix: string,
   regexpGroupNamePrefix: string,
-  ...endpoints: Array<ep.AppEndpoint<TContext, TValidationError>>
-): ep.AppEndpoint<TContext, TValidationError>;
-export function atPrefix<TValidationError, TContext>(
+  ...endpoints: Array<
+    ep.AppEndpoint<TContext, TRefinedContext, TValidationError>
+  >
+): ep.AppEndpoint<TContext, TRefinedContext, TValidationError>;
+export function atPrefix<TValidationError, TRefinedContext, TContext>(
   prefix: string,
   endpointOrGroupNamePrefix:
-    | ep.AppEndpoint<TContext, TValidationError>
+    | ep.AppEndpoint<TContext, TRefinedContext, TValidationError>
     | string
     | undefined,
-  ...endpoints: Array<ep.AppEndpoint<TContext, TValidationError>>
-): ep.AppEndpoint<TContext, TValidationError> {
+  ...endpoints: Array<
+    ep.AppEndpoint<TContext, TRefinedContext, TValidationError>
+  >
+): ep.AppEndpoint<TContext, TRefinedContext, TValidationError> {
   const allEndpoints =
     typeof endpointOrGroupNamePrefix === "string" || !endpointOrGroupNamePrefix
       ? endpoints
@@ -57,8 +63,10 @@ export function atPrefix<TValidationError, TContext>(
 const makeEndpointRegExpGroupName = (prefix: string, idx: number) =>
   `${prefix}${idx}`;
 
-const buildEndpoints = <TContext, TValidationError>(
-  endpoints: ReadonlyArray<ep.AppEndpoint<TContext, TValidationError>>,
+const buildEndpoints = <TContext, TRefinedContext, TValidationError>(
+  endpoints: ReadonlyArray<
+    ep.AppEndpoint<TContext, TRefinedContext, TValidationError>
+  >,
   regExpGroupNamePrefix?: string,
 ) => {
   const isTopLevel = !regExpGroupNamePrefix;

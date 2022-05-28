@@ -137,60 +137,95 @@ class AppEndpointBuilderWithURLDataInitial<
     >,
   ) {}
 
-  public forMethods<TMethods extends TAllowedMethods>(
+  public forMethod<TMethods extends TAllowedMethods>(
     method: TMethods & HttpMethodWithoutBody,
-    ...methods: Array<TMethods>
   ): AppEndpointBuilderForURLDataAndMethods<
     TContext,
     TRefinedContext,
     TValidationError,
     TDataInURL,
-    TMethods
+    TMethods,
+    EndpointHandlerArgs<TRefinedContext>
   >;
-  public forMethods<TMethods extends TAllowedMethods>(
+  public forMethod<TMethods extends TAllowedMethods>(
     method: TMethods & HttpMethodWithBody,
-    ...httpMethods: Array<TMethods>
   ): AppEndpointBuilderForURLDataAndMethodsAndBody<
     TContext,
     TRefinedContext,
     TValidationError,
     TDataInURL,
-    TMethods
+    TMethods,
+    EndpointHandlerArgs<TRefinedContext>
   >;
-  forMethods<TMethods extends TAllowedMethods>(
+  public forMethod<TMethods extends TAllowedMethods, TQuery>(
+    method: TMethods & HttpMethodWithoutBody,
+    query: data.QueryValidatorSpec<TQuery, TValidationError>,
+  ): AppEndpointBuilderForURLDataAndMethods<
+    TContext,
+    TRefinedContext,
+    TValidationError,
+    TDataInURL,
+    TMethods,
+    EndpointHandlerArgs<TRefinedContext> & EndpointHandlerArgsWithQuery<TQuery>
+  >;
+  public forMethod<TMethods extends TAllowedMethods, TQuery>(
+    method: TMethods & HttpMethodWithBody,
+    query: data.QueryValidatorSpec<TQuery, TValidationError>,
+  ): AppEndpointBuilderForURLDataAndMethodsAndBody<
+    TContext,
+    TRefinedContext,
+    TValidationError,
+    TDataInURL,
+    TMethods,
+    EndpointHandlerArgs<TRefinedContext> & EndpointHandlerArgsWithQuery<TQuery>
+  >;
+  forMethod<TMethods extends TAllowedMethods, TQuery>(
     method: TMethods,
-    ...methods: Array<TMethods>
+    query?: data.QueryValidatorSpec<TQuery, TValidationError>,
   ):
     | AppEndpointBuilderForURLDataAndMethods<
         TContext,
         TRefinedContext,
         TValidationError,
         TDataInURL,
-        TMethods
+        TMethods,
+        | EndpointHandlerArgs<TRefinedContext>
+        | EndpointHandlerArgsWithQuery<TQuery>
       >
     | AppEndpointBuilderForURLDataAndMethodsAndBody<
         TContext,
         TRefinedContext,
         TValidationError,
         TDataInURL,
-        TMethods
+        TMethods,
+        | EndpointHandlerArgs<TRefinedContext>
+        | EndpointHandlerArgsWithQuery<TQuery>
       > {
-    const { methodsSet, withoutBody } = forMethodsImpl(
+    const { methodsSet, withoutBody, queryInfo } = forMethodImpl(
       this._state.methods,
       method,
-      methods,
+      query,
     );
     return withoutBody
-      ? new AppEndpointBuilderForURLDataAndMethods(this._state, methodsSet)
+      ? new AppEndpointBuilderForURLDataAndMethods(
+          this._state,
+          methodsSet,
+          queryInfo,
+        )
       : new AppEndpointBuilderForURLDataAndMethodsAndBody(
           this._state,
           methodsSet,
+          queryInfo,
         );
   }
 }
 
-interface StaticAppEndpointBuilderSpec<TContext, TBodyError> {
-  builder: StaticAppEndpointBuilder<TContext, TBodyError>;
+interface StaticAppEndpointBuilderSpec<TContext, TRefinedContext, TBodyError> {
+  builder: StaticAppEndpointBuilder<TContext, TRefinedContext, TBodyError>;
+  queryValidation?: Omit<
+    data.QueryValidatorSpec<unknown, TBodyError>,
+    "validator"
+  >;
   inputValidation?: Omit<
     data.DataValidatorRequestInputSpec<unknown, TBodyError>,
     "validator"
@@ -201,17 +236,17 @@ interface StaticAppEndpointBuilderSpec<TContext, TBodyError> {
   >;
 }
 
-type StaticAppEndpointBuilder<TContext, TBodyError> = (
+type StaticAppEndpointBuilder<TContext, TRefinedContext, TBodyError> = (
   groupNamePrefix: string,
   groups: Record<string, string>,
-) => ep.StaticAppEndpointHandler<TContext, TBodyError>;
+) => ep.StaticAppEndpointHandler<TContext, TRefinedContext, TBodyError>;
 
 interface AppEndpointBuilderState<TContext, TRefinedContext, TValidationError> {
   fragments: TemplateStringsArray;
   methods: Partial<
     Record<
       method.HttpMethod,
-      StaticAppEndpointBuilderSpec<TContext, TValidationError>
+      StaticAppEndpointBuilderSpec<TContext, TRefinedContext, TValidationError>
     >
   >;
   contextTransform: data.ContextValidatorSpec<
@@ -243,7 +278,11 @@ export class AppEndpointBuilderWithURLData<
   TDataInURL,
   TAllowedMethods
 > {
-  public createEndpoint(): ep.AppEndpoint<TContext, TValidationError> {
+  public createEndpoint(): ep.AppEndpoint<
+    TContext,
+    TRefinedContext,
+    TValidationError
+  > {
     if (Object.keys(this._state.methods).length > 0) {
       return {
         getRegExpAndHandler: (groupNamePrefix) => ({
@@ -278,6 +317,10 @@ export interface EndpointHandlerArgsWithURL<TDataInURL> {
   url: TDataInURL;
 }
 
+export interface EndpointHandlerArgsWithQuery<TQuery> {
+  query: TQuery;
+}
+
 export interface EndpointHandlerArgsWithBody<TBody> {
   body: TBody;
 }
@@ -292,6 +335,7 @@ export class AppEndpointBuilderForURLDataAndMethods<
   TValidationError,
   TDataInURL,
   TAllowedMethods extends method.HttpMethod,
+  TArgs,
 > {
   public constructor(
     protected readonly _state: AppEndpointBuilderWithURLDataState<
@@ -300,11 +344,13 @@ export class AppEndpointBuilderForURLDataAndMethods<
       TValidationError
     >,
     protected readonly _methods: Set<TAllowedMethods>,
+    protected readonly _queryInfo: QueryInfo<TValidationError, TArgs>,
   ) {}
 
   public withoutBody<THandlerResult>(
     endpointHandler: EndpointHandler<
-      EndpointHandlerArgs<TRefinedContext> &
+      TArgs &
+        EndpointHandlerArgs<TRefinedContext> &
         EndpointHandlerArgsWithURL<TDataInURL>,
       THandlerResult
     >,
@@ -319,28 +365,34 @@ export class AppEndpointBuilderForURLDataAndMethods<
     TDataInURL,
     Exclude<method.HttpMethod, TAllowedMethods>
   > {
-    const handler: StaticAppEndpointBuilderSpec<TContext, TValidationError> = {
+    const { query, getEndpointArgs } = this._queryInfo;
+    const { validator: queryValidator, ...querySpec } = query ?? {};
+    const handler: StaticAppEndpointBuilderSpec<
+      TContext,
+      TRefinedContext,
+      TValidationError
+    > = {
+      queryValidation: querySpec,
       outputValidation: outputSpec,
-      builder: (groupNamePrefix, groups) => ({
-        contextValidator: this._state.contextTransform.validator,
-        handler: (ctx) =>
-          postTransform(
-            ctx,
-            this._state.contextTransform,
-            (transformedContext) =>
-              validator(
-                endpointHandler({
-                  context: transformedContext,
-                  url: buildURLDataObject(
-                    this._state.args,
-                    this._state.validation,
-                    groups,
-                    groupNamePrefix,
-                  ) as unknown as TDataInURL,
-                }),
-              ),
-          ),
-      }),
+      builder: (groupNamePrefix, groups) => {
+        return {
+          contextValidator: this._state.contextTransform.validator,
+          queryValidator,
+          handler: ({ context, query }) =>
+            validator(
+              endpointHandler({
+                ...getEndpointArgs(query),
+                context,
+                url: buildURLDataObject(
+                  this._state.args,
+                  this._state.validation,
+                  groups,
+                  groupNamePrefix,
+                ) as unknown as TDataInURL,
+              }),
+            ),
+        };
+      },
     };
     return new AppEndpointBuilderWithURLData({
       ...this._state,
@@ -361,12 +413,14 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
   TValidationError,
   TDataInURL,
   TAllowedMethods extends method.HttpMethod,
+  TArgs,
 > extends AppEndpointBuilderForURLDataAndMethods<
   TContext,
   TRefinedContext,
   TValidationError,
   TDataInURL,
-  TAllowedMethods
+  TAllowedMethods,
+  TArgs
 > {
   public withBody<TResult, TBody>(
     {
@@ -374,7 +428,8 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
       ...inputSpec
     }: data.DataValidatorRequestInputSpec<TBody, TValidationError>,
     endpointHandler: EndpointHandler<
-      EndpointHandlerArgs<TRefinedContext> &
+      TArgs &
+        EndpointHandlerArgs<TRefinedContext> &
         EndpointHandlerArgsWithURL<TDataInURL> &
         EndpointHandlerArgsWithBody<TBody>,
       TResult
@@ -390,29 +445,34 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
     TDataInURL,
     Exclude<method.HttpMethod, TAllowedMethods>
   > {
-    const handler: StaticAppEndpointBuilderSpec<TContext, TValidationError> = {
+    const { query, getEndpointArgs } = this._queryInfo;
+    const { validator: queryValidator, ...querySpec } = query ?? {};
+
+    const handler: StaticAppEndpointBuilderSpec<
+      TContext,
+      TRefinedContext,
+      TValidationError
+    > = {
+      queryValidation: querySpec,
       inputValidation: inputSpec,
       outputValidation: outputSpec,
       builder: (groupNamePrefix, groups) => ({
         contextValidator: this._state.contextTransform.validator,
-        isBodyValid: inputValidator,
-        handler: (ctx, body) =>
-          postTransform(
-            ctx,
-            this._state.contextTransform,
-            (transformedContext) =>
-              outputValidator(
-                endpointHandler({
-                  context: transformedContext,
-                  url: buildURLDataObject(
-                    this._state.args,
-                    this._state.validation,
-                    groups,
-                    groupNamePrefix,
-                  ) as unknown as TDataInURL,
-                  body: body as TBody,
-                }),
-              ),
+        queryValidator,
+        bodyValidator: inputValidator,
+        handler: ({ context, body, query }) =>
+          outputValidator(
+            endpointHandler({
+              ...getEndpointArgs(query),
+              context,
+              url: buildURLDataObject(
+                this._state.args,
+                this._state.validation,
+                groups,
+                groupNamePrefix,
+              ) as unknown as TDataInURL,
+              body: body as TBody,
+            }),
           ),
       }),
     };
@@ -433,8 +493,7 @@ const HttpMethodsWithoutBody = {
   GET: true,
 } as const;
 
-// Notice! If we have here only one literal instead of union of two or more, the "forMethods" will not work properly when called with first variation!
-export type HttpMethodWithoutBody = "GET" | "HEAD";
+export type HttpMethodWithoutBody = "GET";
 export type HttpMethodWithBody = Exclude<
   method.HttpMethod,
   HttpMethodWithoutBody
@@ -454,48 +513,76 @@ export class AppEndpointBuilderInitial<
     >,
   ) {}
 
-  public forMethods<TMethods extends TAllowedMethods>(
+  public forMethod<TMethods extends TAllowedMethods>(
     method: TMethods & HttpMethodWithoutBody,
-    ...methods: Array<TMethods>
   ): AppEndpointBuilderForMethods<
     TContext,
     TRefinedContext,
     TValidationError,
-    TMethods
+    TMethods,
+    EndpointHandlerArgs<TRefinedContext>
   >;
-  public forMethods<TMethods extends TAllowedMethods>(
+  public forMethod<TMethods extends TAllowedMethods>(
     method: TMethods & HttpMethodWithBody,
-    ...httpMethods: Array<TMethods>
   ): AppEndpointBuilderForMethodsAndBody<
     TContext,
     TRefinedContext,
     TValidationError,
-    TMethods
+    TMethods,
+    EndpointHandlerArgs<TRefinedContext>
   >;
-  public forMethods<TMethods extends TAllowedMethods>(
+  public forMethod<TMethods extends TAllowedMethods, TQuery>(
+    method: TMethods & HttpMethodWithoutBody,
+    query: data.QueryValidatorSpec<TQuery, TValidationError>,
+  ): AppEndpointBuilderForMethods<
+    TContext,
+    TRefinedContext,
+    TValidationError,
+    TMethods,
+    EndpointHandlerArgs<TRefinedContext> & EndpointHandlerArgsWithQuery<TQuery>
+  >;
+  public forMethod<TMethods extends TAllowedMethods, TQuery>(
+    method: TMethods & HttpMethodWithBody,
+    query: data.QueryValidatorSpec<TQuery, TValidationError>,
+  ): AppEndpointBuilderForMethodsAndBody<
+    TContext,
+    TRefinedContext,
+    TValidationError,
+    TMethods,
+    EndpointHandlerArgs<TRefinedContext> & EndpointHandlerArgsWithQuery<TQuery>
+  >;
+  forMethod<TMethods extends TAllowedMethods, TQuery>(
     method: TMethods,
-    ...methods: Array<TMethods>
+    query?: data.QueryValidatorSpec<TQuery, TValidationError> | undefined,
   ):
     | AppEndpointBuilderForMethods<
         TContext,
         TRefinedContext,
         TValidationError,
-        TMethods
+        TMethods,
+        | EndpointHandlerArgs<TRefinedContext>
+        | EndpointHandlerArgsWithQuery<TQuery>
       >
     | AppEndpointBuilderForMethodsAndBody<
         TContext,
         TRefinedContext,
         TValidationError,
-        TMethods
+        TMethods,
+        | EndpointHandlerArgs<TRefinedContext>
+        | EndpointHandlerArgsWithQuery<TQuery>
       > {
-    const { methodsSet, withoutBody } = forMethodsImpl(
+    const { methodsSet, withoutBody, queryInfo } = forMethodImpl(
       this._state.methods,
       method,
-      methods,
+      query,
     );
     return withoutBody
-      ? new AppEndpointBuilderForMethods(this._state, methodsSet)
-      : new AppEndpointBuilderForMethodsAndBody(this._state, methodsSet);
+      ? new AppEndpointBuilderForMethods(this._state, methodsSet, queryInfo)
+      : new AppEndpointBuilderForMethodsAndBody(
+          this._state,
+          methodsSet,
+          queryInfo,
+        );
   }
 }
 
@@ -510,7 +597,11 @@ export class AppEndpointBuilder<
   TValidationError,
   TAllowedMethods
 > {
-  public createEndpoint(): ep.AppEndpoint<TContext, TValidationError> {
+  public createEndpoint(): ep.AppEndpoint<
+    TContext,
+    TRefinedContext,
+    TValidationError
+  > {
     if (Object.keys(this._state.methods).length > 0) {
       return {
         getRegExpAndHandler: (groupNamePrefix) => ({
@@ -537,6 +628,7 @@ export class AppEndpointBuilderForMethods<
   TRefinedContext,
   TValidationError,
   TAllowedMethods extends method.HttpMethod,
+  TArgs,
 > {
   public constructor(
     protected readonly _state: AppEndpointBuilderState<
@@ -545,11 +637,12 @@ export class AppEndpointBuilderForMethods<
       TValidationError
     >,
     protected readonly _methods: Set<TAllowedMethods>,
+    protected readonly _queryInfo: QueryInfo<TValidationError, TArgs>,
   ) {}
 
   public withoutBody<TOutput>(
     endpointHandler: EndpointHandler<
-      EndpointHandlerArgs<TRefinedContext>,
+      TArgs & EndpointHandlerArgs<TRefinedContext>,
       TOutput
     >,
     {
@@ -562,20 +655,24 @@ export class AppEndpointBuilderForMethods<
     TValidationError,
     Exclude<method.HttpMethod, TAllowedMethods>
   > {
-    const handler: StaticAppEndpointBuilderSpec<TContext, TValidationError> = {
+    const { query, getEndpointArgs } = this._queryInfo;
+    const { validator: queryValidator, ...querySpec } = query ?? {};
+    const handler: StaticAppEndpointBuilderSpec<
+      TContext,
+      TRefinedContext,
+      TValidationError
+    > = {
+      queryValidation: querySpec,
       outputValidation: outputSpec,
       builder: () => ({
         contextValidator: this._state.contextTransform.validator,
-        handler: (ctx) =>
-          postTransform(
-            ctx,
-            this._state.contextTransform,
-            (transformedContext) =>
-              validator(
-                endpointHandler({
-                  context: transformedContext,
-                }),
-              ),
+        queryValidator,
+        handler: ({ context, query }) =>
+          validator(
+            endpointHandler({
+              ...getEndpointArgs(query),
+              context: context,
+            }),
           ),
       }),
     };
@@ -597,11 +694,13 @@ export class AppEndpointBuilderForMethodsAndBody<
   TRefinedContext,
   TValidationError,
   TAllowedMethods extends method.HttpMethod,
+  TArgs,
 > extends AppEndpointBuilderForMethods<
   TContext,
   TRefinedContext,
   TValidationError,
-  TAllowedMethods
+  TAllowedMethods,
+  TArgs
 > {
   public withBody<THandlerResult, TBody>(
     {
@@ -609,7 +708,9 @@ export class AppEndpointBuilderForMethodsAndBody<
       ...inputSpec
     }: data.DataValidatorRequestInputSpec<TBody, TValidationError>,
     endpointHandler: EndpointHandler<
-      EndpointHandlerArgs<TRefinedContext> & EndpointHandlerArgsWithBody<TBody>,
+      TArgs &
+        EndpointHandlerArgs<TRefinedContext> &
+        EndpointHandlerArgsWithBody<TBody>,
       THandlerResult
     >,
     {
@@ -622,23 +723,27 @@ export class AppEndpointBuilderForMethodsAndBody<
     TValidationError,
     Exclude<method.HttpMethod, TAllowedMethods>
   > {
-    const handler: StaticAppEndpointBuilderSpec<TContext, TValidationError> = {
+    const { query, getEndpointArgs } = this._queryInfo;
+    const { validator: queryValidator, ...querySpec } = query ?? {};
+    const handler: StaticAppEndpointBuilderSpec<
+      TContext,
+      TRefinedContext,
+      TValidationError
+    > = {
+      queryValidation: querySpec,
       inputValidation: inputSpec,
       outputValidation: outputSpec,
       builder: () => ({
         contextValidator: this._state.contextTransform.validator,
-        isBodyValid: inputValidator,
-        handler: (ctx, body) =>
-          postTransform(
-            ctx,
-            this._state.contextTransform,
-            (transformedContext) =>
-              outputValidator(
-                endpointHandler({
-                  context: transformedContext,
-                  body: body as TBody,
-                }),
-              ),
+        queryValidator,
+        bodyValidator: inputValidator,
+        handler: ({ context, body, query }) =>
+          outputValidator(
+            endpointHandler({
+              ...getEndpointArgs(query),
+              context,
+              body: body as TBody,
+            }),
           ),
       }),
     };
@@ -655,16 +760,25 @@ export class AppEndpointBuilderForMethodsAndBody<
   }
 }
 
-const forMethodsImpl = <TMethods extends method.HttpMethod>(
+interface QueryInfo<TValidationError, TArgs> {
+  query?: data.QueryValidatorSpec<unknown, TValidationError>;
+  getEndpointArgs: (query: unknown) => TArgs;
+}
+
+const forMethodImpl = <
+  TMethods extends method.HttpMethod,
+  TQuery,
+  TValidationError,
+>(
   stateMethods: Record<string, unknown>,
   method: TMethods,
-  methods: Array<TMethods>,
+  queryValidation:
+    | data.QueryValidatorSpec<TQuery, TValidationError>
+    | undefined,
 ) => {
-  const methodsSet = new Set([method, ...methods]);
+  const stateMethodsKeys = Object.keys(stateMethods) as Array<TMethods>;
   const overlappingMehods = new Set(
-    Object.keys(stateMethods).filter((existingMethod) =>
-      methodsSet.has(existingMethod as TMethods),
-    ),
+    stateMethodsKeys.filter((existingMethod) => existingMethod === method),
   );
   if (overlappingMehods.size > 0) {
     throw new Error(
@@ -673,17 +787,40 @@ const forMethodsImpl = <TMethods extends method.HttpMethod>(
       )} are already specified`,
     );
   }
-  return { methodsSet, withoutBody: method in HttpMethodsWithoutBody };
+
+  const queryInfo: QueryInfo<
+    TValidationError,
+    EndpointHandlerArgsWithQuery<TQuery>
+  > = {
+    getEndpointArgs: (q) =>
+      queryValidation
+        ? { query: q as TQuery }
+        : // Fugly, but has to do for now.
+          ({} as EndpointHandlerArgsWithQuery<TQuery>),
+  };
+  if (queryValidation) {
+    queryInfo.query = queryValidation;
+  }
+
+  return {
+    methodsSet: new Set([method, ...stateMethodsKeys]),
+    withoutBody: method in HttpMethodsWithoutBody,
+    queryInfo,
+  };
 };
 
-const checkMethodsForHandler = <TContext, TValidationError>(
+const checkMethodsForHandler = <TContext, TRefinedContext, TValidationError>(
   state: {
-    [key: string]: StaticAppEndpointBuilderSpec<TContext, TValidationError>;
+    [key: string]: StaticAppEndpointBuilderSpec<
+      TContext,
+      TRefinedContext,
+      TValidationError
+    >;
   },
   method: method.HttpMethod,
   groupNamePrefix: string,
   groups: Record<string, string>,
-): ep.DynamicHandlerResponse<TContext, TValidationError> =>
+): ep.DynamicHandlerResponse<TContext, TRefinedContext, TValidationError> =>
   method in state
     ? {
         found: "handler" as const,
@@ -730,25 +867,4 @@ const buildURLRegExp = (
       return `${currentRegExp}${fragmentRegExp}`;
     }, ""),
   );
-};
-
-const postTransform = <TContext, TRefinedContext, TValidationError, TResult>(
-  ctx: TContext,
-  contextTransform: data.ContextValidatorSpec<
-    TContext,
-    TRefinedContext,
-    TValidationError
-  >,
-  useTransformed: (transformed: TRefinedContext) => TResult,
-) => {
-  const transformedContext = contextTransform.validator(ctx);
-  switch (transformedContext.error) {
-    case "none":
-      return useTransformed(transformedContext.data);
-    default:
-      return {
-        error: "error" as const,
-        errorInfo: transformedContext.errorInfo,
-      };
-  }
 };

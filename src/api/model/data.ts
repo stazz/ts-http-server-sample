@@ -64,6 +64,24 @@ export interface ContextValidatorSpec<
 export type ContextValidator<TContext, TRefinedContext, TValidationError> =
   DataValidator<TContext, TRefinedContext, TValidationError>;
 
+export interface QueryValidatorSpec<TQuery, TValidationError> {
+  validator: QueryValidator<TQuery, TValidationError>;
+}
+
+export type QueryValidator<TQuery, TValidationError> =
+  | {
+      query: "string";
+      validator: DataValidator<string, TQuery, TValidationError>;
+    }
+  | {
+      query: "object";
+      validator: DataValidator<
+        Record<string, unknown>,
+        TQuery,
+        TValidationError
+      >;
+    };
+
 export const transitiveDataValidation =
   <TInput, TOutput, TIntermediate, TError>(
     first: DataValidator<TInput, TIntermediate, TError>,

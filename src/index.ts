@@ -55,7 +55,7 @@ const endpointsAsKoaMiddleware = (
             // All parameters present in URL template string must be mentioned here, otherwise there will be compile-time error.
             id: idInURL,
           })
-          .forMethods("GET")
+          .forMethod("GET")
           .withoutBody(
             // Invoke functionality
             ({ url: { id } }) => functionality.queryThing(id),
@@ -65,7 +65,7 @@ const endpointsAsKoaMiddleware = (
           .createEndpoint(),
         // Endpoint: create thing with some property set.
         urlBuilderWithUsername.atURL``
-          .forMethods("PUT")
+          .forMethod("PUT")
           .withBody(
             // Body validator (will be called on JSON-parsed entity)
             tPlugin.inputValidator(
@@ -99,7 +99,7 @@ const endpointsAsKoaMiddleware = (
           .validateURLData({
             id: idInURL,
           })
-          .forMethods("POST")
+          .forMethod("POST")
           .withBody(
             // Body validator (will be called on JSON-parsed entity)
             tPlugin.inputValidator(
@@ -128,7 +128,7 @@ const endpointsAsKoaMiddleware = (
     ),
     // Endpoint: (fake) API docs
     urlBuilder.atURL`/doc`
-      .forMethods("GET")
+      .forMethod("GET")
       .withoutBody(
         () => "This is our documentation",
         tPlugin.outputValidator(t.string),
