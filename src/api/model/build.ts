@@ -1,4 +1,5 @@
 import * as utils from "./utils";
+import * as method from "./method";
 import * as url from "./url";
 import * as data from "./data";
 import * as ep from "./endpoint";
@@ -32,7 +33,7 @@ export class AppEndpointBuilderProvider<
     TContext,
     TRefinedContext,
     TValidationError,
-    ep.HttpMethod
+    method.HttpMethod
   >;
   public atURL<TArgs extends [string, ...Array<string>]>(
     fragments: TemplateStringsArray,
@@ -46,7 +47,7 @@ export class AppEndpointBuilderProvider<
         TContext,
         TRefinedContext,
         TValidationError,
-        ep.HttpMethod
+        method.HttpMethod
       >
     | URLDataNames<TContext, TRefinedContext, TValidationError, TArgs[number]> {
     if (args.length > 0) {
@@ -108,7 +109,7 @@ export interface URLDataNames<
     {
       [P in TNames]: ReturnType<TValidation[P]["transform"]>;
     },
-    ep.HttpMethod
+    method.HttpMethod
   >;
 }
 
@@ -122,7 +123,7 @@ class AppEndpointBuilderWithURLDataInitial<
   TRefinedContext,
   TValidationError,
   TDataInURL,
-  TAllowedMethods extends ep.HttpMethod,
+  TAllowedMethods extends method.HttpMethod,
 > {
   public constructor(
     protected readonly _state: AppEndpointBuilderWithURLDataState<
@@ -192,7 +193,10 @@ type StaticAppEndpointBuilder<TContext, TBodyError> = (
 interface AppEndpointBuilderState<TContext, TRefinedContext, TValidationError> {
   fragments: TemplateStringsArray;
   methods: Partial<
-    Record<ep.HttpMethod, StaticAppEndpointBuilder<TContext, TValidationError>>
+    Record<
+      method.HttpMethod,
+      StaticAppEndpointBuilder<TContext, TValidationError>
+    >
   >;
   contextTransform: data.DataValidator<
     TRefinedContext,
@@ -217,7 +221,7 @@ export class AppEndpointBuilderWithURLData<
   TRefinedContext,
   TValidationError,
   TDataInURL,
-  TAllowedMethods extends ep.HttpMethod,
+  TAllowedMethods extends method.HttpMethod,
 > extends AppEndpointBuilderWithURLDataInitial<
   TContext,
   TRefinedContext,
@@ -256,7 +260,7 @@ export class AppEndpointBuilderForURLDataAndMethods<
   TRefinedContext,
   TValidationError,
   TDataInURL,
-  TAllowedMethods extends ep.HttpMethod,
+  TAllowedMethods extends method.HttpMethod,
 > {
   public constructor(
     protected readonly _state: AppEndpointBuilderWithURLDataState<
@@ -282,7 +286,7 @@ export class AppEndpointBuilderForURLDataAndMethods<
     TRefinedContext,
     TValidationError,
     TDataInURL,
-    Exclude<ep.HttpMethod, TAllowedMethods>
+    Exclude<method.HttpMethod, TAllowedMethods>
   > {
     const handler: StaticAppEndpointBuilder<TContext, TValidationError> = (
       groupNamePrefix,
@@ -321,7 +325,7 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
   TRefinedContext,
   TValidationError,
   TDataInURL,
-  TAllowedMethods extends ep.HttpMethod,
+  TAllowedMethods extends method.HttpMethod,
 > extends AppEndpointBuilderForURLDataAndMethods<
   TContext,
   TRefinedContext,
@@ -342,7 +346,7 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
     TRefinedContext,
     TValidationError,
     TDataInURL,
-    Exclude<ep.HttpMethod, TAllowedMethods>
+    Exclude<method.HttpMethod, TAllowedMethods>
   > {
     const handler: StaticAppEndpointBuilder<TContext, TValidationError> = (
       groupNamePrefix,
@@ -384,13 +388,16 @@ const HttpMethodsWithoutBody = {
 
 // Notice! If we have here only one literal instead of union of two or more, the "forMethods" will not work properly when called with first variation!
 export type HttpMethodWithoutBody = "GET" | "HEAD";
-export type HttpMethodWithBody = Exclude<ep.HttpMethod, HttpMethodWithoutBody>;
+export type HttpMethodWithBody = Exclude<
+  method.HttpMethod,
+  HttpMethodWithoutBody
+>;
 
 export class AppEndpointBuilderInitial<
   TContext,
   TRefinedContext,
   TValidationError,
-  TAllowedMethods extends ep.HttpMethod,
+  TAllowedMethods extends method.HttpMethod,
 > {
   public constructor(
     protected readonly _state: AppEndpointBuilderState<
@@ -449,7 +456,7 @@ export class AppEndpointBuilder<
   TContext,
   TRefinedContext,
   TValidationError,
-  TAllowedMethods extends ep.HttpMethod,
+  TAllowedMethods extends method.HttpMethod,
 > extends AppEndpointBuilderInitial<
   TContext,
   TRefinedContext,
@@ -482,7 +489,7 @@ export class AppEndpointBuilderForMethods<
   TContext,
   TRefinedContext,
   TValidationError,
-  TAllowedMethods extends ep.HttpMethod,
+  TAllowedMethods extends method.HttpMethod,
 > {
   public constructor(
     protected readonly _state: AppEndpointBuilderState<
@@ -500,7 +507,7 @@ export class AppEndpointBuilderForMethods<
     TContext,
     TRefinedContext,
     TValidationError,
-    Exclude<ep.HttpMethod, TAllowedMethods>
+    Exclude<method.HttpMethod, TAllowedMethods>
   > {
     const handler: StaticAppEndpointBuilder<
       TContext,
@@ -528,7 +535,7 @@ export class AppEndpointBuilderForMethodsAndBody<
   TContext,
   TRefinedContext,
   TValidationError,
-  TAllowedMethods extends ep.HttpMethod,
+  TAllowedMethods extends method.HttpMethod,
 > extends AppEndpointBuilderForMethods<
   TContext,
   TRefinedContext,
@@ -550,7 +557,7 @@ export class AppEndpointBuilderForMethodsAndBody<
     TContext,
     TRefinedContext,
     TValidationError,
-    Exclude<ep.HttpMethod, TAllowedMethods>
+    Exclude<method.HttpMethod, TAllowedMethods>
   > {
     const handler: StaticAppEndpointBuilder<
       TContext,
@@ -575,7 +582,7 @@ export class AppEndpointBuilderForMethodsAndBody<
   }
 }
 
-const forMethodsImpl = <TMethods extends ep.HttpMethod>(
+const forMethodsImpl = <TMethods extends method.HttpMethod>(
   stateMethods: Record<string, unknown>,
   method: TMethods,
   methods: Array<TMethods>,
@@ -600,7 +607,7 @@ const checkMethodsForHandler = <TContext, TValidationError>(
   state: {
     [key: string]: StaticAppEndpointBuilder<TContext, TValidationError>;
   },
-  method: ep.HttpMethod,
+  method: method.HttpMethod,
   groupNamePrefix: string,
   groups: Record<string, string>,
 ): ep.DynamicHandlerResponse<TContext, TValidationError> =>
@@ -611,7 +618,7 @@ const checkMethodsForHandler = <TContext, TValidationError>(
       }
     : {
         found: "invalid-method" as const,
-        allowedMethods: Object.keys(state) as Array<ep.HttpMethod>,
+        allowedMethods: Object.keys(state) as Array<method.HttpMethod>,
       };
 
 const buildURLDataObject = (

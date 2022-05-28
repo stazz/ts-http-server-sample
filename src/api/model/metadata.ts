@@ -1,23 +1,17 @@
-export type AppEndpointMetadata<TDataSchemaTypes> =
-  | AppEndpointMetadataConcrete<TDataSchemaTypes>
-  | AppEndpointMetadataCombined<TDataSchemaTypes>;
+import * as method from "./method";
 
 // TDataSchemaTypes could be for example:
 // {
 //    "application/json": t.Type<unknown>
 // }
-export interface AppEndpointMetadataConcrete<TDataSchemaTypes> {
+export interface AppEndpointMetadata<TDataSchemaTypes> {
+  method: method.HttpMethod;
   urlValidation?: ReadonlyArray<string | RegExp>;
   dataValidation: {
     [P in keyof TDataSchemaTypes]: P extends string
       ? AppEndpointDataForContentType<P, TDataSchemaTypes[P]>
       : never;
   };
-}
-
-export interface AppEndpointMetadataCombined<TDataSchemaTypes> {
-  prefix: string;
-  endpointMetadatas: ReadonlyArray<AppEndpointMetadata<TDataSchemaTypes>>;
 }
 
 export interface AppEndpointDataForContentType<

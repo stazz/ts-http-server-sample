@@ -33,6 +33,9 @@ export const koaMiddlewareFactory = <TValidationError, TState>(
           switch (foundHandler.found) {
             case "handler":
               {
+                // TODO at this point, check context state.
+                // State typically includes things like username etc, so verifying it as a first thing before checking body is meaningful.
+                // Also, allow the context state checker return custom status code, e.g. 401 for when lacking credentials.
                 const {
                   handler: { isBodyValid, handler },
                 } = foundHandler;
@@ -93,10 +96,12 @@ export const koaMiddlewareFactory = <TValidationError, TState>(
                     case "out-none":
                       {
                         const output = retVal.data;
-                        ctx.status = 200; // OK
                         if (output !== undefined) {
                           ctx.set("Content-Type", "application/json");
                           ctx.body = JSON.stringify(output);
+                          ctx.status = 200; // OK
+                        } else {
+                          ctx.status = 204; // No Content
                         }
                       }
                       break;
