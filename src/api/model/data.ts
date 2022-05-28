@@ -1,47 +1,80 @@
+import * as stream from "stream";
+
 export type DataValidator<
-  TData,
-  TError,
   TInput,
-  TOKString extends string,
-  TErrorString extends string,
-> = (
-  this: void,
-  data: TInput,
-) => DataValidatorResponse<TData, TError, TOKString, TErrorString>;
+  TData,
+  TError,
+  TResponse = DataValidatorResult<TData, TError>,
+> = (this: void, data: TInput) => TResponse;
 
-export type DataValidatorInput<TData, TError> = DataValidator<
-  TData,
-  TError,
-  unknown,
-  "in-none",
-  "in-error"
->;
-export type DataValidatorOutput<TData, TError, TInput> = DataValidator<
-  TData,
-  TError,
-  TInput,
-  "out-none",
-  "out-error"
->;
-
-export type DataValidatorResponse<
-  TData,
-  TError,
-  TOKString extends string,
-  TErrorString extends string,
-> =
+export type DataValidatorResult<TData, TError> =
   | {
-      error: TOKString;
+      error: "none";
       data: TData;
     }
   | {
-      error: TErrorString;
+      error: "error";
       errorInfo: TError;
     };
 
-export type DataValidatorResponseOutput<TData, TError> = DataValidatorResponse<
+export interface DataValidatorRequestInputSpec<TData, TError> {
+  validator: DataValidatorRequestInput<TData, TError>;
+}
+
+export type DataValidatorRequestInput<TData, TError> = DataValidator<
+  {
+    contentType: string;
+    input: stream.Readable;
+  },
   TData,
   TError,
-  "out-none",
-  "out-error"
+  Promise<
+    | DataValidatorResult<TData, TError>
+    | {
+        error: "unsupported-content-type";
+        supportedContentTypes: ReadonlyArray<string>;
+      }
+  >
 >;
+
+export interface DataValidatorResponseOutputSpec<TOutput, TError> {
+  validator: DataValidatorResponseOutput<TOutput, TError>;
+}
+
+export type DataValidatorResponseOutput<TOutput, TError> = DataValidator<
+  TOutput,
+  DataValidatorResponseOutputSuccess,
+  TError
+>;
+
+export type DataValidatorResponseOutputSuccess = {
+  contentType: string;
+  output: string | Buffer | stream.Readable;
+};
+
+export interface ContextValidatorSpec<
+  TContext,
+  TRefinedContext,
+  TValidationError,
+> {
+  validator: ContextValidator<TContext, TRefinedContext, TValidationError>;
+}
+
+// TODO allow returning custom status codes from this one.
+export type ContextValidator<TContext, TRefinedContext, TValidationError> =
+  DataValidator<TContext, TRefinedContext, TValidationError>;
+
+export const transitiveDataValidation =
+  <TInput, TOutput, TIntermediate, TError>(
+    first: DataValidator<TInput, TIntermediate, TError>,
+    second: DataValidator<TIntermediate, TOutput, TError>,
+  ): DataValidator<TInput, TOutput, TError> =>
+  (input) => {
+    const intermediate = first(input);
+    switch (intermediate.error) {
+      case "none":
+        return second(intermediate.data);
+      default:
+        return intermediate;
+    }
+  };

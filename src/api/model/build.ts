@@ -4,13 +4,16 @@ import * as url from "./url";
 import * as data from "./data";
 import * as ep from "./endpoint";
 
-export const bindNecessaryTypes = <
-  TContext,
-  TValidationError,
->(): AppEndpointBuilderProvider<TContext, TContext, TValidationError> =>
-  new AppEndpointBuilderProvider<TContext, TContext, TValidationError>(
-    (ctx) => ({ error: "none", data: ctx }),
-  );
+export const bindNecessaryTypes = <TContext, TValidationError>(
+  initialContextMetadata: Omit<
+    data.ContextValidatorSpec<TContext, TContext, TValidationError>,
+    "validator"
+  >,
+): AppEndpointBuilderProvider<TContext, TContext, TValidationError> =>
+  new AppEndpointBuilderProvider<TContext, TContext, TValidationError>({
+    ...initialContextMetadata,
+    validator: (ctx) => ({ error: "none", data: ctx }),
+  });
 
 export class AppEndpointBuilderProvider<
   TContext,
@@ -18,12 +21,10 @@ export class AppEndpointBuilderProvider<
   TValidationError,
 > {
   public constructor(
-    private readonly _contextTransform: data.DataValidator<
-      TRefinedContext,
-      TValidationError,
+    private readonly _contextTransform: data.ContextValidatorSpec<
       TContext,
-      "none",
-      "error"
+      TRefinedContext,
+      TValidationError
     >,
   ) {}
 
@@ -74,25 +75,28 @@ export class AppEndpointBuilderProvider<
   }
 
   public refineContext<TNewContext>(
-    transform: data.DataValidator<
-      TNewContext,
-      TValidationError,
+    transform: data.ContextValidatorSpec<
       TRefinedContext,
-      "none",
-      "error"
+      TNewContext,
+      TValidationError
     >,
   ): AppEndpointBuilderProvider<TContext, TNewContext, TValidationError> {
-    return new AppEndpointBuilderProvider((ctx) => {
-      const transformed = this._contextTransform(ctx);
-      switch (transformed.error) {
-        case "none":
-          return transform(transformed.data);
-        default:
-          return transformed;
-      }
+    return new AppEndpointBuilderProvider({
+      ...transform,
+      validator: (ctx) => {
+        const transformed = this._contextTransform.validator(ctx);
+        switch (transformed.error) {
+          case "none":
+            return transform.validator(transformed.data);
+          default:
+            return transformed;
+        }
+      },
     });
   }
 }
+
+// TODO allow validator to return custom http status
 
 export interface URLDataNames<
   TContext,
@@ -185,6 +189,18 @@ class AppEndpointBuilderWithURLDataInitial<
   }
 }
 
+interface StaticAppEndpointBuilderSpec<TContext, TBodyError> {
+  builder: StaticAppEndpointBuilder<TContext, TBodyError>;
+  inputValidation?: Omit<
+    data.DataValidatorRequestInputSpec<unknown, TBodyError>,
+    "validator"
+  >;
+  outputValidation: Omit<
+    data.DataValidatorResponseOutputSpec<unknown, TBodyError>,
+    "validator"
+  >;
+}
+
 type StaticAppEndpointBuilder<TContext, TBodyError> = (
   groupNamePrefix: string,
   groups: Record<string, string>,
@@ -195,15 +211,13 @@ interface AppEndpointBuilderState<TContext, TRefinedContext, TValidationError> {
   methods: Partial<
     Record<
       method.HttpMethod,
-      StaticAppEndpointBuilder<TContext, TValidationError>
+      StaticAppEndpointBuilderSpec<TContext, TValidationError>
     >
   >;
-  contextTransform: data.DataValidator<
-    TRefinedContext,
-    TValidationError,
+  contextTransform: data.ContextValidatorSpec<
     TContext,
-    "none",
-    "error"
+    TRefinedContext,
+    TValidationError
   >;
 }
 
@@ -271,16 +285,15 @@ export class AppEndpointBuilderForURLDataAndMethods<
     protected readonly _methods: Set<TAllowedMethods>,
   ) {}
 
-  public withoutBody<THandlerResult, TOutput>(
+  public withoutBody<THandlerResult>(
     endpointHandler: (
       urlData: TDataInURL,
       context: TRefinedContext,
     ) => THandlerResult,
-    transformOutput: data.DataValidatorOutput<
-      TOutput,
-      TValidationError,
-      THandlerResult
-    >,
+    {
+      validator,
+      ...outputSpec
+    }: data.DataValidatorResponseOutputSpec<THandlerResult, TValidationError>,
   ): AppEndpointBuilderWithURLData<
     TContext,
     TRefinedContext,
@@ -288,25 +301,29 @@ export class AppEndpointBuilderForURLDataAndMethods<
     TDataInURL,
     Exclude<method.HttpMethod, TAllowedMethods>
   > {
-    const handler: StaticAppEndpointBuilder<TContext, TValidationError> = (
-      groupNamePrefix,
-      groups,
-    ) => ({
-      handler: (ctx) =>
-        postTransform(ctx, this._state.contextTransform, (transformedContext) =>
-          transformOutput(
-            endpointHandler(
-              buildURLDataObject(
-                this._state.args,
-                this._state.validation,
-                groups,
-                groupNamePrefix,
-              ) as unknown as TDataInURL,
-              transformedContext,
-            ),
+    const handler: StaticAppEndpointBuilderSpec<TContext, TValidationError> = {
+      outputValidation: outputSpec,
+      builder: (groupNamePrefix, groups) => ({
+        contextValidator: this._state.contextTransform.validator,
+        handler: (ctx) =>
+          postTransform(
+            ctx,
+            this._state.contextTransform,
+            (transformedContext) =>
+              validator(
+                endpointHandler(
+                  buildURLDataObject(
+                    this._state.args,
+                    this._state.validation,
+                    groups,
+                    groupNamePrefix,
+                  ) as unknown as TDataInURL,
+                  transformedContext,
+                ),
+              ),
           ),
-        ),
-    });
+      }),
+    };
     return new AppEndpointBuilderWithURLData({
       ...this._state,
       methods: Object.assign(
@@ -333,14 +350,20 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
   TDataInURL,
   TAllowedMethods
 > {
-  public withBody<U, V, TOutput>(
-    bodyDataValidator: data.DataValidatorInput<V, TValidationError>,
+  public withBody<TResult, TBody>(
+    {
+      validator: inputValidator,
+      ...inputSpec
+    }: data.DataValidatorRequestInputSpec<TBody, TValidationError>,
     endpointHandler: (
       urlData: TDataInURL,
-      bodyData: V,
+      bodyData: TBody,
       context: TRefinedContext,
-    ) => U,
-    transformOutput: data.DataValidatorOutput<TOutput, TValidationError, U>,
+    ) => TResult,
+    {
+      validator: outputValidator,
+      ...outputSpec
+    }: data.DataValidatorResponseOutputSpec<TResult, TValidationError>,
   ): AppEndpointBuilderWithURLData<
     TContext,
     TRefinedContext,
@@ -348,27 +371,32 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
     TDataInURL,
     Exclude<method.HttpMethod, TAllowedMethods>
   > {
-    const handler: StaticAppEndpointBuilder<TContext, TValidationError> = (
-      groupNamePrefix,
-      groups,
-    ) => ({
-      isBodyValid: bodyDataValidator,
-      handler: (ctx, body) =>
-        postTransform(ctx, this._state.contextTransform, (transformedContext) =>
-          transformOutput(
-            endpointHandler(
-              buildURLDataObject(
-                this._state.args,
-                this._state.validation,
-                groups,
-                groupNamePrefix,
-              ) as unknown as TDataInURL,
-              body as V,
-              transformedContext,
-            ),
+    const handler: StaticAppEndpointBuilderSpec<TContext, TValidationError> = {
+      inputValidation: inputSpec,
+      outputValidation: outputSpec,
+      builder: (groupNamePrefix, groups) => ({
+        contextValidator: this._state.contextTransform.validator,
+        isBodyValid: inputValidator,
+        handler: (ctx, body) =>
+          postTransform(
+            ctx,
+            this._state.contextTransform,
+            (transformedContext) =>
+              outputValidator(
+                endpointHandler(
+                  buildURLDataObject(
+                    this._state.args,
+                    this._state.validation,
+                    groups,
+                    groupNamePrefix,
+                  ) as unknown as TDataInURL,
+                  body as TBody,
+                  transformedContext,
+                ),
+              ),
           ),
-        ),
-    });
+      }),
+    };
     return new AppEndpointBuilderWithURLData({
       ...this._state,
       methods: Object.assign(
@@ -500,24 +528,31 @@ export class AppEndpointBuilderForMethods<
     protected readonly _methods: Set<TAllowedMethods>,
   ) {}
 
-  public withoutBody<U, TOutput>(
-    endpointHandler: (context: TRefinedContext) => U,
-    transformOutput: data.DataValidatorOutput<TOutput, TValidationError, U>,
+  public withoutBody<TOutput>(
+    endpointHandler: (context: TRefinedContext) => TOutput,
+    {
+      validator,
+      ...outputSpec
+    }: data.DataValidatorResponseOutputSpec<TOutput, TValidationError>,
   ): AppEndpointBuilder<
     TContext,
     TRefinedContext,
     TValidationError,
     Exclude<method.HttpMethod, TAllowedMethods>
   > {
-    const handler: StaticAppEndpointBuilder<
-      TContext,
-      TValidationError
-    > = () => ({
-      handler: (ctx) =>
-        postTransform(ctx, this._state.contextTransform, (transformedContext) =>
-          transformOutput(endpointHandler(transformedContext)),
-        ),
-    });
+    const handler: StaticAppEndpointBuilderSpec<TContext, TValidationError> = {
+      outputValidation: outputSpec,
+      builder: () => ({
+        contextValidator: this._state.contextTransform.validator,
+        handler: (ctx) =>
+          postTransform(
+            ctx,
+            this._state.contextTransform,
+            (transformedContext) =>
+              validator(endpointHandler(transformedContext)),
+          ),
+      }),
+    };
     return new AppEndpointBuilder({
       ...this._state,
       methods: Object.assign(
@@ -542,33 +577,42 @@ export class AppEndpointBuilderForMethodsAndBody<
   TValidationError,
   TAllowedMethods
 > {
-  public withBody<THandlerResult, TBody, TOutput>(
-    bodyDataValidator: data.DataValidatorInput<TBody, TValidationError>,
+  public withBody<THandlerResult, TBody>(
+    {
+      validator: inputValidator,
+      ...inputSpec
+    }: data.DataValidatorRequestInputSpec<TBody, TValidationError>,
     endpointHandler: (
       bodyData: TBody,
       context: TRefinedContext,
     ) => THandlerResult,
-    transformOutput: data.DataValidatorOutput<
-      TOutput,
-      TValidationError,
-      THandlerResult
-    >,
+    {
+      validator: outputValidator,
+      ...outputSpec
+    }: data.DataValidatorResponseOutputSpec<THandlerResult, TValidationError>,
   ): AppEndpointBuilder<
     TContext,
     TRefinedContext,
     TValidationError,
     Exclude<method.HttpMethod, TAllowedMethods>
   > {
-    const handler: StaticAppEndpointBuilder<
-      TContext,
-      TValidationError
-    > = () => ({
-      isBodyValid: bodyDataValidator,
-      handler: (ctx, body) =>
-        postTransform(ctx, this._state.contextTransform, (transformedContext) =>
-          transformOutput(endpointHandler(body as TBody, transformedContext)),
-        ),
-    });
+    const handler: StaticAppEndpointBuilderSpec<TContext, TValidationError> = {
+      inputValidation: inputSpec,
+      outputValidation: outputSpec,
+      builder: () => ({
+        contextValidator: this._state.contextTransform.validator,
+        isBodyValid: inputValidator,
+        handler: (ctx, body) =>
+          postTransform(
+            ctx,
+            this._state.contextTransform,
+            (transformedContext) =>
+              outputValidator(
+                endpointHandler(body as TBody, transformedContext),
+              ),
+          ),
+      }),
+    };
     return new AppEndpointBuilder({
       ...this._state,
       methods: Object.assign(
@@ -605,7 +649,7 @@ const forMethodsImpl = <TMethods extends method.HttpMethod>(
 
 const checkMethodsForHandler = <TContext, TValidationError>(
   state: {
-    [key: string]: StaticAppEndpointBuilder<TContext, TValidationError>;
+    [key: string]: StaticAppEndpointBuilderSpec<TContext, TValidationError>;
   },
   method: method.HttpMethod,
   groupNamePrefix: string,
@@ -614,7 +658,7 @@ const checkMethodsForHandler = <TContext, TValidationError>(
   method in state
     ? {
         found: "handler" as const,
-        handler: state[method](groupNamePrefix, groups),
+        handler: state[method].builder(groupNamePrefix, groups),
       }
     : {
         found: "invalid-method" as const,
@@ -661,22 +705,20 @@ const buildURLRegExp = (
 
 const postTransform = <TContext, TRefinedContext, TValidationError, TResult>(
   ctx: TContext,
-  contextTransform: data.DataValidator<
-    TRefinedContext,
-    TValidationError,
+  contextTransform: data.ContextValidatorSpec<
     TContext,
-    "none",
-    "error"
+    TRefinedContext,
+    TValidationError
   >,
   useTransformed: (transformed: TRefinedContext) => TResult,
 ) => {
-  const transformedContext = contextTransform(ctx);
+  const transformedContext = contextTransform.validator(ctx);
   switch (transformedContext.error) {
     case "none":
       return useTransformed(transformedContext.data);
     default:
       return {
-        error: "out-error" as const,
+        error: "error" as const,
         errorInfo: transformedContext.errorInfo,
       };
   }

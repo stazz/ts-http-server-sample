@@ -36,14 +36,13 @@ const endpointsAsKoaMiddleware = (
   const urlBuilder = model.bindNecessaryTypes<
     koa.KoaContext,
     tPlugin.ValidationError
-  >();
+  >({});
 
   const urlBuilderWithUsername = urlBuilder.refineContext(
-    koa.validateContextState(tPlugin.inputValidator(koaState)),
+    koa.validateContextState(tPlugin.plainValidator(koaState)),
   );
   // Any amount of endpoint informations can be passed to createKoaMiddleware - there always will be exactly one RegExp generated to perform endpoint match.
   return koa.koaMiddlewareFactory(
-    tPlugin.inputValidator(koaState),
     // Prefixes can be combined to any depth.
     // Note that it is technically possible to define prefixes in separate files, but for this sample, let's just define everything here.
     model.atPrefix(
@@ -144,7 +143,9 @@ const middlewareFactory = endpointsAsKoaMiddleware(
   tt.UUID, // Too bad that io-ts-types does not expose UUID regex it uses
 );
 
-const middleWareToSetUsernameFromJWTToken = (): Koa.Middleware<KoaState> => {
+const middleWareToSetUsernameFromJWTToken = (): Koa.Middleware<
+  Partial<KoaState>
+> => {
   // Simulate lazy fetching of JWT info from remote server.
   let jwtInfo: Promise<string> | undefined;
   const fetchJwtInfo = () => Promise.resolve("get-jwt-info-from-some-url");
@@ -153,18 +154,20 @@ const middleWareToSetUsernameFromJWTToken = (): Koa.Middleware<KoaState> => {
       jwtInfo = fetchJwtInfo();
     }
     await fetchJwtInfo(); // Once awaited, the Promise will not be executed again. It is safe to await on already awaited Promise.
-    ctx.state.username = "username-from-jwt-token-or-error";
+    ctx.state.username = "username-from-jwt-token-or-none";
     await next();
   };
 };
 
-// Finally, create Koa app and start it
-new Koa<KoaState>()
-  // First do auth (will modify context's state)
-  .use(middleWareToSetUsernameFromJWTToken())
-  // Then perform our task (read context's state in event handler)
+// Instantiate application
+middlewareFactory
   .use(
-    middlewareFactory.createMiddleware({
+    // Create Koa app
+    new Koa()
+      // First do auth (will modify context's state)
+      .use(middleWareToSetUsernameFromJWTToken()),
+    // Hook up to events of the applications
+    {
       onInvalidBody: ({ ctx: { state, method, url }, validationError }) => {
         // eslint-disable-next-line no-console
         console.error(
@@ -187,10 +190,10 @@ new Koa<KoaState>()
           `Invalid Method supplied: ${method} ${url} (user: ${state.username})`,
         );
       },
-      onBodyJSONParseError: ({ ctx: { state, method, url }, exception }) => {
+      onInvalidContentType: ({ ctx: { state, method, url }, contentType }) => {
         // eslint-disable-next-line no-console
         console.error(
-          `Failed to parse body JSON ${method} ${url} (user: ${state.username})\n${exception}`,
+          `Invalid content type specified: ${method} ${url} (user: ${state.username}): ${contentType}`,
         );
       },
       onInvalidKoaState: ({ ctx: { state }, validationError }) => {
@@ -211,7 +214,7 @@ new Koa<KoaState>()
           )}`,
         );
       },
-    }),
+    },
   )
   .listen(3000)
   .once("listening", () =>

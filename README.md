@@ -48,18 +48,18 @@ The following things are good experiments to kick off full project exploration:
 Before delving deeper into the code, try starting the HTTP server with command `yarn run server`, and after seeing message `Koa server started`, try the following `curl` commands:
 - `curl -v http://localhost:3000/api/thing/00000000-0000-0000-0000-000000000000` to test endpoint in `src/lib/query.ts`.
   There should be no errors, and the returned value should be same ID as in URL.
-- `curl -v -X PUT -d'{"property":"00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing` to test endpoint in `src/lib/create.ts`.
+- `curl -v -X PUT -H 'Content-Type: application/json' -d'{"property":"00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing` to test endpoint in `src/lib/create.ts`.
   There should be no errors, and the returned value should be same as supplied body.
-- `curl -v -X POST -d'{"anotherThingId": "00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing/00000000-0000-0000-0000-000000000000/connectToAnotherThing` to test endpoint in `src/lib/connect.ts`.
+- `curl -v -X POST -H 'Content-Type: application/json' -d'{"anotherThingId": "00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing/00000000-0000-0000-0000-000000000000/connectToAnotherThing` to test endpoint in `src/lib/connect.ts`.
   There should be no errors, and the returned value should be `{"connected":true,"connectedAt":"<current time in ISO format>"}`.
 - `curl -v http://localhost:3000/doc` to test endpoint specified inline in `src/index.ts`.
   There should be no errors, and the returned value should be `"This is our documentation"`.
 - `curl -v http://localhost:3000/non-existing` to test how situation is handled when there are no suitable endpoints for URL.
   The response code should be `404`, and Koa server should have logged an error to stdout.
-- `curl -v -X POST -d'{"property":"00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing` to test correct endpoint, but wrong method.
+- `curl -v -X POST -H 'Content-Type: application/json' -d'{"property":"00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing` to test correct endpoint, but wrong method.
   The response code should be `405` and `Allowed` header should contain value `PUT`.
   Koa server should have logged an error to stdout.
-- `curl -v -X PUT -d'{"invalid_property":"00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing` to test correct endpoint, but wrong body.
+- `curl -v -X PUT -H 'Content-Type: application/json' -d'{"invalid_property":"00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing` to test correct endpoint, but wrong body.
   The response code should be `422`, and Koa server should have logged an error to stdout.
 
 This should be quite good introduction to the project.
