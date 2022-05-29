@@ -5,14 +5,35 @@ import * as rawbody from "raw-body";
 
 export type ValidationError = t.Errors;
 
-export const queryValidator = <T>(
-  validation: t.Decoder<unknown, T> & { _tag: string },
-): model.QueryValidatorSpec<T, ValidationError> => ({
+export const queryValidator = <T extends t.HasProps>(
+  validation: T,
+): model.QueryValidatorSpec<
+  t.TypeOf<T>,
+  ValidationError,
+  PropNamesOf<T> & string
+> => ({
   validator: {
     query: "object",
     validator: plainValidator(validation),
   },
+  queryParameterNames: getAllPropertyNames(validation),
 });
+
+export type PropNamesOfLeaf<T> = T extends t.InterfaceType<infer U>
+  ? keyof U & string
+  : T extends t.PartialType<infer U>
+  ? keyof U & string
+  : T extends t.StrictType<infer U>
+  ? keyof U & string
+  : never;
+
+export type PropNamesOf<T extends t.Any> = T extends t.IntersectionType<infer U>
+  ? PropNamesOfLeaf<U[number]>
+  : T extends t.ReadonlyType<infer U>
+  ? PropNamesOfLeaf<U>
+  : T extends t.RefinementType<infer U>
+  ? PropNamesOfLeaf<U>
+  : PropNamesOfLeaf<T>;
 
 // We only support json things for io-ts validation.
 const CONTENT_TYPE = "application/json" as const;
@@ -113,3 +134,26 @@ const exceptionAsValidationError = (
     context: [],
   },
 ];
+
+const getAllPropertyNames = <T extends t.HasProps>(
+  validation: T,
+): Array<PropNamesOf<T>> => {
+  let retVal: Array<string>;
+  switch (validation._tag) {
+    case "InterfaceType":
+    case "PartialType":
+    case "StrictType":
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      retVal = Object.keys(validation.props);
+      break;
+    case "IntersectionType":
+      retVal = validation.types.flatMap((t) => getAllPropertyNames(t));
+      break;
+    case "ReadonlyType":
+    case "RefinementType":
+      retVal = getAllPropertyNames(validation.type);
+      break;
+  }
+
+  return retVal as Array<PropNamesOf<T>>;
+};

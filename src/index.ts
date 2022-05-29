@@ -55,10 +55,21 @@ const endpointsAsKoaMiddleware = (
             // All parameters present in URL template string must be mentioned here, otherwise there will be compile-time error.
             id: idInURL,
           })
-          .forMethod("GET")
+          .forMethod(
+            "GET",
+            tPlugin.queryValidator(
+              t.partial(
+                {
+                  includeDeleted: t.boolean,
+                },
+                "GetThingQuery", // Friendly name for error messages
+              ),
+            ),
+          )
           .withoutBody(
             // Invoke functionality
-            ({ url: { id } }) => functionality.queryThing(id),
+            ({ url: { id }, query: { includeDeleted } }) =>
+              functionality.queryThing(id, includeDeleted === true),
             // Transform functionality output to REST output
             tPlugin.outputValidator(t.string),
           )
