@@ -4,14 +4,11 @@ import * as url from "./url";
 import * as data from "./data";
 import * as ep from "./endpoint";
 
-export const bindNecessaryTypes = <TContext, TValidationError>(
-  initialContextMetadata: Omit<
-    data.ContextValidatorSpec<TContext, TContext, TValidationError>,
-    "validator"
-  >,
-): AppEndpointBuilderProvider<TContext, TContext, TValidationError> =>
+export const bindNecessaryTypes = <
+  TContext,
+  TValidationError,
+>(): AppEndpointBuilderProvider<TContext, TContext, TValidationError> =>
   new AppEndpointBuilderProvider<TContext, TContext, TValidationError>({
-    ...initialContextMetadata,
     validator: (ctx) => ({ error: "none", data: ctx }),
   });
 
@@ -493,7 +490,7 @@ const HttpMethodsWithoutBody = {
   GET: true,
 } as const;
 
-export type HttpMethodWithoutBody = "GET";
+export type HttpMethodWithoutBody = keyof typeof HttpMethodsWithoutBody;
 export type HttpMethodWithBody = Exclude<
   method.HttpMethod,
   HttpMethodWithoutBody
@@ -776,9 +773,10 @@ const forMethodImpl = <
     | data.QueryValidatorSpec<TQuery, TValidationError>
     | undefined,
 ) => {
-  const stateMethodsKeys = Object.keys(stateMethods) as Array<TMethods>;
   const overlappingMehods = new Set(
-    stateMethodsKeys.filter((existingMethod) => existingMethod === method),
+    Object.keys(stateMethods).filter(
+      (existingMethod) => existingMethod === method,
+    ),
   );
   if (overlappingMehods.size > 0) {
     throw new Error(
@@ -803,7 +801,7 @@ const forMethodImpl = <
   }
 
   return {
-    methodsSet: new Set([method, ...stateMethodsKeys]),
+    methodsSet: new Set([method]),
     withoutBody: method in HttpMethodsWithoutBody,
     queryInfo,
   };

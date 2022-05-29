@@ -36,7 +36,7 @@ const endpointsAsKoaMiddleware = (
   const urlBuilder = model.bindNecessaryTypes<
     koa.KoaContext,
     tPlugin.ValidationError
-  >({});
+  >();
 
   const urlBuilderWithUsername = urlBuilder.refineContext(
     koa.validateContextState(tPlugin.plainValidator(koaState)),
