@@ -1,3 +1,4 @@
+import * as q from "querystring";
 import * as stream from "stream";
 
 export type DataValidator<
@@ -6,6 +7,17 @@ export type DataValidator<
   TError,
   TResponse = DataValidatorResult<TData, TError>,
 > = (this: void, data: TInput) => TResponse;
+
+export interface DataValidatorURLSpec<TData, TError> {
+  regExp: RegExp;
+  validator: DataValidatorURL<TData, TError>;
+}
+
+export type DataValidatorURL<TData, TError> = DataValidator<
+  string,
+  TData,
+  TError
+>;
 
 export type DataValidatorResult<TData, TError> =
   | {
@@ -84,7 +96,7 @@ export interface QueryValidatorForString<TQuery, TValidationError> {
 
 export interface QueryValidatorForObject<TQuery, TValidationError> {
   query: "object";
-  validator: DataValidator<Record<string, unknown>, TQuery, TValidationError>;
+  validator: DataValidator<q.ParsedUrlQuery, TQuery, TValidationError>;
 }
 
 export const transitiveDataValidation =

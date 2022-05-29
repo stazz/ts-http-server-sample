@@ -58,12 +58,20 @@ const endpointsAsKoaMiddleware = (
           .forMethod(
             "GET",
             tPlugin.queryValidator(
+              // Use string-based validation here, as incoming dictionary will only contain strings or string arrays as values
               t.partial(
                 {
-                  includeDeleted: t.boolean,
+                  includeDeleted: t.string,
                 },
                 "GetThingQuery", // Friendly name for error messages
               ),
+              // Now we can transform the text values into non-string values
+              {
+                includeDeleted: {
+                  transform: (str) => str?.toLowerCase() === "true",
+                  validation: t.boolean,
+                },
+              },
             ),
           )
           .withoutBody(

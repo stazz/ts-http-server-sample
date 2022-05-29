@@ -4,15 +4,20 @@ import * as method from "./method";
 // {
 //    "application/json": t.Type<unknown>
 // }
-export interface AppEndpointMetadata<TContentTypes> {
+export interface AppEndpointMetadata<TContentTypes, TParameterDataSchema> {
   method: method.HttpMethod;
-  urlValidation?: ReadonlyArray<
+  urlValidation: ReadonlyArray<
     | string
     | {
-        name: string;
         match: RegExp;
+        validation: AppEndpointDataForParameter<TParameterDataSchema>;
       }
   >;
+  queryValidation: {
+    [P in keyof TContentTypes]: P extends string
+      ? AppEndpointDataForParameter<TParameterDataSchema>
+      : never;
+  };
   inputValidation: {
     [P in keyof TContentTypes]: P extends string
       ? AppEndpointDataForContentType<P, TContentTypes[P]>
@@ -31,4 +36,9 @@ export interface AppEndpointDataForContentType<
 > {
   contentType: TContentType;
   bodyValidation?: TDataSchema;
+}
+
+export interface AppEndpointDataForParameter<TDataSchema> {
+  parameterName: string;
+  parameterValidation: TDataSchema;
 }

@@ -5,19 +5,117 @@ import * as rawbody from "raw-body";
 
 export type ValidationError = t.Errors;
 
-export const queryValidator = <T extends t.HasProps>(
+export function queryValidator<T extends t.HasProps>(
   validation: T,
 ): model.QueryValidatorSpec<
   t.TypeOf<T>,
   ValidationError,
   PropNamesOf<T> & string
-> => ({
-  validator: {
-    query: "object",
-    validator: plainValidator(validation),
-  },
-  queryParameterNames: getAllPropertyNames(validation),
-});
+>;
+export function queryValidator<
+  T extends t.HasProps,
+  U extends Partial<{
+    [P in keyof t.TypeOf<T>]: unknown;
+  }>,
+>(
+  validation: T,
+  transform: { [P in keyof U]: StringParameterTransform<U[P]> },
+): model.QueryValidatorSpec<
+  { [P in keyof t.TypeOf<T>]: P extends keyof U ? U[P] : t.TypeOf<T>[P] },
+  ValidationError,
+  PropNamesOf<T> & string
+>;
+export function queryValidator<
+  T extends t.HasProps,
+  U extends Partial<{
+    [P in keyof t.TypeOf<T>]: unknown;
+  }>,
+>(
+  validation: T,
+  transform?: { [P in keyof U]: StringParameterTransform<U[P]> },
+):
+  | model.QueryValidatorSpec<
+      t.TypeOf<T>,
+      ValidationError,
+      PropNamesOf<T> & string
+    >
+  | model.QueryValidatorSpec<
+      { [P in keyof t.TypeOf<T>]: P extends keyof U ? U[P] : t.TypeOf<T>[P] },
+      ValidationError,
+      PropNamesOf<T> & string
+    > {
+  const validator = plainValidator(validation);
+  let finalValidator: model.QueryValidatorForObject<
+    | t.TypeOf<T>
+    | { [P in keyof t.TypeOf<T>]: P extends keyof U ? U[P] : t.TypeOf<T>[P] },
+    ValidationError
+  >["validator"];
+  if (transform) {
+    const transformSpecs = Object.fromEntries(
+      Object.entries(transform).map(([key, val]) => {
+        const stringValidation = val as StringParameterTransform<unknown>;
+        return [
+          key,
+          {
+            transform: stringValidation.transform,
+            validator: plainValidator(stringValidation.validation),
+          },
+        ];
+      }),
+    );
+    // Chain the result of validation
+    finalValidator = model.transitiveDataValidation(validator, (data) => {
+      const finalResult: Record<string, unknown> = {};
+      const errors: ValidationError = [];
+      for (const [key, dataItem] of Object.entries(data as object)) {
+        if (key in transformSpecs) {
+          try {
+            const stringTransform = transformSpecs[key];
+            const transformed = stringTransform
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              .transform(data[key] as string);
+            const validationResult = stringTransform.validator(transformed);
+            switch (validationResult.error) {
+              case "none":
+                finalResult[key] = transformed;
+                break;
+              default:
+                errors.push(...validationResult.errorInfo);
+                break;
+            }
+          } catch (e) {
+            errors.push(...exceptionAsValidationError(dataItem, e));
+          }
+        } else {
+          finalResult[key] = dataItem;
+        }
+      }
+      return errors.length > 0
+        ? {
+            error: "error",
+            errorInfo: errors,
+          }
+        : {
+            error: "none",
+            data: finalResult,
+          };
+    });
+  } else {
+    finalValidator = validator;
+  }
+  return {
+    validator: {
+      query: "object",
+      validator: finalValidator,
+    },
+    queryParameterNames: getAllPropertyNames(validation),
+  };
+}
+
+export interface StringParameterTransform<TResult> {
+  transform: (value: string) => TResult;
+  validation: t.Decoder<unknown, TResult> & { _tag: string };
+}
 
 export type PropNamesOfLeaf<T> = T extends t.InterfaceType<infer U>
   ? keyof U & string

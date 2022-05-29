@@ -1,9 +1,6 @@
 export interface URLDataTransformer<T> {
   regexp: RegExp;
-  transform: (
-    matchedString: string,
-    /* later - groups: Array<string> */
-  ) => T;
+  transform: (matchedString: string) => T;
 }
 
 const DEFAULT_PARAM_REGEXP = /[^/]+/;
