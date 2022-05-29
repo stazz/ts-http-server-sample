@@ -61,7 +61,7 @@ const endpointsAsKoaMiddleware = (
               // Use string-based validation here, as incoming dictionary will only contain strings or string arrays as values
               t.partial(
                 {
-                  includeDeleted: t.string,
+                  includeDeleted: t.keyof({ true: "", false: "" }),
                 },
                 "GetThingQuery", // Friendly name for error messages
               ),
@@ -205,6 +205,14 @@ middlewareFactory
         // eslint-disable-next-line no-console
         console.error(
           `Invalid URL supplied: ${method} ${url} (user: ${state.username})`,
+        );
+      },
+      onInvalidQuery: ({ ctx: { method, url }, validationError }) => {
+        // eslint-disable-next-line no-console
+        console.error(
+          `Invalid query supplied: ${method} ${url}.\n${tPlugin.getHumanReadableErrorMessage(
+            validationError,
+          )}`,
         );
       },
       onInvalidMethod: ({ ctx: { state, method, url } }) => {

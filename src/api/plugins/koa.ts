@@ -72,6 +72,7 @@ export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
                     {
                       // State was OK, validate query & body
                       const [proceedAfterQuery, query] = checkQueryForHandler(
+                        events,
                         eventArgs,
                         queryValidator,
                       );
@@ -160,6 +161,9 @@ export interface KoaMiddlewareEvents<TValidationError, TState> {
   ) => unknown;
   onInvalidMethod?: (args: EventArguments<TState>) => unknown;
   onInvalidUrl?: (args: Omit<EventArguments<TState>, "groups">) => unknown;
+  onInvalidQuery?: (
+    args: EventArguments<TState> & ValidationErrorArgs<TValidationError>,
+  ) => unknown;
   onInvalidContentType?: (
     args: EventArguments<TState> & { contentType: string },
   ) => unknown;
@@ -172,6 +176,7 @@ export interface KoaMiddlewareEvents<TValidationError, TState> {
 }
 
 const checkQueryForHandler = <TValidationError, TState>(
+  events: KoaMiddlewareEvents<TValidationError, TState> | undefined,
   eventArgs: EventArguments<TState>,
   queryValidation: model.QueryValidator<unknown, TValidationError> | undefined,
 ) => {
@@ -202,8 +207,10 @@ const checkQueryForHandler = <TValidationError, TState>(
         ctx.status = 400;
         ctx.body = "";
         proceedToInvokeHandler = false;
-        // TODO invoke event
-        break;
+        events?.onInvalidQuery?.({
+          ...eventArgs,
+          validationError: queryValidationResult.errorInfo,
+        });
     }
   } else {
     // Only OK if query is none
