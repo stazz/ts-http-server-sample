@@ -2,92 +2,84 @@ import * as model from "../model";
 import * as t from "io-ts";
 import { PathReporter } from "io-ts/PathReporter";
 import * as rawbody from "raw-body";
+import * as q from "querystring";
 
 export type ValidationError = t.Errors;
+export type Decoder<TData, TInput = unknown> = t.Decoder<TInput, TData> & {
+  _tag: string;
+};
 
-export function queryValidator<T extends t.HasProps>(
-  validation: T,
-): model.QueryValidatorSpec<
-  t.TypeOf<T>,
+export const queryValidator = <
+  TRequired extends string,
+  TOptional extends string,
+  TValidation extends {
+    [P in TRequired | TOptional]: StringParameterTransform<t.Mixed>;
+  },
+>({
+  required,
+  optional,
+  validation,
+}: QueryValidatorPropertySpec<
+  TRequired,
+  TOptional,
+  TValidation
+>): model.QueryValidatorSpec<
+  { [P in TRequired]: t.TypeOf<TValidation[P]["validation"]> } & {
+    [P in TOptional]?: t.TypeOf<TValidation[P]["validation"]>;
+  },
   ValidationError,
-  PropNamesOf<T> & string
->;
-export function queryValidator<
-  T extends t.HasProps,
-  U extends Partial<{
-    [P in keyof t.TypeOf<T>]: unknown;
-  }>,
->(
-  validation: T,
-  transform: { [P in keyof U]: StringParameterTransform<U[P]> },
-): model.QueryValidatorSpec<
-  { [P in keyof t.TypeOf<T>]: P extends keyof U ? U[P] : t.TypeOf<T>[P] },
-  ValidationError,
-  PropNamesOf<T> & string
->;
-export function queryValidator<
-  T extends t.HasProps,
-  U extends Partial<{
-    [P in keyof t.TypeOf<T>]: unknown;
-  }>,
->(
-  validation: T,
-  transform?: { [P in keyof U]: StringParameterTransform<U[P]> },
-):
-  | model.QueryValidatorSpec<
-      t.TypeOf<T>,
-      ValidationError,
-      PropNamesOf<T> & string
-    >
-  | model.QueryValidatorSpec<
-      { [P in keyof t.TypeOf<T>]: P extends keyof U ? U[P] : t.TypeOf<T>[P] },
-      ValidationError,
-      PropNamesOf<T> & string
-    > {
-  const validator = plainValidator(validation);
-  let finalValidator: model.QueryValidatorForObject<
-    | t.TypeOf<T>
-    | { [P in keyof t.TypeOf<T>]: P extends keyof U ? U[P] : t.TypeOf<T>[P] },
-    ValidationError
-  >["validator"];
-  if (transform) {
-    const transformSpecs = Object.fromEntries(
-      Object.entries(transform).map(([key, val]) => {
-        const stringValidation = val as StringParameterTransform<unknown>;
-        return [
-          key,
-          {
-            transform: stringValidation.transform,
-            validator: plainValidator(stringValidation.validation),
-          },
-        ];
-      }),
-    );
-    // Chain the result of validation
-    finalValidator = model.transitiveDataValidation(validator, (data) => {
+  TRequired | TOptional
+> => {
+  const initialValidator = plainValidator(
+    t.exact(
+      t.intersection([
+        t.type(Object.fromEntries(required.map((r) => [r, t.string]))),
+        t.partial(Object.fromEntries(optional.map((o) => [o, t.string]))),
+      ]),
+    ),
+  );
+  const finalValidator = model.transitiveDataValidation(
+    initialValidator,
+    (data) => {
       const finalResult: Record<string, unknown> = {};
       const errors: ValidationError = [];
-      for (const [key, dataItem] of Object.entries(data as object)) {
-        if (key in transformSpecs) {
-          try {
-            const stringTransform = transformSpecs[key];
-            const transformed = stringTransform
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              .transform(data[key] as string);
-            const validationResult = stringTransform.validator(transformed);
+      for (const [key, dataItemIter] of Object.entries(data)) {
+        let dataItem = dataItemIter;
+        try {
+          const {
+            transform,
+            validation: parameterValidation,
+            stringValidation,
+          } = validation[key as keyof typeof validation];
+          const curErrorsCount = errors.length;
+          if (stringValidation) {
+            const stringValidationResult = transformIoTsResultToModelResult(
+              stringValidation.decode(dataItem),
+            );
+            switch (stringValidationResult.error) {
+              case "none":
+                dataItem = stringValidationResult.data;
+                break;
+              default:
+                errors.push(...stringValidationResult.errorInfo);
+                break;
+            }
+          }
+          if (errors.length == curErrorsCount) {
+            const validationResult = transformIoTsResultToModelResult(
+              parameterValidation.decode(transform(dataItem)),
+            );
             switch (validationResult.error) {
               case "none":
-                finalResult[key] = transformed;
+                finalResult[key] = validationResult.data;
                 break;
               default:
                 errors.push(...validationResult.errorInfo);
                 break;
             }
-          } catch (e) {
-            errors.push(...exceptionAsValidationError(dataItem, e));
           }
-        } else {
-          finalResult[key] = dataItem;
+        } catch (e) {
+          errors.push(...exceptionAsValidationError(dataItem, e));
         }
       }
       return errors.length > 0
@@ -99,45 +91,82 @@ export function queryValidator<
             error: "none",
             data: finalResult,
           };
-    });
-  } else {
-    finalValidator = validator;
-  }
+    },
+  );
   return {
     validator: {
       query: "object",
-      validator: finalValidator,
+      validator: finalValidator as model.DataValidator<
+        q.ParsedUrlQuery,
+        { [P in TRequired]: t.TypeOf<TValidation[P]["validation"]> } & {
+          [P in TOptional]?: t.TypeOf<TValidation[P]["validation"]>;
+        },
+        ValidationError
+      >,
     },
-    queryParameterNames: getAllPropertyNames(validation),
+    queryParameterNames: [...required, ...optional],
   };
+};
+
+export interface QueryValidatorPropertySpec<
+  TRequired extends string,
+  TOptional extends string,
+  TValidation extends {
+    [P in TRequired | TOptional]: StringParameterTransform<t.Mixed>;
+  },
+> {
+  required: ReadonlyArray<TRequired>;
+  optional: ReadonlyArray<TOptional>;
+  validation: TValidation;
 }
 
-export interface StringParameterTransform<TResult> {
-  transform: (value: string) => TResult;
-  validation: t.Decoder<unknown, TResult> & { _tag: string };
+export interface StringParameterTransform<
+  TValidation extends t.Mixed,
+  // TStringValidation extends Decoder<string> & t.Mixed = t.StringType,
+> {
+  transform: (value: string) => t.TypeOf<TValidation>;
+  validation: TValidation;
+  stringValidation?: Decoder<string>;
 }
 
-export type PropNamesOfLeaf<T> = T extends t.InterfaceType<infer U>
-  ? keyof U & string
-  : T extends t.PartialType<infer U>
-  ? keyof U & string
-  : T extends t.StrictType<infer U>
-  ? keyof U & string
-  : never;
+export function queryParameterString(): StringParameterTransform<t.StringType>;
+export function queryParameterString<
+  TDecoder extends Decoder<string> & t.Mixed,
+>(customString: TDecoder): StringParameterTransform<TDecoder>;
+export function queryParameterString<
+  TDecoder extends Decoder<string> & t.Mixed,
+>(customString?: TDecoder): StringParameterTransform<TDecoder | t.StringType> {
+  return customString
+    ? {
+        transform: (str) => str,
+        validation: customString,
+      }
+    : {
+        // Copy to prevent modifications by caller
+        ...queryParameterStringValue,
+      };
+}
 
-export type PropNamesOf<T extends t.Any> = T extends t.IntersectionType<infer U>
-  ? PropNamesOfLeaf<U[number]>
-  : T extends t.ReadonlyType<infer U>
-  ? PropNamesOfLeaf<U>
-  : T extends t.RefinementType<infer U>
-  ? PropNamesOfLeaf<U>
-  : PropNamesOfLeaf<T>;
+const queryParameterStringValue: StringParameterTransform<t.StringType> = {
+  transform: (str) => str,
+  validation: t.string,
+};
+
+export const queryParameterBoolean = () =>
+  // Copy to prevent modifications by caller
+  ({ ...queryParameterBooleanValue });
+
+const queryParameterBooleanValue: StringParameterTransform<t.BooleanType> = {
+  validation: t.boolean,
+  stringValidation: t.keyof({ true: "", false: "" }),
+  transform: (str) => str === "true",
+};
 
 // We only support json things for io-ts validation.
 const CONTENT_TYPE = "application/json" as const;
 
 export const inputValidator = <T>(
-  validation: t.Decoder<unknown, T> & { _tag: string },
+  validation: Decoder<T>,
   strictContentType = false,
 ): model.DataValidatorRequestInputSpec<T, ValidationError> => {
   const jsonValidation = model.transitiveDataValidation(
@@ -201,20 +230,23 @@ export const outputValidator = <TOutput, TSerialized>(
 
 export const plainValidator =
   <TInput, TData>(
-    validation: t.Decoder<TInput, TData> & { _tag: string },
+    validation: Decoder<TData, TInput>,
   ): model.DataValidator<TInput, TData, ValidationError> =>
-  (input) => {
-    const validationResult = validation.decode(input);
-    return validationResult._tag === "Right"
-      ? {
-          error: "none",
-          data: validationResult.right,
-        }
-      : {
-          error: "error",
-          errorInfo: validationResult.left,
-        };
-  };
+  (input) =>
+    transformIoTsResultToModelResult(validation.decode(input));
+
+const transformIoTsResultToModelResult = <TData>(
+  validationResult: t.Validation<TData>,
+): model.DataValidatorResult<TData, ValidationError> =>
+  validationResult._tag === "Right"
+    ? {
+        error: "none",
+        data: validationResult.right,
+      }
+    : {
+        error: "error",
+        errorInfo: validationResult.left,
+      };
 
 export const getHumanReadableErrorMessage = (error: ValidationError) =>
   PathReporter.report({
@@ -232,26 +264,3 @@ const exceptionAsValidationError = (
     context: [],
   },
 ];
-
-const getAllPropertyNames = <T extends t.HasProps>(
-  validation: T,
-): Array<PropNamesOf<T>> => {
-  let retVal: Array<string>;
-  switch (validation._tag) {
-    case "InterfaceType":
-    case "PartialType":
-    case "StrictType":
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      retVal = Object.keys(validation.props);
-      break;
-    case "IntersectionType":
-      retVal = validation.types.flatMap((t) => getAllPropertyNames(t));
-      break;
-    case "ReadonlyType":
-    case "RefinementType":
-      retVal = getAllPropertyNames(validation.type);
-      break;
-  }
-
-  return retVal as Array<PropNamesOf<T>>;
-};
