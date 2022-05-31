@@ -35,7 +35,7 @@ export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
   >
 ): KoaMiddlewareFactory<TValidationError> => {
   // Combine given endpoints into top-level entrypoint
-  const { url, handler } = model
+  const { url: regExp, handler } = model
     .atPrefix("", ...endpoints)
     .getRegExpAndHandler("");
   // Return Koa middleware handler factory
@@ -43,12 +43,12 @@ export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
     use: (prev, events) =>
       prev.use(async (ctx) => {
         // Pathname will not include query
-        const groups = url.exec(ctx.URL.pathname)?.groups;
+        const groups = regExp.exec(ctx.URL.pathname)?.groups;
         if (groups) {
           const eventArgs = {
             ctx,
             groups,
-            regExp: url,
+            regExp,
           };
           // We have a match -> get the handler that will handle our match
           const foundHandler = handler(ctx.method as model.HttpMethod, groups);
@@ -58,6 +58,7 @@ export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
                 const {
                   handler: {
                     contextValidator,
+                    urlValidator,
                     queryValidator,
                     bodyValidator,
                     handler,
@@ -70,44 +71,53 @@ export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
                 switch (contextValidation.error) {
                   case "none":
                     {
-                      // State was OK, validate query & body
-                      const [proceedAfterQuery, query] = checkQueryForHandler(
+                      // State was OK, validate url & query & body
+                      const [proceedAfterURL, url] = checkURLForHandler(
                         events,
                         eventArgs,
-                        queryValidator,
+                        groups,
+                        urlValidator,
                       );
-                      if (proceedAfterQuery) {
-                        const [proceedAfterBody, body] =
-                          await checkBodyForHandler(
-                            events,
-                            eventArgs,
-                            bodyValidator,
-                          );
-                        if (proceedAfterBody) {
-                          const retVal = handler({
-                            context: contextValidation.data,
-                            body,
-                            query,
-                          });
-                          switch (retVal.error) {
-                            case "none":
-                              {
-                                const { contentType, output } = retVal.data;
-                                if (output !== undefined) {
-                                  ctx.set("Content-Type", contentType);
-                                  ctx.body = output;
-                                  ctx.status = 200; // OK
-                                } else {
-                                  ctx.status = 204; // No Content
+                      if (proceedAfterURL) {
+                        const [proceedAfterQuery, query] = checkQueryForHandler(
+                          events,
+                          eventArgs,
+                          queryValidator,
+                        );
+                        if (proceedAfterQuery) {
+                          const [proceedAfterBody, body] =
+                            await checkBodyForHandler(
+                              events,
+                              eventArgs,
+                              bodyValidator,
+                            );
+                          if (proceedAfterBody) {
+                            const retVal = handler({
+                              context: contextValidation.data,
+                              url,
+                              body,
+                              query,
+                            });
+                            switch (retVal.error) {
+                              case "none":
+                                {
+                                  const { contentType, output } = retVal.data;
+                                  if (output !== undefined) {
+                                    ctx.set("Content-Type", contentType);
+                                    ctx.body = output;
+                                    ctx.status = 200; // OK
+                                  } else {
+                                    ctx.status = 204; // No Content
+                                  }
                                 }
+                                break;
+                              case "error": {
+                                ctx.status = 500; // Internal Server Error
+                                events?.onInvalidResponse?.({
+                                  ...eventArgs,
+                                  validationError: retVal.errorInfo,
+                                });
                               }
-                              break;
-                            case "error": {
-                              ctx.status = 500; // Internal Server Error
-                              events?.onInvalidResponse?.({
-                                ...eventArgs,
-                                validationError: retVal.errorInfo,
-                              });
                             }
                           }
                         }
@@ -133,7 +143,7 @@ export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
         } else {
           ctx.status = 404; // Not Found
           ctx.body = ""; // Otherwise it will have text "Not Found"
-          events?.onInvalidUrl?.({ ctx, regExp: url });
+          events?.onInvalidUrl?.({ ctx, regExp });
         }
       }),
   };
@@ -160,7 +170,12 @@ export interface KoaMiddlewareEvents<TValidationError, TState> {
     args: EventArguments<TState> & ValidationErrorArgs<TValidationError>,
   ) => unknown;
   onInvalidMethod?: (args: EventArguments<TState>) => unknown;
+  // URL did not match combined regex
   onInvalidUrl?: (args: Omit<EventArguments<TState>, "groups">) => unknown;
+  // URL matched combined regex, but parameter validation failed
+  onInvalidUrlParameters?: (
+    args: EventArguments<TState> & ValidationErrorArgs<Array<TValidationError>>,
+  ) => unknown;
   onInvalidQuery?: (
     args: EventArguments<TState> & ValidationErrorArgs<TValidationError>,
   ) => unknown;
@@ -175,12 +190,56 @@ export interface KoaMiddlewareEvents<TValidationError, TState> {
   ) => unknown;
 }
 
+const checkURLForHandler = <TValidationError, TState>(
+  events: KoaMiddlewareEvents<TValidationError, TState> | undefined,
+  eventArgs: EventArguments<TState>,
+  groups: Record<string, string>,
+  urlValidation: model.StaticAppEndpointHandler<
+    unknown,
+    unknown,
+    TValidationError
+  >["urlValidator"],
+) => {
+  const { ctx } = eventArgs;
+  let url: Record<string, unknown> | undefined;
+  let proceedToInvokeHandler: boolean;
+  if (urlValidation) {
+    url = {};
+    const errors: Array<TValidationError> = [];
+    for (const [groupName, { parameterName, validator }] of Object.entries(
+      urlValidation,
+    )) {
+      const validatorResult = validator(groups[groupName]);
+      switch (validatorResult.error) {
+        case "none":
+          url[parameterName] = validatorResult.data;
+          break;
+        default:
+          errors.push(validatorResult.errorInfo);
+          break;
+      }
+    }
+    proceedToInvokeHandler = errors.length === 0;
+    if (!proceedToInvokeHandler) {
+      ctx.status = 400;
+      ctx.body = "";
+      events?.onInvalidUrlParameters?.({
+        ...eventArgs,
+        validationError: errors,
+      });
+    }
+  } else {
+    proceedToInvokeHandler = true;
+  }
+  return [proceedToInvokeHandler, url];
+};
+
 const checkQueryForHandler = <TValidationError, TState>(
   events: KoaMiddlewareEvents<TValidationError, TState> | undefined,
   eventArgs: EventArguments<TState>,
   queryValidation: model.QueryValidator<unknown, TValidationError> | undefined,
 ) => {
-  const ctx = eventArgs.ctx;
+  const { ctx } = eventArgs;
   let proceedToInvokeHandler: boolean;
   let query: unknown;
   if (queryValidation) {
@@ -231,7 +290,7 @@ const checkBodyForHandler = async <TValidationError, TState>(
     | model.DataValidatorRequestInput<unknown, TValidationError>
     | undefined,
 ) => {
-  const ctx = eventArgs.ctx;
+  const { ctx } = eventArgs;
   let body: unknown;
   let proceedToInvokeHandler: boolean;
   if (isBodyValid) {

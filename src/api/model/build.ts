@@ -1,6 +1,5 @@
 import * as utils from "./utils";
 import * as method from "./method";
-import * as url from "./url";
 import * as data from "./data";
 import * as ep from "./endpoint";
 
@@ -93,31 +92,29 @@ export class AppEndpointBuilderProvider<
   }
 }
 
-// TODO allow validator to return custom http status
-
 export interface URLDataNames<
   TContext,
   TRefinedContext,
   TValidationError,
   TNames extends string,
 > {
-  validateURLData: <TValidation extends URLNamedDataValidation<TNames>>(
+  validateURLData: <
+    TValidation extends {
+      [P in TNames]: data.URLDataParameterValidatorSpec<
+        unknown,
+        TValidationError
+      >;
+    },
+  >(
     validation: TValidation,
   ) => AppEndpointBuilderWithURLDataInitial<
     TContext,
     TRefinedContext,
     TValidationError,
-    {
-      [P in TNames]: ReturnType<TValidation[P]["transform"]>;
-    },
+    { [P in TNames]: data.URLParameterDataType<TValidation[P]["validator"]> },
     method.HttpMethod
   >;
 }
-
-export type URLNamedDataValidation<TNames extends PropertyKey> = Record<
-  TNames,
-  url.URLDataTransformer<unknown>
->;
 
 class AppEndpointBuilderWithURLDataInitial<
   TContext,
@@ -253,7 +250,7 @@ interface StaticAppEndpointBuilderSpec<TContext, TRefinedContext, TBodyError> {
 
 type StaticAppEndpointBuilder<TContext, TRefinedContext, TBodyError> = (
   groupNamePrefix: string,
-  groups: Record<string, string>,
+  // groups: Record<string, string>,
 ) => ep.StaticAppEndpointHandler<TContext, TRefinedContext, TBodyError>;
 
 interface AppEndpointBuilderState<TContext, TRefinedContext, TValidationError> {
@@ -277,7 +274,10 @@ interface AppEndpointBuilderWithURLDataState<
   TValidationError,
 > extends AppEndpointBuilderState<TContext, TRefinedContext, TValidationError> {
   args: ReadonlyArray<string>;
-  validation: Record<string, url.URLDataTransformer<unknown>>;
+  validation: Record<
+    string,
+    data.URLDataParameterValidatorSpec<unknown, TValidationError>
+  >;
 }
 
 export class AppEndpointBuilderWithURLData<
@@ -307,12 +307,11 @@ export class AppEndpointBuilderWithURLData<
             this._state.validation,
             groupNamePrefix,
           ),
-          handler: (method, groups) =>
+          handler: (method) =>
             checkMethodsForHandler(
               this._state.methods,
               method,
               groupNamePrefix,
-              groups,
             ),
         }),
       };
@@ -392,21 +391,29 @@ export class AppEndpointBuilderForURLDataAndMethods<
       TValidationError
     > = {
       outputValidation: outputSpec,
-      builder: (groupNamePrefix, groups) => {
+      builder: (groupNamePrefix) => {
         return {
           contextValidator: this._state.contextTransform.validator,
+          urlValidator: Object.fromEntries(
+            Object.entries(this._state.validation).map(
+              ([parameterName, { validator }]) => [
+                // Final group name
+                `${groupNamePrefix}${parameterName}`,
+                // URL parameter validation
+                {
+                  parameterName,
+                  validator,
+                },
+              ],
+            ),
+          ),
           queryValidator: query?.validator,
-          handler: ({ context, query }) =>
+          handler: ({ context, url, query }) =>
             validator(
               endpointHandler({
                 ...getEndpointArgs(query),
                 context,
-                url: buildURLDataObject(
-                  this._state.args,
-                  this._state.validation,
-                  groups,
-                  groupNamePrefix,
-                ) as unknown as TDataInURL,
+                url: url as TDataInURL,
               }),
             ),
         };
@@ -476,21 +483,29 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
     > = {
       inputValidation: inputSpec,
       outputValidation: outputSpec,
-      builder: (groupNamePrefix, groups) => ({
+      builder: (groupNamePrefix) => ({
         contextValidator: this._state.contextTransform.validator,
+        urlValidator: Object.fromEntries(
+          Object.entries(this._state.validation).map(
+            ([parameterName, { validator }]) => [
+              // Final group name
+              `${groupNamePrefix}${parameterName}`,
+              // URL parameter validation
+              {
+                parameterName,
+                validator,
+              },
+            ],
+          ),
+        ),
         queryValidator: query?.validator,
         bodyValidator: inputValidator,
-        handler: ({ context, body, query }) =>
+        handler: ({ context, url, body, query }) =>
           outputValidator(
             endpointHandler({
               ...getEndpointArgs(query),
               context,
-              url: buildURLDataObject(
-                this._state.args,
-                this._state.validation,
-                groups,
-                groupNamePrefix,
-              ) as unknown as TDataInURL,
+              url: url as TDataInURL,
               body: body as TBody,
             }),
           ),
@@ -649,12 +664,11 @@ export class AppEndpointBuilder<
       return {
         getRegExpAndHandler: (groupNamePrefix) => ({
           url: new RegExp(utils.escapeRegExp(this._state.fragments.join(""))),
-          handler: (method, groups) =>
+          handler: (method) =>
             checkMethodsForHandler(
               this._state.methods,
               method,
               groupNamePrefix,
-              groups,
             ),
         }),
       };
@@ -874,34 +888,16 @@ const checkMethodsForHandler = <TContext, TRefinedContext, TValidationError>(
   },
   method: method.HttpMethod,
   groupNamePrefix: string,
-  groups: Record<string, string>,
 ): ep.DynamicHandlerResponse<TContext, TRefinedContext, TValidationError> =>
   method in state
     ? {
         found: "handler" as const,
-        handler: state[method].builder(groupNamePrefix, groups),
+        handler: state[method].builder(groupNamePrefix),
       }
     : {
         found: "invalid-method" as const,
         allowedMethods: Object.keys(state) as Array<method.HttpMethod>,
       };
-
-const buildURLDataObject = (
-  args: ReadonlyArray<string>,
-  validation: URLNamedDataValidation<string>,
-  groups: Record<string, string>,
-  groupNamePrefix: string,
-) => {
-  return Object.fromEntries(
-    args.map(
-      (propKey) =>
-        [
-          propKey,
-          validation[propKey].transform(groups[`${groupNamePrefix}${propKey}`]),
-        ] as const,
-    ),
-  );
-};
 
 // For example, from URL string "/api/${id}" and the id parameter adhering to regexp X, build regexp:
 // "/api/(?<ep_prefix_id>X)"
@@ -909,7 +905,10 @@ const buildURLDataObject = (
 const buildURLRegExp = (
   fragments: TemplateStringsArray,
   names: ReadonlyArray<string>,
-  validation: Record<string, url.URLDataTransformer<unknown>>,
+  validation: Record<
+    string,
+    data.URLDataParameterValidatorSpec<unknown, unknown>
+  >,
   groupNamePrefix: string,
 ) => {
   return new RegExp(
@@ -917,7 +916,7 @@ const buildURLRegExp = (
       let fragmentRegExp = utils.escapeRegExp(fragment);
       if (idx < names.length) {
         const name = names[idx];
-        fragmentRegExp = `${fragmentRegExp}(?<${groupNamePrefix}${name}>${validation[name].regexp.source})`;
+        fragmentRegExp = `${fragmentRegExp}(?<${groupNamePrefix}${name}>${validation[name].regExp.source})`;
       }
       return `${currentRegExp}${fragmentRegExp}`;
     }, ""),

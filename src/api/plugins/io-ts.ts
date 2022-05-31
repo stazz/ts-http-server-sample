@@ -9,6 +9,14 @@ export type Decoder<TData, TInput = unknown> = t.Decoder<TInput, TData> & {
   _tag: string;
 };
 
+export const urlParameter = <T extends Decoder<unknown> & t.Mixed>(
+  validation: StringParameterTransform<T>,
+  regExp?: RegExp,
+): model.URLDataParameterValidatorSpec<t.TypeOf<T>, ValidationError> => ({
+  regExp: regExp ?? model.defaultParameterRegExp(),
+  validator: createValidatorForStringParameter(validation),
+});
+
 export const queryValidator = <
   TRequired extends string,
   TOptional extends string,
@@ -38,48 +46,27 @@ export const queryValidator = <
       ]),
     ),
   );
+  const paramValidators = Object.fromEntries(
+    Object.entries(
+      validation as Record<string, StringParameterTransform<t.Mixed>>,
+    ).map(([key, paramValidation]) => [
+      key,
+      createValidatorForStringParameter(paramValidation),
+    ]),
+  );
   const finalValidator = model.transitiveDataValidation(
     initialValidator,
     (data) => {
       const finalResult: Record<string, unknown> = {};
       const errors: ValidationError = [];
       for (const [key, dataItemIter] of Object.entries(data)) {
-        let dataItem = dataItemIter;
-        try {
-          const {
-            transform,
-            validation: parameterValidation,
-            stringValidation,
-          } = validation[key as keyof typeof validation];
-          const curErrorsCount = errors.length;
-          if (stringValidation) {
-            const stringValidationResult = transformIoTsResultToModelResult(
-              stringValidation.decode(dataItem),
-            );
-            switch (stringValidationResult.error) {
-              case "none":
-                dataItem = stringValidationResult.data;
-                break;
-              default:
-                errors.push(...stringValidationResult.errorInfo);
-                break;
-            }
-          }
-          if (errors.length == curErrorsCount) {
-            const validationResult = transformIoTsResultToModelResult(
-              parameterValidation.decode(transform(dataItem)),
-            );
-            switch (validationResult.error) {
-              case "none":
-                finalResult[key] = validationResult.data;
-                break;
-              default:
-                errors.push(...validationResult.errorInfo);
-                break;
-            }
-          }
-        } catch (e) {
-          errors.push(...exceptionAsValidationError(dataItem, e));
+        const paramValidationResult = paramValidators[key](dataItemIter);
+        switch (paramValidationResult.error) {
+          case "none":
+            finalResult[key] = paramValidationResult.data;
+            break;
+          default:
+            errors.push(...paramValidationResult.errorInfo);
         }
       }
       return errors.length > 0
@@ -129,13 +116,13 @@ export interface StringParameterTransform<
   stringValidation?: Decoder<string>;
 }
 
-export function queryParameterString(): StringParameterTransform<t.StringType>;
-export function queryParameterString<
-  TDecoder extends Decoder<string> & t.Mixed,
->(customString: TDecoder): StringParameterTransform<TDecoder>;
-export function queryParameterString<
-  TDecoder extends Decoder<string> & t.Mixed,
->(customString?: TDecoder): StringParameterTransform<TDecoder | t.StringType> {
+export function parameterString(): StringParameterTransform<t.StringType>;
+export function parameterString<TDecoder extends Decoder<string> & t.Mixed>(
+  customString: TDecoder,
+): StringParameterTransform<TDecoder>;
+export function parameterString<TDecoder extends Decoder<string> & t.Mixed>(
+  customString?: TDecoder,
+): StringParameterTransform<TDecoder | t.StringType> {
   return customString
     ? {
         transform: (str) => str,
@@ -143,20 +130,20 @@ export function queryParameterString<
       }
     : {
         // Copy to prevent modifications by caller
-        ...queryParameterStringValue,
+        ...parameterStringValue,
       };
 }
 
-const queryParameterStringValue: StringParameterTransform<t.StringType> = {
+const parameterStringValue: StringParameterTransform<t.StringType> = {
   transform: (str) => str,
   validation: t.string,
 };
 
-export const queryParameterBoolean = () =>
+export const parameterBoolean = () =>
   // Copy to prevent modifications by caller
-  ({ ...queryParameterBooleanValue });
+  ({ ...parameterBooleanValue });
 
-const queryParameterBooleanValue: StringParameterTransform<t.BooleanType> = {
+const parameterBooleanValue: StringParameterTransform<t.BooleanType> = {
   validation: t.boolean,
   stringValidation: t.keyof({ true: "", false: "" }),
   transform: (str) => str === "true",
@@ -252,7 +239,7 @@ export const getHumanReadableErrorMessage = (error: ValidationError) =>
   PathReporter.report({
     _tag: "Left",
     left: error,
-  }).join("\n");
+  }).join("  \n");
 
 const exceptionAsValidationError = (
   input: unknown,
@@ -264,3 +251,38 @@ const exceptionAsValidationError = (
     context: [],
   },
 ];
+
+const createValidatorForStringParameter =
+  <TValidation extends t.Mixed>({
+    transform,
+    validation,
+    stringValidation,
+  }: StringParameterTransform<TValidation>): model.DataValidator<
+    string,
+    t.TypeOf<TValidation>,
+    ValidationError
+  > =>
+  (str) => {
+    try {
+      if (stringValidation) {
+        const stringValidationResult = transformIoTsResultToModelResult(
+          stringValidation.decode(str),
+        );
+        switch (stringValidationResult.error) {
+          case "none":
+            str = stringValidationResult.data;
+            break;
+          default:
+            return stringValidationResult;
+        }
+      }
+      return transformIoTsResultToModelResult(
+        validation.decode(transform(str)),
+      );
+    } catch (e) {
+      return {
+        error: "error",
+        errorInfo: exceptionAsValidationError(str, e),
+      };
+    }
+  };

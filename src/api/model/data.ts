@@ -8,7 +8,7 @@ export type DataValidator<
   TResponse = DataValidatorResult<TData, TError>,
 > = (this: void, data: TInput) => TResponse;
 
-export interface DataValidatorURLSpec<TData, TError> {
+export interface URLDataParameterValidatorSpec<TData, TError> {
   regExp: RegExp;
   validator: DataValidatorURL<TData, TError>;
 }
@@ -18,6 +18,13 @@ export type DataValidatorURL<TData, TError> = DataValidator<
   TData,
   TError
 >;
+
+export type URLParameterDataType<T> = T extends DataValidatorURL<
+  infer U,
+  unknown
+>
+  ? U
+  : never;
 
 export type DataValidatorResult<TData, TError> =
   | {

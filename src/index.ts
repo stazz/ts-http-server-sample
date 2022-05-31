@@ -24,12 +24,9 @@ const koaState = t.type(
 type KoaState = t.TypeOf<typeof koaState>;
 // Function to create REST API specification, utilizing generic REST API things in ./api and our functionality in ./lib.
 const endpointsAsKoaMiddleware = (
-  idInURL?: model.URLDataTransformer<string>,
+  idRegex: RegExp,
   idInBody?: t.BrandC<t.StringC, unknown>,
 ) => {
-  if (!idInURL) {
-    idInURL = model.defaultParameter();
-  }
   if (!idInBody) {
     idInBody = t.string as unknown as t.BrandC<t.StringC, never>;
   }
@@ -53,7 +50,10 @@ const endpointsAsKoaMiddleware = (
         urlBuilderWithUsername.atURL`/${"id"}`
           .validateURLData({
             // All parameters present in URL template string must be mentioned here, otherwise there will be compile-time error.
-            id: idInURL,
+            id: tPlugin.urlParameter(
+              tPlugin.parameterString(idInBody),
+              idRegex,
+            ),
           })
           .forMethod(
             "GET",
@@ -61,7 +61,7 @@ const endpointsAsKoaMiddleware = (
               required: [],
               optional: ["includeDeleted"],
               validation: {
-                includeDeleted: tPlugin.queryParameterBoolean(),
+                includeDeleted: tPlugin.parameterBoolean(),
               },
             }),
           )
@@ -107,7 +107,10 @@ const endpointsAsKoaMiddleware = (
         // Endpoint: connect thing to another thing.
         urlBuilderWithUsername.atURL`/${"id"}/connectToAnotherThing`
           .validateURLData({
-            id: idInURL,
+            id: tPlugin.urlParameter(
+              tPlugin.parameterString(idInBody),
+              idRegex,
+            ),
           })
           .forMethod("POST")
           .withBody(
@@ -153,7 +156,7 @@ const uuidRegex =
   /[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}/i;
 // Create middleware in such way that IDs are valid UUID strings (instead of any strings).
 const middlewareFactory = endpointsAsKoaMiddleware(
-  model.regexpParameter(uuidRegex),
+  uuidRegex,
   tt.UUID, // Too bad that io-ts-types does not expose UUID regex it uses
 );
 
@@ -196,6 +199,14 @@ middlewareFactory
         // eslint-disable-next-line no-console
         console.error(
           `Invalid URL supplied: ${method} ${url} (user: ${state.username})`,
+        );
+      },
+      onInvalidUrlParameters: ({ ctx: { method, url }, validationError }) => {
+        // eslint-disable-next-line no-console
+        console.error(
+          `Invalid URL parameters supplied: ${method} ${url}.\n${validationError
+            .map((error) => tPlugin.getHumanReadableErrorMessage(error))
+            .join("  \n")}`,
         );
       },
       onInvalidQuery: ({ ctx: { method, url }, validationError }) => {

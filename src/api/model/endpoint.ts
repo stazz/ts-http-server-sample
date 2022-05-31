@@ -46,15 +46,23 @@ export type StaticAppEndpointHandler<TContext, TRefinedContext, TBodyError> = {
     TRefinedContext,
     TBodyError
   >;
-  bodyValidator?: data.DataValidatorRequestInput<unknown, TBodyError>;
+  urlValidator?: Record<
+    string,
+    {
+      parameterName: string;
+      validator: data.DataValidatorURL<unknown, TBodyError>;
+    }
+  >;
   queryValidator: data.QueryValidator<unknown, TBodyError> | undefined;
+  bodyValidator?: data.DataValidatorRequestInput<unknown, TBodyError>;
   handler: StaticAppEndpointHandlerFunction<TRefinedContext, TBodyError>;
 };
 
 export type StaticAppEndpointHandlerFunction<TContext, TBodyError> = (args: {
   context: TContext;
-  body: unknown;
+  url: unknown;
   query: unknown;
+  body: unknown;
 }) => data.DataValidatorResult<
   data.DataValidatorResponseOutputSuccess,
   TBodyError
