@@ -229,10 +229,10 @@ middlewareFactory
           `Invalid content type specified: ${method} ${url} (user: ${state.username}): ${contentType}`,
         );
       },
-      onInvalidKoaState: ({ ctx: { state }, validationError }) => {
+      onInvalidContext: ({ ctx: { state }, validationError }) => {
         // eslint-disable-next-line no-console
         console.error(
-          `Internal error: state validation failed for ${JSON.stringify(
+          `State validation failed for ${JSON.stringify(
             state,
           )}.\n${tPlugin.getHumanReadableErrorMessage(validationError)}`,
         );

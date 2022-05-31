@@ -42,108 +42,121 @@ export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
   return {
     use: (prev, events) =>
       prev.use(async (ctx) => {
-        // Pathname will not include query
-        const groups = regExp.exec(ctx.URL.pathname)?.groups;
-        if (groups) {
-          const eventArgs = {
-            ctx,
-            groups,
-            regExp,
-          };
+        const groupsAndEventArgs = model.checkURLPathNameForHandler(
+          events,
+          ctx,
+          ctx.URL,
+          regExp,
+        );
+        if (groupsAndEventArgs) {
+          const { groups, eventArgs } = groupsAndEventArgs;
           // We have a match -> get the handler that will handle our match
-          const foundHandler = handler(ctx.method as model.HttpMethod, groups);
-          switch (foundHandler.found) {
-            case "handler":
-              {
-                const {
-                  handler: {
-                    contextValidator,
-                    urlValidator,
-                    queryValidator,
-                    bodyValidator,
-                    handler,
-                  },
-                } = foundHandler;
-                // At this point, check context state.
-                // State typically includes things like username etc, so verifying it as a first thing before checking body is meaningful.
-                // Also, allow the context state checker return custom status code, e.g. 401 for when lacking credentials.
-                const contextValidation = contextValidator(ctx);
-                switch (contextValidation.error) {
-                  case "none":
-                    {
-                      // State was OK, validate url & query & body
-                      const [proceedAfterURL, url] = checkURLForHandler(
-                        events,
-                        eventArgs,
-                        groups,
-                        urlValidator,
-                      );
-                      if (proceedAfterURL) {
-                        const [proceedAfterQuery, query] = checkQueryForHandler(
-                          events,
-                          eventArgs,
-                          queryValidator,
-                        );
-                        if (proceedAfterQuery) {
-                          const [proceedAfterBody, body] =
-                            await checkBodyForHandler(
-                              events,
-                              eventArgs,
-                              bodyValidator,
-                            );
-                          if (proceedAfterBody) {
-                            const retVal = handler({
-                              context: contextValidation.data,
-                              url,
-                              body,
-                              query,
-                            });
-                            switch (retVal.error) {
-                              case "none":
-                                {
-                                  const { contentType, output } = retVal.data;
-                                  if (output !== undefined) {
-                                    ctx.set("Content-Type", contentType);
-                                    ctx.body = output;
-                                    ctx.status = 200; // OK
-                                  } else {
-                                    ctx.status = 204; // No Content
-                                  }
-                                }
-                                break;
-                              case "error": {
-                                ctx.status = 500; // Internal Server Error
-                                events?.onInvalidResponse?.({
-                                  ...eventArgs,
-                                  validationError: retVal.errorInfo,
-                                });
-                              }
-                            }
+          const foundHandler = model.checkMethodForHandler(
+            events,
+            eventArgs,
+            groups,
+            ctx.method as model.HttpMethod,
+            handler,
+          );
+
+          if (foundHandler.found === "handler") {
+            const {
+              handler: {
+                contextValidator,
+                urlValidator,
+                queryValidator,
+                bodyValidator,
+                handler,
+              },
+            } = foundHandler;
+            // At this point, check context state.
+            // State typically includes things like username etc, so verifying it as a first thing before checking body is meaningful.
+            // Also, allow the context state checker return custom status code, e.g. 401 for when lacking credentials.
+            const contextValidation = model.checkContextForHandler(
+              events,
+              eventArgs,
+              contextValidator,
+            );
+            if (contextValidation.result === "context") {
+              // State was OK, validate url & query & body
+              const [proceedAfterURL, url] = model.checkURLParametersForHandler(
+                events,
+                eventArgs,
+                groups,
+                urlValidator,
+              );
+              if (proceedAfterURL) {
+                const [proceedAfterQuery, query] = model.checkQueryForHandler(
+                  events,
+                  eventArgs,
+                  queryValidator,
+                  ctx.querystring,
+                  ctx.query,
+                );
+                if (proceedAfterQuery) {
+                  const [proceedAfterBody, body] =
+                    await model.checkBodyForHandler(
+                      events,
+                      eventArgs,
+                      bodyValidator,
+                      ctx.get("content-type"),
+                      ctx.req,
+                    );
+                  if (proceedAfterBody) {
+                    const retVal = model.invokeHandler(
+                      events,
+                      eventArgs,
+                      handler,
+                      {
+                        context: contextValidation.context,
+                        url,
+                        body,
+                        query,
+                      },
+                    );
+                    switch (retVal.error) {
+                      case "none":
+                        {
+                          const { contentType, output } = retVal.data;
+                          if (output !== undefined) {
+                            ctx.set("Content-Type", contentType);
+                            ctx.body = output;
+                            ctx.status = 200; // OK
+                          } else {
+                            ctx.status = 204; // No Content
                           }
                         }
+                        break;
+                      case "error": {
+                        ctx.status = 500; // Internal Server Error
                       }
                     }
-                    break;
-                  case "error":
-                    ctx.status = 500; // Internal server error
-                    events?.onInvalidKoaState?.({
-                      ...eventArgs,
-                      validationError: contextValidation.errorInfo,
-                    });
-                    break;
+                  } else {
+                    // Body failed validation
+                    ctx.status = 422;
+                  }
+                } else {
+                  // Query parameters failed validation
+                  ctx.status = 400;
+                  ctx.body = "";
                 }
+              } else {
+                // While URL matched regex, the parameters failed further validation
+                ctx.status = 400;
+                ctx.body = "";
               }
-              break;
-            case "invalid-method":
-              ctx.status = 405; // Method Not Allowed
-              ctx.set("Allow", foundHandler.allowedMethods.join(","));
-              events?.onInvalidMethod?.({ ...eventArgs });
-              break;
+            } else {
+              // Context validation failed - set status code
+              ctx.status = contextValidation.customStatusCode ?? 500; // Internal server error
+              ctx.body = contextValidation.customBody ?? "";
+            }
+          } else {
+            ctx.status = 405; // Method Not Allowed
+            ctx.set("Allow", foundHandler.allowedMethods.join(","));
           }
         } else {
           ctx.status = 404; // Not Found
           ctx.body = ""; // Otherwise it will have text "Not Found"
-          events?.onInvalidUrl?.({ ctx, regExp });
         }
       }),
   };
@@ -152,178 +165,9 @@ export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
 export interface KoaMiddlewareFactory<TValidationError> {
   use: <TState>(
     previous: koa<TState>,
-    events?: KoaMiddlewareEvents<TValidationError, TState>,
+    events?: model.RequestProcessingEvents<
+      TValidationError,
+      koa.ParameterizedContext<TState>
+    >,
   ) => koa<TState>;
 }
-
-export interface EventArguments<TState> {
-  ctx: koa.ParameterizedContext<TState>;
-  groups: Record<string, string>;
-  regExp: RegExp;
-}
-
-export interface ValidationErrorArgs<TValidationError> {
-  validationError: TValidationError;
-}
-export interface KoaMiddlewareEvents<TValidationError, TState> {
-  onInvalidKoaState?: (
-    args: EventArguments<TState> & ValidationErrorArgs<TValidationError>,
-  ) => unknown;
-  onInvalidMethod?: (args: EventArguments<TState>) => unknown;
-  // URL did not match combined regex
-  onInvalidUrl?: (args: Omit<EventArguments<TState>, "groups">) => unknown;
-  // URL matched combined regex, but parameter validation failed
-  onInvalidUrlParameters?: (
-    args: EventArguments<TState> & ValidationErrorArgs<Array<TValidationError>>,
-  ) => unknown;
-  onInvalidQuery?: (
-    args: EventArguments<TState> & ValidationErrorArgs<TValidationError>,
-  ) => unknown;
-  onInvalidContentType?: (
-    args: EventArguments<TState> & { contentType: string },
-  ) => unknown;
-  onInvalidBody?: (
-    args: EventArguments<TState> & ValidationErrorArgs<TValidationError>,
-  ) => unknown;
-  onInvalidResponse?: (
-    args: EventArguments<TState> & ValidationErrorArgs<TValidationError>,
-  ) => unknown;
-}
-
-const checkURLForHandler = <TValidationError, TState>(
-  events: KoaMiddlewareEvents<TValidationError, TState> | undefined,
-  eventArgs: EventArguments<TState>,
-  groups: Record<string, string>,
-  urlValidation: model.StaticAppEndpointHandler<
-    unknown,
-    unknown,
-    TValidationError
-  >["urlValidator"],
-) => {
-  const { ctx } = eventArgs;
-  let url: Record<string, unknown> | undefined;
-  let proceedToInvokeHandler: boolean;
-  if (urlValidation) {
-    url = {};
-    const errors: Array<TValidationError> = [];
-    for (const [groupName, { parameterName, validator }] of Object.entries(
-      urlValidation,
-    )) {
-      const validatorResult = validator(groups[groupName]);
-      switch (validatorResult.error) {
-        case "none":
-          url[parameterName] = validatorResult.data;
-          break;
-        default:
-          errors.push(validatorResult.errorInfo);
-          break;
-      }
-    }
-    proceedToInvokeHandler = errors.length === 0;
-    if (!proceedToInvokeHandler) {
-      ctx.status = 400;
-      ctx.body = "";
-      events?.onInvalidUrlParameters?.({
-        ...eventArgs,
-        validationError: errors,
-      });
-    }
-  } else {
-    proceedToInvokeHandler = true;
-  }
-  return [proceedToInvokeHandler, url];
-};
-
-const checkQueryForHandler = <TValidationError, TState>(
-  events: KoaMiddlewareEvents<TValidationError, TState> | undefined,
-  eventArgs: EventArguments<TState>,
-  queryValidation: model.QueryValidator<unknown, TValidationError> | undefined,
-) => {
-  const { ctx } = eventArgs;
-  let proceedToInvokeHandler: boolean;
-  let query: unknown;
-  if (queryValidation) {
-    let queryValidationResult: model.DataValidatorResult<
-      unknown,
-      TValidationError
-    >;
-    switch (queryValidation.query) {
-      case "string":
-        queryValidationResult = queryValidation.validator(ctx.querystring);
-        break;
-      case "object":
-        queryValidationResult = queryValidation.validator(ctx.query);
-        break;
-      default:
-        throw new Error("Unrecognized query validation kind");
-    }
-    switch (queryValidationResult.error) {
-      case "none":
-        query = queryValidationResult.data;
-        proceedToInvokeHandler = true;
-        break;
-      default:
-        ctx.status = 400;
-        ctx.body = "";
-        proceedToInvokeHandler = false;
-        events?.onInvalidQuery?.({
-          ...eventArgs,
-          validationError: queryValidationResult.errorInfo,
-        });
-    }
-  } else {
-    // Only OK if query is none
-    proceedToInvokeHandler = ctx.querystring.length === 0;
-    if (!proceedToInvokeHandler) {
-      ctx.status = 400;
-      ctx.body = "";
-    }
-  }
-
-  return [proceedToInvokeHandler, query];
-};
-
-const checkBodyForHandler = async <TValidationError, TState>(
-  events: KoaMiddlewareEvents<TValidationError, TState> | undefined,
-  eventArgs: EventArguments<TState>,
-  isBodyValid:
-    | model.DataValidatorRequestInput<unknown, TValidationError>
-    | undefined,
-) => {
-  const { ctx } = eventArgs;
-  let body: unknown;
-  let proceedToInvokeHandler: boolean;
-  if (isBodyValid) {
-    const contentType = ctx.get("content-type");
-    const bodyValidationResult = await isBodyValid({
-      contentType: contentType,
-      input: ctx.req,
-    });
-    switch (bodyValidationResult.error) {
-      case "none":
-        body = bodyValidationResult.data;
-        proceedToInvokeHandler = true;
-        break;
-      default:
-        ctx.status = 422;
-        proceedToInvokeHandler = false;
-        if (bodyValidationResult.error === "error") {
-          events?.onInvalidBody?.({
-            ...eventArgs,
-            validationError: bodyValidationResult.errorInfo,
-          });
-        } else {
-          events?.onInvalidContentType?.({
-            ...eventArgs,
-            contentType,
-          });
-        }
-        break;
-    }
-  } else {
-    // TODO should we only proceed if no body in context?
-    proceedToInvokeHandler = true;
-  }
-
-  return [proceedToInvokeHandler, body];
-};
