@@ -4,9 +4,22 @@ import { PathReporter } from "io-ts/PathReporter";
 import * as rawbody from "raw-body";
 import * as q from "querystring";
 
+// We only support json things for io-ts validation.
+const CONTENT_TYPE = "application/json" as const;
+
 export type ValidationError = t.Errors;
 export type Decoder<TData, TInput = unknown> = t.Decoder<TInput, TData> & {
   _tag: string;
+};
+export type ValidatorSpec = {
+  [CONTENT_TYPE]: Decoder<unknown>;
+};
+export type Encoder<TOutput, TSerialized> = t.Encoder<TOutput, TSerialized> & {
+  _tag: string;
+};
+export type OutputValidatorSpec = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [CONTENT_TYPE]: Encoder<any, unknown>;
 };
 
 export const urlParameter = <T extends Decoder<unknown> & t.Mixed>(
@@ -149,13 +162,10 @@ const parameterBooleanValue: StringParameterTransform<t.BooleanType> = {
   transform: (str) => str === "true",
 };
 
-// We only support json things for io-ts validation.
-const CONTENT_TYPE = "application/json" as const;
-
 export const inputValidator = <T>(
   validation: Decoder<T>,
   strictContentType = false,
-): model.DataValidatorRequestInputSpec<T, ValidationError> => {
+): model.DataValidatorRequestInputSpec<T, ValidationError, ValidatorSpec> => {
   const jsonValidation = model.transitiveDataValidation(
     (inputString: string) => {
       if (inputString.length > 0) {
@@ -191,12 +201,17 @@ export const inputValidator = <T>(
             supportedContentTypes: [CONTENT_TYPE],
           };
     },
+    validatorSpec: { [CONTENT_TYPE]: validation },
   };
 };
 
 export const outputValidator = <TOutput, TSerialized>(
-  validation: t.Encoder<TOutput, TSerialized> & { _tag: string },
-): model.DataValidatorResponseOutputSpec<TOutput, ValidationError> => ({
+  validation: Encoder<TOutput, TSerialized>,
+): model.DataValidatorResponseOutputSpec<
+  TOutput,
+  ValidationError,
+  OutputValidatorSpec
+> => ({
   validator: (output) => {
     try {
       return {
@@ -212,6 +227,9 @@ export const outputValidator = <TOutput, TSerialized>(
         errorInfo: exceptionAsValidationError(output, e),
       };
     }
+  },
+  validatorSpec: {
+    [CONTENT_TYPE]: validation,
   },
 });
 

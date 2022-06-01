@@ -36,8 +36,13 @@ export type DataValidatorResult<TData, TError> =
       errorInfo: TError;
     };
 
-export interface DataValidatorRequestInputSpec<TData, TError> {
+export interface DataValidatorRequestInputSpec<
+  TData,
+  TError,
+  TValidatorSpec extends Record<string, unknown>,
+> {
   validator: DataValidatorRequestInput<TData, TError>;
+  validatorSpec: TValidatorSpec;
 }
 
 export type DataValidatorRequestInput<TData, TError> = DataValidator<
@@ -56,8 +61,13 @@ export type DataValidatorRequestInput<TData, TError> = DataValidator<
   >
 >;
 
-export interface DataValidatorResponseOutputSpec<TOutput, TError> {
+export interface DataValidatorResponseOutputSpec<
+  TOutput,
+  TError,
+  TValidatorSpec extends Record<string, unknown>,
+> {
   validator: DataValidatorResponseOutput<TOutput, TError>;
+  validatorSpec: TValidatorSpec;
 }
 
 export type DataValidatorResponseOutput<TOutput, TError> = DataValidator<

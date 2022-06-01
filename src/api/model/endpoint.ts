@@ -1,4 +1,4 @@
-import * as method from "./method";
+import * as method from "./methods";
 import * as data from "./data";
 
 export interface AppEndpoint<TContext, TRefinedContext, TBodyValidationError> {
@@ -10,7 +10,7 @@ export interface AppEndpoint<TContext, TRefinedContext, TBodyValidationError> {
       TBodyValidationError
     >;
   };
-  // metadata: ReadonlyArray<AppEndpointMetadata>
+  // getMetadata: (groupNamePrefix: string) => ReadonlyArray<AppEndpointMetadata>
 }
 
 export type DynamicHandlerGetter<
