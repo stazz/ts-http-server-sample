@@ -1,29 +1,44 @@
 import * as utils from "./utils";
 import * as ep from "./endpoint";
 
-export function atPrefix<TValidationError, TRefinedContext, TContext>(
+export function atPrefix<
+  TValidationError,
+  TRefinedContext,
+  TContext,
+  TMetadata extends Record<string, unknown>,
+>(
   prefix: string,
   ...endpoints: Array<
-    ep.AppEndpoint<TContext, TRefinedContext, TValidationError>
+    ep.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
   >
-): ep.AppEndpoint<TContext, TRefinedContext, TValidationError>;
-export function atPrefix<TValidationError, TRefinedContext, TContext>(
+): ep.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>;
+export function atPrefix<
+  TValidationError,
+  TRefinedContext,
+  TContext,
+  TMetadata extends Record<string, unknown>,
+>(
   prefix: string,
   regexpGroupNamePrefix: string,
   ...endpoints: Array<
-    ep.AppEndpoint<TContext, TRefinedContext, TValidationError>
+    ep.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
   >
-): ep.AppEndpoint<TContext, TRefinedContext, TValidationError>;
-export function atPrefix<TValidationError, TRefinedContext, TContext>(
+): ep.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>;
+export function atPrefix<
+  TValidationError,
+  TRefinedContext,
+  TContext,
+  TMetadata extends Record<string, unknown>,
+>(
   prefix: string,
   endpointOrGroupNamePrefix:
-    | ep.AppEndpoint<TContext, TRefinedContext, TValidationError>
+    | ep.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
     | string
     | undefined,
   ...endpoints: Array<
-    ep.AppEndpoint<TContext, TRefinedContext, TValidationError>
+    ep.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
   >
-): ep.AppEndpoint<TContext, TRefinedContext, TValidationError> {
+): ep.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata> {
   const allEndpoints =
     typeof endpointOrGroupNamePrefix === "string" || !endpointOrGroupNamePrefix
       ? endpoints
@@ -63,9 +78,14 @@ export function atPrefix<TValidationError, TRefinedContext, TContext>(
 const makeEndpointRegExpGroupName = (prefix: string, idx: number) =>
   `${prefix}${idx}`;
 
-const buildEndpoints = <TContext, TRefinedContext, TValidationError>(
+const buildEndpoints = <
+  TContext,
+  TRefinedContext,
+  TValidationError,
+  TMetadata extends Record<string, unknown>,
+>(
   endpoints: ReadonlyArray<
-    ep.AppEndpoint<TContext, TRefinedContext, TValidationError>
+    ep.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
   >,
   regExpGroupNamePrefix?: string,
 ) => {

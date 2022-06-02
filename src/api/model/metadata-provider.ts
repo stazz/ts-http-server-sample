@@ -37,41 +37,43 @@ export type Kind<
     };
 
 export interface InitialMetadataProvider<
-  TArguments extends HKTArg,
+  TArgument extends HKTArg,
+  TEndpointMD,
   TContextArguments,
 > {
   withRefinedContext(
     contextArgs: TContextArguments,
-  ): InitialMetadataProvider<TArguments, TContextArguments>;
+  ): InitialMetadataProvider<TArgument, TEndpointMD, TContextArguments>;
 
-  getBuilder(): InitialMetadataBuilder<TArguments>;
+  getBuilder(): InitialMetadataBuilder<TArgument, TEndpointMD>;
 }
 
 export class InitialMetadataProviderClass<
-  TArguments extends HKTArg,
+  TArgument extends HKTArg,
+  TEndpointMD,
   TContextArguments,
-> implements InitialMetadataProvider<TArguments, TContextArguments>
+> implements InitialMetadataProvider<TArgument, TEndpointMD, TContextArguments>
 {
   public constructor(
     private readonly _contextInfo: TContextArguments,
     private readonly _getBuilder: (
       contextInfo: TContextArguments,
-    ) => InitialMetadataBuilder<TArguments>,
+    ) => InitialMetadataBuilder<TArgument, TEndpointMD>,
   ) {}
 
   public withRefinedContext(
     contextArgs: TContextArguments,
-  ): InitialMetadataProvider<TArguments, TContextArguments> {
+  ): InitialMetadataProvider<TArgument, TEndpointMD, TContextArguments> {
     return new InitialMetadataProviderClass(contextArgs, this._getBuilder);
   }
 
-  public getBuilder(): InitialMetadataBuilder<TArguments> {
+  public getBuilder(): InitialMetadataBuilder<TArgument, TEndpointMD> {
     return this._getBuilder(this._contextInfo);
   }
 }
 
-export interface InitialMetadataBuilder<TArguments extends HKTArg>
-  extends MetadataProviderForMethodsBase<TArguments, undefined> {
+export interface InitialMetadataBuilder<TArgument extends HKTArg, TEndpointMD>
+  extends MetadataProviderForMethodsBase<TArgument, TEndpointMD, undefined> {
   withURLParameters: <
     TURLParameters extends Record<
       string,
@@ -79,32 +81,40 @@ export interface InitialMetadataBuilder<TArguments extends HKTArg>
     >,
   >(
     parameters: TURLParameters,
-  ) => MetadataProviderWithURLData<TArguments, TURLParameters>;
+  ) => MetadataProviderWithURLData<TArgument, TEndpointMD, TURLParameters>;
 }
 
 export interface MetadataProviderForMethodsBase<
-  TArguments extends HKTArg,
+  TArgument extends HKTArg,
+  TEndpointMD,
   TURLData,
 > {
   withMethod(
     method: methods.HttpMethodWithoutBody,
-  ): MetadataProviderWithQuery<TArguments, TURLData, undefined>;
+  ): MetadataProviderWithQuery<TArgument, TEndpointMD, TURLData, undefined>;
   withMethod<TQuery extends data.QueryValidatorSpec<unknown, unknown, string>>(
     method: methods.HttpMethodWithoutBody,
     querySpec: TQuery | undefined,
   ): MetadataProviderWithQuery<
-    TArguments,
+    TArgument,
+    TEndpointMD,
     TURLData,
     { [P in TQuery["queryParameterNames"][number]]: unknown }
   >;
   withMethod(
     method: methods.HttpMethodWithBody,
-  ): MetadataProviderWithQueryAndBody<TArguments, TURLData, undefined>;
+  ): MetadataProviderWithQueryAndBody<
+    TArgument,
+    TEndpointMD,
+    TURLData,
+    undefined
+  >;
   withMethod<TQuery extends data.QueryValidatorSpec<unknown, unknown, string>>(
     method: methods.HttpMethodWithBody,
     querySpec: TQuery | undefined,
   ): MetadataProviderWithQueryAndBody<
-    TArguments,
+    TArgument,
+    TEndpointMD,
     TURLData,
     { [P in TQuery["queryParameterNames"][number]]: unknown }
   >;
@@ -112,11 +122,13 @@ export interface MetadataProviderForMethodsBase<
 
 export type MetadataProviderWithURLData<
   TArguments extends HKTArg,
+  TEndpointMD,
   TURLData,
-> = MetadataProviderForMethodsBase<TArguments, TURLData>;
+> = MetadataProviderForMethodsBase<TArguments, TEndpointMD, TURLData>;
 
 export interface MetadataProviderWithQuery<
   TArguments extends HKTArg,
+  TEndpointMD,
   TURLData,
   TQuery,
 > {
@@ -135,16 +147,15 @@ export interface MetadataProviderWithQuery<
       undefined,
       { [P in keyof TOutput["validatorSpec"]]: unknown }
     >,
-  ) => // TODO we need to return something else - we can't have one AppEndpointMetadata per metadata type.
-  // I think we should parametrize that like HKTArg
-  md.AppEndpointMetadata<undefined, TOutput["validatorSpec"], unknown>;
+  ) => SingleEndpointResult<TEndpointMD>;
 }
 
 export interface MetadataProviderWithQueryAndBody<
   TArguments extends HKTArg,
+  TEndpointMD,
   TURLData,
   TQuery,
-> extends MetadataProviderWithQuery<TArguments, TURLData, TQuery> {
+> extends MetadataProviderWithQuery<TArguments, TEndpointMD, TURLData, TQuery> {
   withInputAndOutput: <
     TInput extends data.DataValidatorRequestInputSpec<
       unknown,
@@ -166,8 +177,12 @@ export interface MetadataProviderWithQueryAndBody<
       undefined,
       { [P in keyof TOutput["validatorSpec"]]: unknown }
     >,
-  ) => void;
+  ) => SingleEndpointResult<TEndpointMD>;
 }
+
+export type SingleEndpointResult<TEndpointMD> = (
+  urlPrefix: string,
+) => TEndpointMD;
 
 interface OpenAPIArguments extends HKTArg {
   readonly type: OpenAPIArgumentsURLData<this["_TURLData"]> &
@@ -201,10 +216,19 @@ interface OpenAPIContextArgs {
 interface OpenAPISecurityScheme {
   type: string;
 }
+
+interface OpenAPIOperation {
+  summary: string;
+}
 export const openApiProvider: InitialMetadataProvider<
   OpenAPIArguments,
+  OpenAPIOperation,
   OpenAPIContextArgs
-> = new InitialMetadataProviderClass<OpenAPIArguments, OpenAPIContextArgs>(
+> = new InitialMetadataProviderClass<
+  OpenAPIArguments,
+  OpenAPIOperation,
+  OpenAPIContextArgs
+>(
   {
     securitySchemes: [],
   },

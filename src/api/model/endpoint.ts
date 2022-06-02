@@ -1,7 +1,11 @@
 import * as method from "./methods";
 import * as data from "./data";
 
-export interface AppEndpoint<TContext, TRefinedContext, TBodyValidationError> {
+export interface AppEndpointFunctionality<
+  TContext,
+  TRefinedContext,
+  TBodyValidationError,
+> {
   getRegExpAndHandler: (groupNamePrefix: string) => {
     url: RegExp;
     handler: DynamicHandlerGetter<
@@ -12,6 +16,13 @@ export interface AppEndpoint<TContext, TRefinedContext, TBodyValidationError> {
   };
   // getMetadata: (groupNamePrefix: string) => ReadonlyArray<AppEndpointMetadata>
 }
+
+export type AppEndpoint<
+  TContext,
+  TRefinedContext,
+  TBodyValidationError,
+  TMetadata extends Record<string, unknown>,
+> = AppEndpointFunctionality<TContext, TRefinedContext, TBodyValidationError>;
 
 export type DynamicHandlerGetter<
   TContext,

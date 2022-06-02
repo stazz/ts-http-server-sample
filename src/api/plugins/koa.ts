@@ -31,7 +31,11 @@ export const validateContextState = <TData, TError, TInput>(
 // The factory object accepts callbacks to execute on certain scenarios (mostly on errors).
 export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
   ...endpoints: Array<
-    model.AppEndpoint<KoaContext, TRefinedContext, TValidationError>
+    model.AppEndpointFunctionality<
+      KoaContext,
+      TRefinedContext,
+      TValidationError
+    >
   >
 ): KoaMiddlewareFactory<TValidationError> => {
   // Combine given endpoints into top-level entrypoint

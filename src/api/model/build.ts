@@ -22,7 +22,7 @@ export class AppEndpointBuilderProvider<
   TValidationError,
   TMetadataProviders extends Record<
     string,
-    md.InitialMetadataProvider<md.HKTArg, unknown>
+    md.InitialMetadataProvider<md.HKTArg, unknown, unknown>
   >,
 > {
   public constructor(
@@ -156,7 +156,7 @@ export class AppEndpointBuilderProvider<
   public withMetadataProvider<
     TMetadataKind extends string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    TMetadataProvider extends md.InitialMetadataProvider<any, any>,
+    TMetadataProvider extends md.InitialMetadataProvider<any, any, any>,
   >(
     metadataKind: TMetadataKind,
     metadataProvider: TMetadataProvider,
@@ -180,7 +180,7 @@ export interface URLDataNames<
   TNames extends string,
   TMetadataProviders extends Record<
     string,
-    md.InitialMetadataBuilder<md.HKTArg>
+    md.InitialMetadataBuilder<md.HKTArg, unknown>
   >,
 > {
   validateURLData: <
@@ -200,10 +200,12 @@ export interface URLDataNames<
     methods.HttpMethod,
     {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.InitialMetadataBuilder<
-        infer TArg
+        infer TArg,
+        infer TEndpointMD
       >
         ? md.MetadataProviderWithURLData<
             TArg,
+            TEndpointMD,
             {
               [P in TNames]: data.URLParameterDataType<
                 TValidation[P]["validator"]
@@ -223,7 +225,7 @@ class AppEndpointBuilderWithURLDataInitial<
   TAllowedMethods extends methods.HttpMethod,
   TMetadataProviders extends Record<
     string,
-    md.MetadataProviderWithURLData<md.HKTArg, TDataInURL>
+    md.MetadataProviderWithURLData<md.HKTArg, unknown, TDataInURL>
   >,
 > {
   public constructor(
@@ -247,9 +249,10 @@ class AppEndpointBuilderWithURLDataInitial<
     {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithURLData<
         infer TArg,
+        infer TEndpointMD,
         TDataInURL
       >
-        ? md.MetadataProviderWithQuery<TArg, TDataInURL, {}> // eslint-disable-line @typescript-eslint/ban-types
+        ? md.MetadataProviderWithQuery<TArg, TEndpointMD, TDataInURL, {}> // eslint-disable-line @typescript-eslint/ban-types
         : never;
     }
   >;
@@ -266,9 +269,10 @@ class AppEndpointBuilderWithURLDataInitial<
     {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithURLData<
         infer TArg,
+        infer TEndpointMD,
         TDataInURL
       >
-        ? md.MetadataProviderWithQueryAndBody<TArg, TDataInURL, {}> // eslint-disable-line @typescript-eslint/ban-types
+        ? md.MetadataProviderWithQueryAndBody<TArg, TEndpointMD, TDataInURL, {}> // eslint-disable-line @typescript-eslint/ban-types
         : never;
     }
   >;
@@ -290,10 +294,12 @@ class AppEndpointBuilderWithURLDataInitial<
     {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithURLData<
         infer TArg,
+        infer TEndpointMD,
         TDataInURL
       >
         ? md.MetadataProviderWithQuery<
             TArg,
+            TEndpointMD,
             TDataInURL,
             { [P in TQueryKeys]: unknown }
           >
@@ -318,10 +324,12 @@ class AppEndpointBuilderWithURLDataInitial<
     {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithURLData<
         infer TArg,
+        infer TEndpointMD,
         TDataInURL
       >
         ? md.MetadataProviderWithQueryAndBody<
             TArg,
+            TEndpointMD,
             TDataInURL,
             { [P in TQueryKeys]: unknown }
           >
@@ -373,10 +381,12 @@ class AppEndpointBuilderWithURLDataInitial<
         {
           [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithURLData<
             infer TArg,
+            infer TEndpointMD,
             TDataInURL
           >
             ? md.MetadataProviderWithQueryAndBody<
                 TArg,
+                TEndpointMD,
                 TDataInURL,
                 { [P in string]: unknown }
               >
@@ -466,7 +476,7 @@ export class AppEndpointBuilderWithURLData<
   TAllowedMethods extends methods.HttpMethod,
   TMetadataProviders extends Record<
     string,
-    md.MetadataProviderWithURLData<md.HKTArg, TDataInURL>
+    md.MetadataProviderWithURLData<md.HKTArg, unknown, TDataInURL>
   >,
 > extends AppEndpointBuilderWithURLDataInitial<
   TContext,
@@ -479,7 +489,16 @@ export class AppEndpointBuilderWithURLData<
   public createEndpoint(): ep.AppEndpoint<
     TContext,
     TRefinedContext,
-    TValidationError
+    TValidationError,
+    {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithURLData<
+        infer _,
+        infer TEndpointMD,
+        TDataInURL
+      >
+        ? TEndpointMD
+        : never;
+    }
   > {
     if (Object.keys(this._state.methods).length > 0) {
       return {
@@ -538,6 +557,7 @@ export class AppEndpointBuilderForURLDataAndMethods<
     string,
     md.MetadataProviderWithQuery<
       md.HKTArg,
+      unknown,
       TDataInURL,
       { [P in TQueryKeys]: unknown }
     >
@@ -578,6 +598,7 @@ export class AppEndpointBuilderForURLDataAndMethods<
     mdArgs: {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithQuery<
         infer TArg,
+        unknown,
         TDataInURL,
         { [P in TQueryKeys]: unknown }
       >
@@ -599,10 +620,11 @@ export class AppEndpointBuilderForURLDataAndMethods<
     {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithQuery<
         infer TArg,
+        infer TEndpointMD,
         TDataInURL,
         { [P in TQueryKeys]: unknown }
       >
-        ? md.MetadataProviderWithURLData<TArg, TDataInURL>
+        ? md.MetadataProviderWithURLData<TArg, TEndpointMD, TDataInURL>
         : never;
     }
   > {
@@ -671,6 +693,7 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
     string,
     md.MetadataProviderWithQueryAndBody<
       md.HKTArg,
+      unknown,
       TDataInURL,
       { [P in TQueryKeys]: unknown }
     >
@@ -717,6 +740,7 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
     mdArgs: {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithQueryAndBody<
         infer TArg,
+        unknown,
         TDataInURL,
         { [P in TQueryKeys]: unknown }
       >
@@ -738,10 +762,11 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
     {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithQueryAndBody<
         infer TArg,
+        infer TEndpointMD,
         TDataInURL,
         { [P in TQueryKeys]: unknown }
       >
-        ? md.MetadataProviderWithURLData<TArg, TDataInURL>
+        ? md.MetadataProviderWithURLData<TArg, TEndpointMD, TDataInURL>
         : never;
     }
   > {
@@ -806,7 +831,7 @@ export class AppEndpointBuilderInitial<
   TAllowedMethods extends methods.HttpMethod,
   TMetadataProviders extends Record<
     string,
-    md.InitialMetadataBuilder<md.HKTArg>
+    md.InitialMetadataBuilder<md.HKTArg, unknown>
   >,
 > {
   public constructor(
@@ -828,9 +853,10 @@ export class AppEndpointBuilderInitial<
     never,
     {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.InitialMetadataBuilder<
-        infer TArg
+        infer TArg,
+        infer TEndpointMD
       >
-        ? md.MetadataProviderWithQuery<TArg, undefined, {}> // eslint-disable-line @typescript-eslint/ban-types
+        ? md.MetadataProviderWithQuery<TArg, TEndpointMD, undefined, {}> // eslint-disable-line @typescript-eslint/ban-types
         : never;
     }
   >;
@@ -845,9 +871,10 @@ export class AppEndpointBuilderInitial<
     never,
     {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.InitialMetadataBuilder<
-        infer TArg
+        infer TArg,
+        infer TEndpointMD
       >
-        ? md.MetadataProviderWithQueryAndBody<TArg, undefined, {}> // eslint-disable-line @typescript-eslint/ban-types
+        ? md.MetadataProviderWithQueryAndBody<TArg, TEndpointMD, undefined, {}> // eslint-disable-line @typescript-eslint/ban-types
         : never;
     }
   >;
@@ -867,10 +894,12 @@ export class AppEndpointBuilderInitial<
     TQueryKeys,
     {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.InitialMetadataBuilder<
-        infer TArg
+        infer TArg,
+        infer TEndpointMD
       >
         ? md.MetadataProviderWithQuery<
             TArg,
+            TEndpointMD,
             undefined,
             { [P in TQueryKeys]: unknown }
           >
@@ -893,10 +922,12 @@ export class AppEndpointBuilderInitial<
     TQueryKeys,
     {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.InitialMetadataBuilder<
-        infer TArg
+        infer TArg,
+        infer TEndpointMD
       >
         ? md.MetadataProviderWithQueryAndBody<
             TArg,
+            TEndpointMD,
             undefined,
             { [P in TQueryKeys]: unknown }
           >
@@ -944,10 +975,12 @@ export class AppEndpointBuilderInitial<
         string,
         {
           [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.InitialMetadataBuilder<
-            infer TArg
+            infer TArg,
+            infer TEndpointMD
           >
             ? md.MetadataProviderWithQueryAndBody<
                 TArg,
+                TEndpointMD,
                 undefined,
                 { [P in string]: unknown }
               >
@@ -976,7 +1009,7 @@ export class AppEndpointBuilder<
   TAllowedMethods extends methods.HttpMethod,
   TMetadataProviders extends Record<
     string,
-    md.InitialMetadataBuilder<md.HKTArg>
+    md.InitialMetadataBuilder<md.HKTArg, unknown>
   >,
 > extends AppEndpointBuilderInitial<
   TContext,
@@ -988,7 +1021,15 @@ export class AppEndpointBuilder<
   public createEndpoint(): ep.AppEndpoint<
     TContext,
     TRefinedContext,
-    TValidationError
+    TValidationError,
+    {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.InitialMetadataBuilder<
+        infer _,
+        infer TEndpointMD
+      >
+        ? TEndpointMD
+        : never;
+    }
   > {
     if (Object.keys(this._state.methods).length > 0) {
       return {
@@ -1021,6 +1062,7 @@ export class AppEndpointBuilderForMethods<
     string,
     md.MetadataProviderWithQuery<
       md.HKTArg,
+      unknown,
       undefined,
       { [P in TQueryKeys]: unknown }
     >
@@ -1059,6 +1101,7 @@ export class AppEndpointBuilderForMethods<
     mdArgs: {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithQuery<
         infer TArg,
+        unknown,
         undefined,
         { [P in TQueryKeys]: unknown }
       >
@@ -1079,10 +1122,11 @@ export class AppEndpointBuilderForMethods<
     {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithQuery<
         infer TArg,
+        infer TEndpointMD,
         undefined,
         { [P in TQueryKeys]: unknown }
       >
-        ? md.InitialMetadataBuilder<TArg>
+        ? md.InitialMetadataBuilder<TArg, TEndpointMD>
         : never;
     }
   > {
@@ -1134,6 +1178,7 @@ export class AppEndpointBuilderForMethodsAndBody<
     string,
     md.MetadataProviderWithQueryAndBody<
       md.HKTArg,
+      unknown,
       undefined,
       { [P in TQueryKeys]: unknown }
     >
@@ -1178,6 +1223,7 @@ export class AppEndpointBuilderForMethodsAndBody<
     mdArgs: {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithQueryAndBody<
         infer TArg,
+        unknown,
         undefined,
         { [P in TQueryKeys]: unknown }
       >
@@ -1198,10 +1244,11 @@ export class AppEndpointBuilderForMethodsAndBody<
     {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithQueryAndBody<
         infer TArg,
+        infer TEndpointMD,
         undefined,
         { [P in TQueryKeys]: unknown }
       >
-        ? md.InitialMetadataBuilder<TArg>
+        ? md.InitialMetadataBuilder<TArg, TEndpointMD>
         : never;
     }
   > {
