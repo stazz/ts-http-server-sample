@@ -36,10 +36,22 @@ export type Kind<
       readonly TOutput: () => TOutput;
     };
 
-export class InitialMetadataProvider<
+export interface InitialMetadataProvider<
   TArguments extends HKTArg,
   TContextArguments,
 > {
+  withRefinedContext(
+    contextArgs: TContextArguments,
+  ): InitialMetadataProvider<TArguments, TContextArguments>;
+
+  getBuilder(): InitialMetadataBuilder<TArguments>;
+}
+
+export class InitialMetadataProviderClass<
+  TArguments extends HKTArg,
+  TContextArguments,
+> implements InitialMetadataProvider<TArguments, TContextArguments>
+{
   public constructor(
     private readonly _contextInfo: TContextArguments,
     private readonly _getBuilder: (
@@ -50,7 +62,7 @@ export class InitialMetadataProvider<
   public withRefinedContext(
     contextArgs: TContextArguments,
   ): InitialMetadataProvider<TArguments, TContextArguments> {
-    return new InitialMetadataProvider(contextArgs, this._getBuilder);
+    return new InitialMetadataProviderClass(contextArgs, this._getBuilder);
   }
 
   public getBuilder(): InitialMetadataBuilder<TArguments> {
@@ -75,12 +87,23 @@ export interface MetadataProviderForMethodsBase<
   TURLData,
 > {
   withMethod(
-    method: methods.HttpMethod,
+    method: methods.HttpMethodWithoutBody,
   ): MetadataProviderWithQuery<TArguments, TURLData, undefined>;
   withMethod<TQuery extends data.QueryValidatorSpec<unknown, unknown, string>>(
-    method: methods.HttpMethod,
+    method: methods.HttpMethodWithoutBody,
     querySpec: TQuery | undefined,
   ): MetadataProviderWithQuery<
+    TArguments,
+    TURLData,
+    { [P in TQuery["queryParameterNames"][number]]: unknown }
+  >;
+  withMethod(
+    method: methods.HttpMethodWithBody,
+  ): MetadataProviderWithQueryAndBody<TArguments, TURLData, undefined>;
+  withMethod<TQuery extends data.QueryValidatorSpec<unknown, unknown, string>>(
+    method: methods.HttpMethodWithBody,
+    querySpec: TQuery | undefined,
+  ): MetadataProviderWithQueryAndBody<
     TArguments,
     TURLData,
     { [P in TQuery["queryParameterNames"][number]]: unknown }
@@ -92,7 +115,7 @@ export type MetadataProviderWithURLData<
   TURLData,
 > = MetadataProviderForMethodsBase<TArguments, TURLData>;
 
-export interface MetadataProviderWithQueryBase<
+export interface MetadataProviderWithQuery<
   TArguments extends HKTArg,
   TURLData,
   TQuery,
@@ -117,11 +140,34 @@ export interface MetadataProviderWithQueryBase<
   md.AppEndpointMetadata<undefined, TOutput["validatorSpec"], unknown>;
 }
 
-export type MetadataProviderWithQuery<
+export interface MetadataProviderWithQueryAndBody<
   TArguments extends HKTArg,
   TURLData,
   TQuery,
-> = MetadataProviderWithQueryBase<TArguments, TURLData, TQuery>;
+> extends MetadataProviderWithQuery<TArguments, TURLData, TQuery> {
+  withInputAndOutput: <
+    TInput extends data.DataValidatorRequestInputSpec<
+      unknown,
+      unknown,
+      Record<string, unknown>
+    >,
+    TOutput extends data.DataValidatorResponseOutputSpec<
+      unknown,
+      unknown,
+      Record<string, unknown>
+    >,
+  >(
+    inputSpec: TInput,
+    outputSpec: TOutput,
+    metadataArguments: Kind<
+      TArguments,
+      TURLData,
+      TQuery,
+      undefined,
+      { [P in keyof TOutput["validatorSpec"]]: unknown }
+    >,
+  ) => void;
+}
 
 interface OpenAPIArguments extends HKTArg {
   readonly type: OpenAPIArgumentsURLData<this["_TURLData"]> &
@@ -149,16 +195,21 @@ interface OpenAPIArgumentsOutput<TOutput> {
 }
 
 interface OpenAPIContextArgs {
-  security?: OpenAPISecurityScheme;
+  securitySchemes: Array<OpenAPISecurityScheme>;
 }
 
 interface OpenAPISecurityScheme {
   type: string;
 }
-const openApiProvider = new InitialMetadataProvider<
+export const openApiProvider: InitialMetadataProvider<
   OpenAPIArguments,
   OpenAPIContextArgs
->({}, (ctx) => null!);
+> = new InitialMetadataProviderClass<OpenAPIArguments, OpenAPIContextArgs>(
+  {
+    securitySchemes: [],
+  },
+  (ctx) => null!,
+);
 
 const test = openApiProvider
   .getBuilder()
@@ -168,15 +219,10 @@ const test = openApiProvider
       validator: null!,
     },
   })
-  .withMethod(
-    "GET",
-    // test
-    // undefined,
-    {
-      validator: null!,
-      queryParameterNames: ["queryParam"] as const,
-    },
-  )
+  .withMethod("GET", {
+    validator: null!,
+    queryParameterNames: ["queryParam"] as const,
+  })
   .withOutput(
     {
       validator: null!,

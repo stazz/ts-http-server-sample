@@ -2,19 +2,28 @@ import * as utils from "./utils";
 import * as methods from "./methods";
 import * as data from "./data";
 import * as ep from "./endpoint";
+import * as md from "./metadata-provider";
 
 export const bindNecessaryTypes = <
   TContext,
   TValidationError,
->(): AppEndpointBuilderProvider<TContext, TContext, TValidationError> =>
-  new AppEndpointBuilderProvider<TContext, TContext, TValidationError>({
-    validator: (ctx) => ({ error: "none", data: ctx }),
-  });
+  // eslint-disable-next-line @typescript-eslint/ban-types
+>(): AppEndpointBuilderProvider<TContext, TContext, TValidationError, {}> =>
+  new AppEndpointBuilderProvider(
+    {
+      validator: (ctx) => ({ error: "none", data: ctx }),
+    },
+    {},
+  );
 
 export class AppEndpointBuilderProvider<
   TContext,
   TRefinedContext,
   TValidationError,
+  TMetadataProviders extends Record<
+    string,
+    md.InitialMetadataProvider<md.HKTArg, unknown>
+  >,
 > {
   public constructor(
     private readonly _contextTransform: data.ContextValidatorSpec<
@@ -22,20 +31,34 @@ export class AppEndpointBuilderProvider<
       TRefinedContext,
       TValidationError
     >,
+    private readonly _mdProviders: TMetadataProviders,
   ) {}
 
-  public atURL(
-    fragments: TemplateStringsArray,
-  ): AppEndpointBuilderInitial<
+  public atURL(fragments: TemplateStringsArray): AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
     TValidationError,
-    methods.HttpMethod
+    methods.HttpMethod,
+    {
+      [P in keyof TMetadataProviders]: ReturnType<
+        TMetadataProviders[P]["getBuilder"]
+      >;
+    }
   >;
   public atURL<TArgs extends [string, ...Array<string>]>(
     fragments: TemplateStringsArray,
     ...args: TArgs
-  ): URLDataNames<TContext, TRefinedContext, TValidationError, TArgs[number]>;
+  ): URLDataNames<
+    TContext,
+    TRefinedContext,
+    TValidationError,
+    TArgs[number],
+    {
+      [P in keyof TMetadataProviders]: ReturnType<
+        TMetadataProviders[P]["getBuilder"]
+      >;
+    }
+  >;
   public atURL<TArgs extends [string, ...Array<string>]>(
     fragments: TemplateStringsArray,
     ...args: TArgs
@@ -44,13 +67,34 @@ export class AppEndpointBuilderProvider<
         TContext,
         TRefinedContext,
         TValidationError,
-        methods.HttpMethod
+        methods.HttpMethod,
+        {
+          [P in keyof TMetadataProviders]: ReturnType<
+            TMetadataProviders[P]["getBuilder"]
+          >;
+        }
       >
-    | URLDataNames<TContext, TRefinedContext, TValidationError, TArgs[number]> {
+    | URLDataNames<
+        TContext,
+        TRefinedContext,
+        TValidationError,
+        TArgs[number],
+        {
+          [P in keyof TMetadataProviders]: ReturnType<
+            TMetadataProviders[P]["getBuilder"]
+          >;
+        }
+      > {
     if (args.length > 0) {
       // URL template has arguments -> return URL data validator which allows to build endpoints
       return {
         validateURLData: (validation) => {
+          Object.fromEntries(
+            Object.entries(this._mdProviders).map(([key, mdProvider]) => [
+              key,
+              mdProvider.getBuilder().withURLParameters(validation),
+            ]),
+          );
           return new AppEndpointBuilderWithURLDataInitial({
             contextTransform: this._contextTransform,
             fragments,
@@ -76,18 +120,55 @@ export class AppEndpointBuilderProvider<
       TNewContext,
       TValidationError
     >,
-  ): AppEndpointBuilderProvider<TContext, TNewContext, TValidationError> {
-    return new AppEndpointBuilderProvider({
-      ...transform,
-      validator: (ctx) => {
-        const transformed = this._contextTransform.validator(ctx);
-        switch (transformed.error) {
-          case "none":
-            return transform.validator(transformed.data);
-          default:
-            return transformed;
-        }
+    mdArgs: {
+      [P in keyof TMetadataProviders]: Parameters<
+        TMetadataProviders[P]["withRefinedContext"]
+      >[0];
+    },
+  ): AppEndpointBuilderProvider<
+    TContext,
+    TNewContext,
+    TValidationError,
+    TMetadataProviders
+  > {
+    return new AppEndpointBuilderProvider(
+      {
+        ...transform,
+        validator: (ctx) => {
+          const transformed = this._contextTransform.validator(ctx);
+          switch (transformed.error) {
+            case "none":
+              return transform.validator(transformed.data);
+            default:
+              return transformed;
+          }
+        },
       },
+      Object.fromEntries(
+        Object.entries(this._mdProviders).map(([key, provider]) => [
+          key,
+          provider.withRefinedContext(mdArgs[key]),
+        ]),
+      ) as TMetadataProviders,
+    );
+  }
+
+  public withMetadataProvider<
+    TMetadataKind extends string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    TMetadataProvider extends md.InitialMetadataProvider<any, any>,
+  >(
+    metadataKind: TMetadataKind,
+    metadataProvider: TMetadataProvider,
+  ): AppEndpointBuilderProvider<
+    TContext,
+    TRefinedContext,
+    TValidationError,
+    TMetadataProviders & { [P in TMetadataKind]: TMetadataProvider }
+  > {
+    return new AppEndpointBuilderProvider(this._contextTransform, {
+      ...this._mdProviders,
+      [metadataKind]: metadataProvider,
     });
   }
 }
@@ -97,6 +178,10 @@ export interface URLDataNames<
   TRefinedContext,
   TValidationError,
   TNames extends string,
+  TMetadataProviders extends Record<
+    string,
+    md.InitialMetadataBuilder<md.HKTArg>
+  >,
 > {
   validateURLData: <
     TValidation extends {
@@ -112,7 +197,21 @@ export interface URLDataNames<
     TRefinedContext,
     TValidationError,
     { [P in TNames]: data.URLParameterDataType<TValidation[P]["validator"]> },
-    methods.HttpMethod
+    methods.HttpMethod,
+    {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.InitialMetadataBuilder<
+        infer TArg
+      >
+        ? md.MetadataProviderWithURLData<
+            TArg,
+            {
+              [P in TNames]: data.URLParameterDataType<
+                TValidation[P]["validator"]
+              >;
+            }
+          >
+        : never;
+    }
   >;
 }
 
@@ -122,6 +221,10 @@ class AppEndpointBuilderWithURLDataInitial<
   TValidationError,
   TDataInURL,
   TAllowedMethods extends methods.HttpMethod,
+  TMetadataProviders extends Record<
+    string,
+    md.MetadataProviderWithURLData<md.HKTArg, TDataInURL>
+  >,
 > {
   public constructor(
     protected readonly _state: AppEndpointBuilderWithURLDataState<
@@ -140,7 +243,15 @@ class AppEndpointBuilderWithURLDataInitial<
     TDataInURL,
     TMethods,
     EndpointHandlerArgs<TRefinedContext>,
-    never
+    never,
+    {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithURLData<
+        infer TArg,
+        TDataInURL
+      >
+        ? md.MetadataProviderWithQuery<TArg, TDataInURL, {}> // eslint-disable-line @typescript-eslint/ban-types
+        : never;
+    }
   >;
   public forMethod<TMethods extends TAllowedMethods>(
     method: TMethods & methods.HttpMethodWithBody,
@@ -151,7 +262,15 @@ class AppEndpointBuilderWithURLDataInitial<
     TDataInURL,
     TMethods,
     EndpointHandlerArgs<TRefinedContext>,
-    never
+    never,
+    {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithURLData<
+        infer TArg,
+        TDataInURL
+      >
+        ? md.MetadataProviderWithQueryAndBody<TArg, TDataInURL, {}> // eslint-disable-line @typescript-eslint/ban-types
+        : never;
+    }
   >;
   public forMethod<
     TMethods extends TAllowedMethods,
@@ -167,7 +286,19 @@ class AppEndpointBuilderWithURLDataInitial<
     TDataInURL,
     TMethods,
     EndpointHandlerArgs<TRefinedContext> & EndpointHandlerArgsWithQuery<TQuery>,
-    TQueryKeys
+    TQueryKeys,
+    {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithURLData<
+        infer TArg,
+        TDataInURL
+      >
+        ? md.MetadataProviderWithQuery<
+            TArg,
+            TDataInURL,
+            { [P in TQueryKeys]: unknown }
+          >
+        : never;
+    }
   >;
   public forMethod<
     TMethods extends TAllowedMethods,
@@ -183,7 +314,19 @@ class AppEndpointBuilderWithURLDataInitial<
     TDataInURL,
     TMethods,
     EndpointHandlerArgs<TRefinedContext> & EndpointHandlerArgsWithQuery<TQuery>,
-    TQueryKeys
+    TQueryKeys,
+    {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithURLData<
+        infer TArg,
+        TDataInURL
+      >
+        ? md.MetadataProviderWithQueryAndBody<
+            TArg,
+            TDataInURL,
+            { [P in TQueryKeys]: unknown }
+          >
+        : never;
+    }
   >;
   forMethod<
     TMethods extends TAllowedMethods,
@@ -201,7 +344,21 @@ class AppEndpointBuilderWithURLDataInitial<
         TMethods,
         | EndpointHandlerArgs<TRefinedContext>
         | EndpointHandlerArgsWithQuery<TQuery>,
-        string
+        string,
+        any
+        // If we uncomment this one, the TS compiler will claim the first overload signature to be incompatible
+        // {
+        //   [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithURLData<
+        //     infer TArg,
+        //     TDataInURL
+        //   >
+        //     ? md.MetadataProviderWithQuery<
+        //         TArg,
+        //         TDataInURL,
+        //         { [P in string]: unknown }
+        //       >
+        //     : never;
+        // }
       >
     | AppEndpointBuilderForURLDataAndMethodsAndBody<
         TContext,
@@ -211,7 +368,20 @@ class AppEndpointBuilderWithURLDataInitial<
         TMethods,
         | EndpointHandlerArgs<TRefinedContext>
         | EndpointHandlerArgsWithQuery<TQuery>,
-        string
+        string,
+        // For some reason here, however, it is OK to do like this... :)
+        {
+          [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithURLData<
+            infer TArg,
+            TDataInURL
+          >
+            ? md.MetadataProviderWithQueryAndBody<
+                TArg,
+                TDataInURL,
+                { [P in string]: unknown }
+              >
+            : never;
+        }
       > {
     const { methodsSet, withoutBody, queryInfo } = forMethodImpl(
       this._state.methods,
@@ -294,12 +464,17 @@ export class AppEndpointBuilderWithURLData<
   TValidationError,
   TDataInURL,
   TAllowedMethods extends methods.HttpMethod,
+  TMetadataProviders extends Record<
+    string,
+    md.MetadataProviderWithURLData<md.HKTArg, TDataInURL>
+  >,
 > extends AppEndpointBuilderWithURLDataInitial<
   TContext,
   TRefinedContext,
   TValidationError,
   TDataInURL,
-  TAllowedMethods
+  TAllowedMethods,
+  TMetadataProviders
 > {
   public createEndpoint(): ep.AppEndpoint<
     TContext,
@@ -359,6 +534,14 @@ export class AppEndpointBuilderForURLDataAndMethods<
   TAllowedMethods extends methods.HttpMethod,
   TArgs,
   TQueryKeys extends string,
+  TMetadataProviders extends Record<
+    string,
+    md.MetadataProviderWithQuery<
+      md.HKTArg,
+      TDataInURL,
+      { [P in TQueryKeys]: unknown }
+    >
+  >,
 > {
   public constructor(
     protected readonly _state: AppEndpointBuilderWithURLDataState<
@@ -392,12 +575,36 @@ export class AppEndpointBuilderForURLDataAndMethods<
       TValidationError,
       TOutputValidatorSpec
     >,
+    mdArgs: {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithQuery<
+        infer TArg,
+        TDataInURL,
+        { [P in TQueryKeys]: unknown }
+      >
+        ? md.Kind<
+            TArg,
+            TDataInURL,
+            { [P in TQueryKeys]: unknown },
+            undefined,
+            TOutputValidatorSpec
+          >
+        : never;
+    },
   ): AppEndpointBuilderWithURLData<
     TContext,
     TRefinedContext,
     TValidationError,
     TDataInURL,
-    Exclude<methods.HttpMethod, TAllowedMethods>
+    Exclude<methods.HttpMethod, TAllowedMethods>,
+    {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithQuery<
+        infer TArg,
+        TDataInURL,
+        { [P in TQueryKeys]: unknown }
+      >
+        ? md.MetadataProviderWithURLData<TArg, TDataInURL>
+        : never;
+    }
   > {
     const { query, getEndpointArgs } = this._queryInfo;
     const handler: StaticAppEndpointBuilderSpec<
@@ -437,6 +644,8 @@ export class AppEndpointBuilderForURLDataAndMethods<
     if (query) {
       handler.queryValidation = utils.omit(query, "validator");
     }
+    // TODO actually utilize MD args.
+    mdArgs;
     return new AppEndpointBuilderWithURLData({
       ...this._state,
       methods: Object.assign(
@@ -458,6 +667,14 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
   TAllowedMethods extends methods.HttpMethod,
   TArgs,
   TQueryKeys extends string,
+  TMetadataProviders extends Record<
+    string,
+    md.MetadataProviderWithQueryAndBody<
+      md.HKTArg,
+      TDataInURL,
+      { [P in TQueryKeys]: unknown }
+    >
+  >,
 > extends AppEndpointBuilderForURLDataAndMethods<
   TContext,
   TRefinedContext,
@@ -465,7 +682,8 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
   TDataInURL,
   TAllowedMethods,
   TArgs,
-  TQueryKeys
+  TQueryKeys,
+  TMetadataProviders
 > {
   public withBody<
     TResult,
@@ -496,12 +714,36 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
       TValidationError,
       TOutputValidatorSpec
     >,
+    mdArgs: {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithQueryAndBody<
+        infer TArg,
+        TDataInURL,
+        { [P in TQueryKeys]: unknown }
+      >
+        ? md.Kind<
+            TArg,
+            TDataInURL,
+            { [P in TQueryKeys]: unknown },
+            TInputContentTypes,
+            TOutputValidatorSpec
+          >
+        : never;
+    },
   ): AppEndpointBuilderWithURLData<
     TContext,
     TRefinedContext,
     TValidationError,
     TDataInURL,
-    Exclude<methods.HttpMethod, TAllowedMethods>
+    Exclude<methods.HttpMethod, TAllowedMethods>,
+    {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithQueryAndBody<
+        infer TArg,
+        TDataInURL,
+        { [P in TQueryKeys]: unknown }
+      >
+        ? md.MetadataProviderWithURLData<TArg, TDataInURL>
+        : never;
+    }
   > {
     const { query, getEndpointArgs } = this._queryInfo;
     const handler: StaticAppEndpointBuilderSpec<
@@ -542,6 +784,8 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
     if (query) {
       handler.queryValidation = utils.omit(query, "validator");
     }
+    // TODO actually utilize MD args.
+    mdArgs;
     return new AppEndpointBuilderWithURLData({
       ...this._state,
       methods: Object.assign(
@@ -560,6 +804,10 @@ export class AppEndpointBuilderInitial<
   TRefinedContext,
   TValidationError,
   TAllowedMethods extends methods.HttpMethod,
+  TMetadataProviders extends Record<
+    string,
+    md.InitialMetadataBuilder<md.HKTArg>
+  >,
 > {
   public constructor(
     protected readonly _state: AppEndpointBuilderState<
@@ -577,7 +825,14 @@ export class AppEndpointBuilderInitial<
     TValidationError,
     TMethods,
     EndpointHandlerArgs<TRefinedContext>,
-    never
+    never,
+    {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.InitialMetadataBuilder<
+        infer TArg
+      >
+        ? md.MetadataProviderWithQuery<TArg, undefined, {}> // eslint-disable-line @typescript-eslint/ban-types
+        : never;
+    }
   >;
   public forMethod<TMethods extends TAllowedMethods>(
     method: TMethods & methods.HttpMethodWithBody,
@@ -587,7 +842,14 @@ export class AppEndpointBuilderInitial<
     TValidationError,
     TMethods,
     EndpointHandlerArgs<TRefinedContext>,
-    never
+    never,
+    {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.InitialMetadataBuilder<
+        infer TArg
+      >
+        ? md.MetadataProviderWithQueryAndBody<TArg, undefined, {}> // eslint-disable-line @typescript-eslint/ban-types
+        : never;
+    }
   >;
   public forMethod<
     TMethods extends TAllowedMethods,
@@ -602,7 +864,18 @@ export class AppEndpointBuilderInitial<
     TValidationError,
     TMethods,
     EndpointHandlerArgs<TRefinedContext> & EndpointHandlerArgsWithQuery<TQuery>,
-    TQueryKeys
+    TQueryKeys,
+    {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.InitialMetadataBuilder<
+        infer TArg
+      >
+        ? md.MetadataProviderWithQuery<
+            TArg,
+            undefined,
+            { [P in TQueryKeys]: unknown }
+          >
+        : never;
+    }
   >;
   public forMethod<
     TMethods extends TAllowedMethods,
@@ -617,7 +890,18 @@ export class AppEndpointBuilderInitial<
     TValidationError,
     TMethods,
     EndpointHandlerArgs<TRefinedContext> & EndpointHandlerArgsWithQuery<TQuery>,
-    TQueryKeys
+    TQueryKeys,
+    {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.InitialMetadataBuilder<
+        infer TArg
+      >
+        ? md.MetadataProviderWithQueryAndBody<
+            TArg,
+            undefined,
+            { [P in TQueryKeys]: unknown }
+          >
+        : never;
+    }
   >;
   forMethod<
     TMethods extends TAllowedMethods,
@@ -636,7 +920,19 @@ export class AppEndpointBuilderInitial<
         TMethods,
         | EndpointHandlerArgs<TRefinedContext>
         | EndpointHandlerArgsWithQuery<TQuery>,
-        string
+        string,
+        any
+        // {
+        //   [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.InitialMetadataBuilder<
+        //     infer TArg
+        //   >
+        //     ? md.MetadataProviderWithQuery<
+        //         TArg,
+        //         undefined,
+        //         { [P in string]: unknown }
+        //       >
+        //     : never;
+        // }
       >
     | AppEndpointBuilderForMethodsAndBody<
         TContext,
@@ -645,7 +941,18 @@ export class AppEndpointBuilderInitial<
         TMethods,
         | EndpointHandlerArgs<TRefinedContext>
         | EndpointHandlerArgsWithQuery<TQuery>,
-        string
+        string,
+        {
+          [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.InitialMetadataBuilder<
+            infer TArg
+          >
+            ? md.MetadataProviderWithQueryAndBody<
+                TArg,
+                undefined,
+                { [P in string]: unknown }
+              >
+            : never;
+        }
       > {
     const { methodsSet, withoutBody, queryInfo } = forMethodImpl(
       this._state.methods,
@@ -667,11 +974,16 @@ export class AppEndpointBuilder<
   TRefinedContext,
   TValidationError,
   TAllowedMethods extends methods.HttpMethod,
+  TMetadataProviders extends Record<
+    string,
+    md.InitialMetadataBuilder<md.HKTArg>
+  >,
 > extends AppEndpointBuilderInitial<
   TContext,
   TRefinedContext,
   TValidationError,
-  TAllowedMethods
+  TAllowedMethods,
+  TMetadataProviders
 > {
   public createEndpoint(): ep.AppEndpoint<
     TContext,
@@ -705,6 +1017,14 @@ export class AppEndpointBuilderForMethods<
   TAllowedMethods extends methods.HttpMethod,
   TArgs,
   TQueryKeys extends string,
+  TMetadataProviders extends Record<
+    string,
+    md.MetadataProviderWithQuery<
+      md.HKTArg,
+      undefined,
+      { [P in TQueryKeys]: unknown }
+    >
+  >,
 > {
   public constructor(
     protected readonly _state: AppEndpointBuilderState<
@@ -736,11 +1056,35 @@ export class AppEndpointBuilderForMethods<
       TValidationError,
       TOutputValidatorSpec
     >,
+    mdArgs: {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithQuery<
+        infer TArg,
+        undefined,
+        { [P in TQueryKeys]: unknown }
+      >
+        ? md.Kind<
+            TArg,
+            undefined,
+            { [P in TQueryKeys]: unknown },
+            undefined,
+            TOutputValidatorSpec
+          >
+        : never;
+    },
   ): AppEndpointBuilder<
     TContext,
     TRefinedContext,
     TValidationError,
-    Exclude<methods.HttpMethod, TAllowedMethods>
+    Exclude<methods.HttpMethod, TAllowedMethods>,
+    {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithQuery<
+        infer TArg,
+        undefined,
+        { [P in TQueryKeys]: unknown }
+      >
+        ? md.InitialMetadataBuilder<TArg>
+        : never;
+    }
   > {
     const { query, getEndpointArgs } = this._queryInfo;
     const handler: StaticAppEndpointBuilderSpec<
@@ -764,6 +1108,8 @@ export class AppEndpointBuilderForMethods<
     if (query) {
       handler.queryValidation = utils.omit(query, "validator");
     }
+    // TODO actually utilize MD args.
+    mdArgs;
     return new AppEndpointBuilder({
       ...this._state,
       methods: Object.assign(
@@ -784,13 +1130,22 @@ export class AppEndpointBuilderForMethodsAndBody<
   TAllowedMethods extends methods.HttpMethod,
   TArgs,
   TQueryKeys extends string,
+  TMetadataProviders extends Record<
+    string,
+    md.MetadataProviderWithQueryAndBody<
+      md.HKTArg,
+      undefined,
+      { [P in TQueryKeys]: unknown }
+    >
+  >,
 > extends AppEndpointBuilderForMethods<
   TContext,
   TRefinedContext,
   TValidationError,
   TAllowedMethods,
   TArgs,
-  TQueryKeys
+  TQueryKeys,
+  TMetadataProviders
 > {
   public withBody<
     THandlerResult,
@@ -820,11 +1175,35 @@ export class AppEndpointBuilderForMethodsAndBody<
       TValidationError,
       TOutputValidatorSpec
     >,
+    mdArgs: {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithQueryAndBody<
+        infer TArg,
+        undefined,
+        { [P in TQueryKeys]: unknown }
+      >
+        ? md.Kind<
+            TArg,
+            undefined,
+            { [P in TQueryKeys]: unknown },
+            undefined,
+            TOutputValidatorSpec
+          >
+        : never;
+    },
   ): AppEndpointBuilder<
     TContext,
     TRefinedContext,
     TValidationError,
-    Exclude<methods.HttpMethod, TAllowedMethods>
+    Exclude<methods.HttpMethod, TAllowedMethods>,
+    {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProviderWithQueryAndBody<
+        infer TArg,
+        undefined,
+        { [P in TQueryKeys]: unknown }
+      >
+        ? md.InitialMetadataBuilder<TArg>
+        : never;
+    }
   > {
     const { query, getEndpointArgs } = this._queryInfo;
     const handler: StaticAppEndpointBuilderSpec<
@@ -851,6 +1230,8 @@ export class AppEndpointBuilderForMethodsAndBody<
     if (query) {
       handler.queryValidation = utils.omit(query, "validator");
     }
+    // TODO actually utilize MD args.
+    mdArgs;
     return new AppEndpointBuilder({
       ...this._state,
       methods: Object.assign(

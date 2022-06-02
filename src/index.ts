@@ -30,13 +30,20 @@ const endpointsAsKoaMiddleware = (
   if (!idInBody) {
     idInBody = t.string as unknown as t.BrandC<t.StringC, never>;
   }
-  const urlBuilder = model.bindNecessaryTypes<
-    koa.KoaContext,
-    tPlugin.ValidationError
-  >();
+  const urlBuilder = model
+    // Lock in to Koa and IO-TS
+    .bindNecessaryTypes<koa.KoaContext, tPlugin.ValidationError>()
+    // All endpoints must specify enough metadata to be able to auto-generate OpenAPI specification
+    .withMetadataProvider("openapi", model.openApiProvider);
 
   const urlBuilderWithUsername = urlBuilder.refineContext(
     koa.validateContextState(tPlugin.plainValidator(koaState)),
+    // TODO actually specify securityScehemes.
+    {
+      openapi: {
+        securitySchemes: [],
+      },
+    },
   );
   // Any amount of endpoint informations can be passed to createKoaMiddleware - there always will be exactly one RegExp generated to perform endpoint match.
   return koa.koaMiddlewareFactory(
@@ -71,6 +78,27 @@ const endpointsAsKoaMiddleware = (
               functionality.queryThing(id, includeDeleted === true),
             // Transform functionality output to REST output
             tPlugin.outputValidator(t.string),
+            // Metadata
+            {
+              openapi: {
+                urlParameters: {
+                  id: {
+                    description: "ID description",
+                  },
+                },
+                queryParameters: {
+                  includeDeleted: {
+                    description: "Include deleted description",
+                  },
+                },
+                outputDescription: "Output description",
+                outputInfo: {
+                  "application/json": {
+                    encoding: "UTF8",
+                  },
+                },
+              },
+            },
           )
           .createEndpoint(),
         // Endpoint: create thing with some property set.
@@ -102,6 +130,18 @@ const endpointsAsKoaMiddleware = (
                 "CreateThingOutput", // Friendly name for error messages
               ),
             ),
+            {
+              openapi: {
+                urlParameters: undefined,
+                queryParameters: {},
+                outputDescription: "Output description",
+                outputInfo: {
+                  "application/json": {
+                    encoding: "UTF8",
+                  },
+                },
+              },
+            },
           )
           .createEndpoint(),
         // Endpoint: connect thing to another thing.
@@ -135,6 +175,22 @@ const endpointsAsKoaMiddleware = (
                 "ConnectThingOutput", // Friendly name for error messages
               ),
             ),
+            {
+              openapi: {
+                urlParameters: {
+                  id: {
+                    description: "ID description",
+                  },
+                },
+                queryParameters: {},
+                outputDescription: "Output description",
+                outputInfo: {
+                  "application/json": {
+                    encoding: "UTF8",
+                  },
+                },
+              },
+            },
           )
           .createEndpoint(),
       ),
@@ -145,6 +201,18 @@ const endpointsAsKoaMiddleware = (
       .withoutBody(
         () => "This is our documentation",
         tPlugin.outputValidator(t.string),
+        {
+          openapi: {
+            urlParameters: undefined,
+            queryParameters: {},
+            outputDescription: "Output description",
+            outputInfo: {
+              "application/json": {
+                encoding: "UTF8",
+              },
+            },
+          },
+        },
       )
       .createEndpoint(),
   );
