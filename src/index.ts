@@ -78,7 +78,7 @@ const endpointsAsKoaMiddleware = (
               functionality.queryThing(id, includeDeleted === true),
             // Transform functionality output to REST output
             tPlugin.outputValidator(t.string),
-            // Metadata
+            // Metadata about endpoint (as dictated by "withMetadataProvider" above)
             {
               openapi: {
                 urlParameters: {
@@ -130,6 +130,7 @@ const endpointsAsKoaMiddleware = (
                 "CreateThingOutput", // Friendly name for error messages
               ),
             ),
+            // Metadata about endpoint (as dictated by "withMetadataProvider" above)
             {
               openapi: {
                 urlParameters: undefined,
@@ -175,6 +176,7 @@ const endpointsAsKoaMiddleware = (
                 "ConnectThingOutput", // Friendly name for error messages
               ),
             ),
+            // Metadata about endpoint (as dictated by "withMetadataProvider" above)
             {
               openapi: {
                 urlParameters: {
@@ -201,6 +203,7 @@ const endpointsAsKoaMiddleware = (
       .withoutBody(
         () => "This is our documentation",
         tPlugin.outputValidator(t.string),
+        // Metadata about endpoint (as dictated by "withMetadataProvider" above)
         {
           openapi: {
             urlParameters: undefined,
