@@ -37,45 +37,71 @@ export type Kind<
 
 export interface InitialMetadataProvider<
   TArgument extends HKTArg,
+  TEndpointArg,
   TEndpointMD,
   TContextArguments,
 > {
   withRefinedContext(
     contextArgs: TContextArguments,
-  ): InitialMetadataProvider<TArgument, TEndpointMD, TContextArguments>;
+  ): InitialMetadataProvider<
+    TArgument,
+    TEndpointArg,
+    TEndpointMD,
+    TContextArguments
+  >;
 
-  getBuilder(): MetadataBuilder<TArgument, TEndpointMD>;
+  getBuilder(): MetadataBuilder<TArgument, TEndpointArg, TEndpointMD>;
 }
 
 export class InitialMetadataProviderClass<
   TArgument extends HKTArg,
+  TEndpointArg,
   TEndpointMD,
   TContextArguments,
-> implements InitialMetadataProvider<TArgument, TEndpointMD, TContextArguments>
+> implements
+    InitialMetadataProvider<
+      TArgument,
+      TEndpointArg,
+      TEndpointMD,
+      TContextArguments
+    >
 {
   public constructor(
     private readonly _contextInfo: TContextArguments,
     private readonly _getBuilder: (
       contextInfo: TContextArguments,
-    ) => MetadataBuilder<TArgument, TEndpointMD>,
+    ) => MetadataBuilder<TArgument, TEndpointArg, TEndpointMD>,
   ) {}
 
   public withRefinedContext(
     contextArgs: TContextArguments,
-  ): InitialMetadataProvider<TArgument, TEndpointMD, TContextArguments> {
+  ): InitialMetadataProvider<
+    TArgument,
+    TEndpointArg,
+    TEndpointMD,
+    TContextArguments
+  > {
     return new InitialMetadataProviderClass(contextArgs, this._getBuilder);
   }
 
-  public getBuilder(): MetadataBuilder<TArgument, TEndpointMD> {
+  public getBuilder(): MetadataBuilder<TArgument, TEndpointArg, TEndpointMD> {
     return this._getBuilder(this._contextInfo);
   }
 }
 
-export interface MetadataBuilder<TArgument extends HKTArg, TEndpointMD> {
+export interface MetadataBuilder<
+  TArgument extends HKTArg,
+  TEndpointArg,
+  TEndpointMD,
+> {
   getEndpointsMetadata: (
+    arg: TEndpointArg,
     urlSpec: ReadonlyArray<
       | string
-      | Omit<data.URLDataParameterValidatorSpec<unknown, unknown>, "validator">
+      | (Omit<
+          data.URLDataParameterValidatorSpec<unknown, unknown>,
+          "validator"
+        > & { name: string })
     >,
     methods: Partial<
       Record<
@@ -123,10 +149,15 @@ export type SingleEndpointResult<TEndpointMD> = (
 ) => TEndpointMD;
 
 interface OpenAPIArguments extends HKTArg {
-  readonly type: OpenAPIArgumentsURLData<this["_TURLData"]> &
+  readonly type: OpenAPIArgumentsStatic &
+    OpenAPIArgumentsURLData<this["_TURLData"]> &
     OpenAPIArgumentsQuery<this["_TQuery"]> &
     OpenAPIArgumentsInput<this["_TBody"]> &
     OpenAPIArgumentsOutput<this["_TOutput"]>;
+}
+
+interface OpenAPIArgumentsStatic {
+  summary: string;
 }
 
 interface OpenAPIArgumentsURLData<TURLData> {
@@ -166,19 +197,27 @@ interface OpenAPIOperation {
   summary: string;
 }
 
-interface OpenAPIPathItem
-  extends Partial<Record<Lowercase<methods.HttpMethod>, OpenAPIOperation>> {
-  summary: string;
+interface OpenAPIPathItemArg {
+  summary?: string;
+  description?: string;
 }
+
+type OpenAPIPathItemMethods = Partial<
+  Record<Lowercase<methods.HttpMethod>, OpenAPIOperation>
+>;
+
+interface OpenAPIPathItem extends OpenAPIPathItemArg, OpenAPIPathItemMethods {}
 
 type OpenAPIPaths = Record<string, OpenAPIPathItem>;
 
 export const openApiProvider: InitialMetadataProvider<
   OpenAPIArguments,
+  OpenAPIPathItemArg,
   OpenAPIPaths,
   OpenAPIContextArgs
 > = new InitialMetadataProviderClass<
   OpenAPIArguments,
+  OpenAPIPathItemArg,
   OpenAPIPaths,
   OpenAPIContextArgs
 >(
@@ -186,15 +225,25 @@ export const openApiProvider: InitialMetadataProvider<
     securitySchemes: [],
   },
   (ctx) => ({
-    getEndpointsMetadata: (urlSpec, methods) => {
-      const path: OpenAPIPathItem = {
-        summary: "Wat",
-      };
+    getEndpointsMetadata: (pathItemBase, urlSpec, methods) => {
+      const urlString = urlSpec.map((stringOrSpec) =>
+        typeof stringOrSpec === "string"
+          ? stringOrSpec
+          : `{${stringOrSpec.name}}`,
+      );
+      const path: OpenAPIPathItem = { ...pathItemBase };
       for (const [method, specs] of Object.entries(methods)) {
+        if (specs) {
+          (path as OpenAPIPathItemMethods)[
+            method.toLowerCase() as Lowercase<methods.HttpMethod>
+          ] = {
+            summary: specs.metadataArguments.summary,
+          };
+        }
         // eslint-disable-next-line no-console
-        console.info(`TODO ${method} ${specs}`);
+        console.info(`TODO`, method, specs);
       }
-      return (urlPrefix) => ({});
+      return (urlPrefix) => ({ [`${urlPrefix}${urlString}`]: path });
     },
   }),
 );

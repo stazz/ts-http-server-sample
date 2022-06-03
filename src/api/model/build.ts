@@ -22,7 +22,7 @@ export class AppEndpointBuilderProvider<
   TValidationError,
   TMetadataProviders extends Record<
     string,
-    md.InitialMetadataProvider<md.HKTArg, unknown, unknown>
+    md.InitialMetadataProvider<md.HKTArg, unknown, unknown, unknown>
   >,
 > {
   public constructor(
@@ -157,7 +157,7 @@ export class AppEndpointBuilderProvider<
   public withMetadataProvider<
     TMetadataKind extends string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    TMetadataProvider extends md.InitialMetadataProvider<any, any, any>,
+    TMetadataProvider extends md.InitialMetadataProvider<any, any, any, any>,
   >(
     metadataKind: TMetadataKind,
     metadataProvider: TMetadataProvider,
@@ -181,7 +181,7 @@ export interface URLDataNames<
   TNames extends string,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown>
+    md.MetadataBuilder<md.HKTArg, unknown, unknown>
   >,
 > {
   validateURLData: <
@@ -211,7 +211,7 @@ class AppEndpointBuilderWithURLDataInitial<
   TAllowedMethods extends methods.HttpMethod,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown>
+    md.MetadataBuilder<md.HKTArg, unknown, unknown>
   >,
 > {
   public constructor(
@@ -330,7 +330,10 @@ interface StaticAppEndpointBuilderSpec<
   TContext,
   TRefinedContext,
   TBodyError,
-  TMetadata extends Record<string, md.MetadataBuilder<md.HKTArg, unknown>>,
+  TMetadata extends Record<
+    string,
+    md.MetadataBuilder<md.HKTArg, unknown, unknown>
+  >,
 > {
   builder: StaticAppEndpointBuilder<TContext, TRefinedContext, TBodyError>;
   queryValidation?: Omit<
@@ -356,7 +359,8 @@ interface StaticAppEndpointBuilderSpec<
   mdArgs: {
     [P in keyof TMetadata]: TMetadata[P] extends md.MetadataBuilder<
       infer TArg,
-      infer _
+      infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
+      infer _ // eslint-disable-line @typescript-eslint/no-unused-vars
     >
       ? md.Kind<
           TArg,
@@ -378,7 +382,10 @@ interface AppEndpointBuilderState<
   TContext,
   TRefinedContext,
   TValidationError,
-  TMetadata extends Record<string, md.MetadataBuilder<md.HKTArg, unknown>>,
+  TMetadata extends Record<
+    string,
+    md.MetadataBuilder<md.HKTArg, unknown, unknown>
+  >,
 > {
   fragments: TemplateStringsArray;
   methods: Partial<
@@ -404,7 +411,10 @@ interface AppEndpointBuilderWithURLDataState<
   TContext,
   TRefinedContext,
   TValidationError,
-  TMetadata extends Record<string, md.MetadataBuilder<md.HKTArg, unknown>>,
+  TMetadata extends Record<
+    string,
+    md.MetadataBuilder<md.HKTArg, unknown, unknown>
+  >,
 > extends AppEndpointBuilderState<
     TContext,
     TRefinedContext,
@@ -426,7 +436,7 @@ export class AppEndpointBuilderWithURLData<
   TAllowedMethods extends methods.HttpMethod,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown>
+    md.MetadataBuilder<md.HKTArg, unknown, unknown>
   >,
 > extends AppEndpointBuilderWithURLDataInitial<
   TContext,
@@ -436,13 +446,22 @@ export class AppEndpointBuilderWithURLData<
   TAllowedMethods,
   TMetadataProviders
 > {
-  public createEndpoint(): ep.AppEndpoint<
+  public createEndpoint(mdArgs: {
+    [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
+      infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
+      infer TArg,
+      unknown
+    >
+      ? TArg
+      : never;
+  }): ep.AppEndpoint<
     TContext,
     TRefinedContext,
     TValidationError,
     {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
-        infer _,
+        infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
+        infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
         infer TEndpointMD
       >
         ? TEndpointMD
@@ -452,6 +471,7 @@ export class AppEndpointBuilderWithURLData<
     if (Object.keys(this._state.methods).length > 0) {
       const metadata = constructMDResults(
         this._state,
+        mdArgs,
         Array.from(
           getURLItemsInOrder(
             this._state.fragments,
@@ -461,7 +481,10 @@ export class AppEndpointBuilderWithURLData<
         ).map((fragmentOrValidation) =>
           typeof fragmentOrValidation === "string"
             ? fragmentOrValidation
-            : utils.omit(fragmentOrValidation.validation, "validator"),
+            : {
+                ...utils.omit(fragmentOrValidation.validation, "validator"),
+                name: fragmentOrValidation.name,
+              },
         ),
       );
       return {
@@ -528,7 +551,7 @@ export class AppEndpointBuilderForURLDataAndMethods<
   TQueryKeys extends string,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown>
+    md.MetadataBuilder<md.HKTArg, unknown, unknown>
   >,
 > {
   public constructor(
@@ -567,6 +590,7 @@ export class AppEndpointBuilderForURLDataAndMethods<
     mdArgs: {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
         infer TArg,
+        infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
         unknown
       >
         ? md.Kind<
@@ -650,7 +674,7 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
   TQueryKeys extends string,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown>
+    md.MetadataBuilder<md.HKTArg, unknown, unknown>
   >,
 > extends AppEndpointBuilderForURLDataAndMethods<
   TContext,
@@ -694,6 +718,7 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
     mdArgs: {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
         infer TArg,
+        infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
         unknown
       >
         ? md.Kind<
@@ -774,7 +799,7 @@ export class AppEndpointBuilderInitial<
   TAllowedMethods extends methods.HttpMethod,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown>
+    md.MetadataBuilder<md.HKTArg, unknown, unknown>
   >,
 > {
   public constructor(
@@ -892,7 +917,7 @@ export class AppEndpointBuilder<
   TAllowedMethods extends methods.HttpMethod,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown>
+    md.MetadataBuilder<md.HKTArg, unknown, unknown>
   >,
 > extends AppEndpointBuilderInitial<
   TContext,
@@ -901,13 +926,22 @@ export class AppEndpointBuilder<
   TAllowedMethods,
   TMetadataProviders
 > {
-  public createEndpoint(): ep.AppEndpoint<
+  public createEndpoint(mdArgs: {
+    [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
+      infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
+      infer TArg,
+      unknown
+    >
+      ? TArg
+      : never;
+  }): ep.AppEndpoint<
     TContext,
     TRefinedContext,
     TValidationError,
     {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
-        infer _,
+        infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
+        infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
         infer TEndpointMD
       >
         ? TEndpointMD
@@ -915,7 +949,7 @@ export class AppEndpointBuilder<
     }
   > {
     if (Object.keys(this._state.methods).length > 0) {
-      const metadata = constructMDResults(this._state, [
+      const metadata = constructMDResults(this._state, mdArgs, [
         ...this._state.fragments,
       ]);
       return {
@@ -956,7 +990,7 @@ export class AppEndpointBuilderForMethods<
   TQueryKeys extends string,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown>
+    md.MetadataBuilder<md.HKTArg, unknown, unknown>
   >,
 > {
   public constructor(
@@ -993,6 +1027,7 @@ export class AppEndpointBuilderForMethods<
     mdArgs: {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
         infer TArg,
+        infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
         unknown
       >
         ? md.Kind<
@@ -1058,7 +1093,7 @@ export class AppEndpointBuilderForMethodsAndBody<
   TQueryKeys extends string,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown>
+    md.MetadataBuilder<md.HKTArg, unknown, unknown>
   >,
 > extends AppEndpointBuilderForMethods<
   TContext,
@@ -1100,6 +1135,7 @@ export class AppEndpointBuilderForMethodsAndBody<
     mdArgs: {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
         infer TArg,
+        infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
         unknown
       >
         ? md.Kind<
@@ -1230,7 +1266,7 @@ const checkMethodsForHandler = <
   TValidationError,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown>
+    md.MetadataBuilder<md.HKTArg, unknown, unknown>
   >,
 >(
   state: {
@@ -1314,7 +1350,10 @@ const constructMDResults = <
   TContext,
   TRefinedContext,
   TValidationError,
-  TMetadata extends Record<string, md.MetadataBuilder<md.HKTArg, unknown>>,
+  TMetadata extends Record<
+    string,
+    md.MetadataBuilder<md.HKTArg, unknown, unknown>
+  >,
 >(
   state: Pick<
     AppEndpointBuilderState<
@@ -1325,13 +1364,26 @@ const constructMDResults = <
     >,
     "metadata" | "methods"
   >,
+  mdArgs: {
+    [P in keyof TMetadata]: TMetadata[P] extends md.MetadataBuilder<
+      infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
+      infer TArg,
+      unknown
+    >
+      ? TArg
+      : never;
+  },
   urlSpec: ReadonlyArray<
     | string
-    | Omit<data.URLDataParameterValidatorSpec<unknown, unknown>, "validator">
+    | (Omit<
+        data.URLDataParameterValidatorSpec<unknown, unknown>,
+        "validator"
+      > & { name: string })
   >,
 ) => {
   return utils.transformEntries(state.metadata, (md, mdKey) =>
     md.getEndpointsMetadata(
+      mdArgs[mdKey],
       urlSpec,
       Object.fromEntries(
         Object.entries(state.methods).map(([method, methodInfo]) => {

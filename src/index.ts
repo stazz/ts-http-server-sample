@@ -82,6 +82,7 @@ const endpointsAsKoaMiddleware = (
             // Metadata about endpoint (as dictated by "withMetadataProvider" above)
             {
               openapi: {
+                summary: "Query a thing",
                 urlParameters: {
                   id: {
                     description: "ID description",
@@ -104,7 +105,11 @@ const endpointsAsKoaMiddleware = (
               },
             },
           )
-          .createEndpoint(),
+          .createEndpoint({
+            openapi: {
+              summary: "Read things",
+            },
+          }),
         // Endpoint: create thing with some property set.
         urlBuilderWithUsername.atURL``
           .forMethod("PUT")
@@ -137,6 +142,7 @@ const endpointsAsKoaMiddleware = (
             // Metadata about endpoint (as dictated by "withMetadataProvider" above)
             {
               openapi: {
+                summary: "Create a thing",
                 urlParameters: undefined,
                 body: {
                   "application/json": {
@@ -162,7 +168,11 @@ const endpointsAsKoaMiddleware = (
               },
             },
           )
-          .createEndpoint(),
+          .createEndpoint({
+            openapi: {
+              summary: "Manipulate a thing",
+            },
+          }),
         // Endpoint: connect thing to another thing.
         urlBuilderWithUsername.atURL`/${"id"}/connectToAnotherThing`
           .validateURLData({
@@ -197,6 +207,7 @@ const endpointsAsKoaMiddleware = (
             // Metadata about endpoint (as dictated by "withMetadataProvider" above)
             {
               openapi: {
+                summary: "Connect one thing to another",
                 urlParameters: {
                   id: {
                     description: "ID description",
@@ -227,10 +238,14 @@ const endpointsAsKoaMiddleware = (
               },
             },
           )
-          .createEndpoint(),
+          .createEndpoint({
+            openapi: {
+              summary: "Manipulate many things",
+            },
+          }),
       ),
     ),
-    // Endpoint: (fake) API docs
+    // Endpoint: (soon-not-so-fake) API docs
     urlBuilder.atURL`/doc`
       .forMethod("GET")
       .withoutBody(
@@ -239,6 +254,7 @@ const endpointsAsKoaMiddleware = (
         // Metadata about endpoint (as dictated by "withMetadataProvider" above)
         {
           openapi: {
+            summary: "Returns this OpenAPI document",
             urlParameters: undefined,
             queryParameters: {},
             body: undefined,
@@ -253,7 +269,11 @@ const endpointsAsKoaMiddleware = (
           },
         },
       )
-      .createEndpoint(),
+      .createEndpoint({
+        openapi: {
+          summary: "Summary",
+        },
+      }),
   );
 };
 
