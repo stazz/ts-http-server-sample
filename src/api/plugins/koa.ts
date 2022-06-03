@@ -31,10 +31,11 @@ export const validateContextState = <TData, TError, TInput>(
 // The factory object accepts callbacks to execute on certain scenarios (mostly on errors).
 export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
   ...endpoints: Array<
-    model.AppEndpointFunctionality<
+    model.AppEndpoint<
       KoaContext,
       TRefinedContext,
-      TValidationError
+      TValidationError,
+      Record<string, unknown>
     >
   >
 ): KoaMiddlewareFactory<TValidationError> => {

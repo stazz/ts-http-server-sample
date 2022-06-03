@@ -72,6 +72,21 @@ export function atPrefix<
         },
       };
     },
+    getMetadata: (urlPrefix) => {
+      return (
+        endpoints.reduce((curResult, { getMetadata }) => {
+          const mdDic = getMetadata(`${urlPrefix}${prefix}`);
+          if (curResult === undefined) {
+            curResult = utils.transformEntries(mdDic, () => []);
+          }
+          for (const key of Object.keys(mdDic)) {
+            curResult[key].push(...mdDic[key]);
+          }
+          return curResult;
+        }, undefined as undefined | { [P in keyof TMetadata]: Array<TMetadata[P]> }) ??
+        ({} as { [P in keyof TMetadata]: Array<TMetadata[P]> })
+      );
+    },
   };
 }
 

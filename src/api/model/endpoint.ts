@@ -14,15 +14,22 @@ export interface AppEndpointFunctionality<
       TBodyValidationError
     >;
   };
-  // getMetadata: (groupNamePrefix: string) => ReadonlyArray<AppEndpointMetadata>
 }
 
-export type AppEndpoint<
+export interface AppEndpoint<
   TContext,
   TRefinedContext,
   TBodyValidationError,
   TMetadata extends Record<string, unknown>,
-> = AppEndpointFunctionality<TContext, TRefinedContext, TBodyValidationError>;
+> extends AppEndpointFunctionality<
+    TContext,
+    TRefinedContext,
+    TBodyValidationError
+  > {
+  getMetadata: (urlPrefix: string) => {
+    [P in keyof TMetadata]: Array<TMetadata[P]>;
+  };
+}
 
 export type DynamicHandlerGetter<
   TContext,

@@ -45,6 +45,7 @@ const endpointsAsKoaMiddleware = (
       },
     },
   );
+
   // Any amount of endpoint informations can be passed to createKoaMiddleware - there always will be exactly one RegExp generated to perform endpoint match.
   return koa.koaMiddlewareFactory(
     // Prefixes can be combined to any depth.
@@ -91,10 +92,13 @@ const endpointsAsKoaMiddleware = (
                     description: "Include deleted description",
                   },
                 },
-                outputDescription: "Output description",
-                outputInfo: {
-                  "application/json": {
-                    encoding: "UTF8",
+                body: undefined,
+                output: {
+                  description: "Output description",
+                  info: {
+                    "application/json": {
+                      example: "Example",
+                    },
                   },
                 },
               },
@@ -134,11 +138,25 @@ const endpointsAsKoaMiddleware = (
             {
               openapi: {
                 urlParameters: undefined,
-                queryParameters: {},
-                outputDescription: "Output description",
-                outputInfo: {
+                body: {
                   "application/json": {
-                    encoding: "UTF8",
+                    example: {
+                      property: decodeOrThrow(
+                        idInBody.decode,
+                        "00000000-0000-0000-0000-000000000000",
+                      ),
+                    },
+                  },
+                },
+                queryParameters: {},
+                output: {
+                  description: "Output description",
+                  info: {
+                    "application/json": {
+                      example: {
+                        property: "00000000-0000-0000-0000-000000000000",
+                      },
+                    },
                   },
                 },
               },
@@ -185,10 +203,25 @@ const endpointsAsKoaMiddleware = (
                   },
                 },
                 queryParameters: {},
-                outputDescription: "Output description",
-                outputInfo: {
+                body: {
                   "application/json": {
-                    encoding: "UTF8",
+                    example: {
+                      anotherThingId: decodeOrThrow(
+                        idInBody.decode,
+                        "00000000-0000-0000-0000-000000000000",
+                      ),
+                    },
+                  },
+                },
+                output: {
+                  description: "Output description",
+                  info: {
+                    "application/json": {
+                      example: {
+                        connected: true,
+                        connectedAt: new Date(0),
+                      },
+                    },
                   },
                 },
               },
@@ -208,10 +241,13 @@ const endpointsAsKoaMiddleware = (
           openapi: {
             urlParameters: undefined,
             queryParameters: {},
-            outputDescription: "Output description",
-            outputInfo: {
-              "application/json": {
-                encoding: "UTF8",
+            body: undefined,
+            output: {
+              description: "Output description",
+              info: {
+                "application/json": {
+                  example: "Example",
+                },
               },
             },
           },
@@ -219,6 +255,14 @@ const endpointsAsKoaMiddleware = (
       )
       .createEndpoint(),
   );
+};
+
+const decodeOrThrow = <T>(validate: t.Decode<unknown, T>, value: unknown) => {
+  const result = validate(value);
+  if (result._tag === "Left") {
+    throw new Error("Fail");
+  }
+  return result.right;
 };
 
 // This is RFC-adhering UUID regex. Relax if needed.

@@ -1,6 +1,5 @@
 import * as data from "./data";
 import * as methods from "./methods";
-import * as md from "./metadata";
 
 // Higher-kinded-type trick from: https://www.matechs.com/blog/encoding-hkts-in-typescript-once-again
 export interface HKTArg {
@@ -45,7 +44,7 @@ export interface InitialMetadataProvider<
     contextArgs: TContextArguments,
   ): InitialMetadataProvider<TArgument, TEndpointMD, TContextArguments>;
 
-  getBuilder(): InitialMetadataBuilder<TArgument, TEndpointMD>;
+  getBuilder(): MetadataBuilder<TArgument, TEndpointMD>;
 }
 
 export class InitialMetadataProviderClass<
@@ -58,7 +57,7 @@ export class InitialMetadataProviderClass<
     private readonly _contextInfo: TContextArguments,
     private readonly _getBuilder: (
       contextInfo: TContextArguments,
-    ) => InitialMetadataBuilder<TArgument, TEndpointMD>,
+    ) => MetadataBuilder<TArgument, TEndpointMD>,
   ) {}
 
   public withRefinedContext(
@@ -67,115 +66,54 @@ export class InitialMetadataProviderClass<
     return new InitialMetadataProviderClass(contextArgs, this._getBuilder);
   }
 
-  public getBuilder(): InitialMetadataBuilder<TArgument, TEndpointMD> {
+  public getBuilder(): MetadataBuilder<TArgument, TEndpointMD> {
     return this._getBuilder(this._contextInfo);
   }
 }
 
-export interface InitialMetadataBuilder<TArgument extends HKTArg, TEndpointMD>
-  extends MetadataProviderForMethodsBase<TArgument, TEndpointMD, undefined> {
-  withURLParameters: <
-    TURLParameters extends Record<
-      string,
-      data.URLDataParameterValidatorSpec<unknown, unknown>
+export interface MetadataBuilder<TArgument extends HKTArg, TEndpointMD> {
+  getEndpointsMetadata: (
+    urlSpec: ReadonlyArray<
+      | string
+      | Omit<data.URLDataParameterValidatorSpec<unknown, unknown>, "validator">
     >,
-  >(
-    parameters: TURLParameters,
-  ) => MetadataProviderWithURLData<TArgument, TEndpointMD, TURLParameters>;
-}
-
-export interface MetadataProviderForMethodsBase<
-  TArgument extends HKTArg,
-  TEndpointMD,
-  TURLData,
-> {
-  withMethod(
-    method: methods.HttpMethodWithoutBody,
-  ): MetadataProviderWithQuery<TArgument, TEndpointMD, TURLData, undefined>;
-  withMethod<TQuery extends data.QueryValidatorSpec<unknown, unknown, string>>(
-    method: methods.HttpMethodWithoutBody,
-    querySpec: TQuery | undefined,
-  ): MetadataProviderWithQuery<
-    TArgument,
-    TEndpointMD,
-    TURLData,
-    { [P in TQuery["queryParameterNames"][number]]: unknown }
-  >;
-  withMethod(
-    method: methods.HttpMethodWithBody,
-  ): MetadataProviderWithQueryAndBody<
-    TArgument,
-    TEndpointMD,
-    TURLData,
-    undefined
-  >;
-  withMethod<TQuery extends data.QueryValidatorSpec<unknown, unknown, string>>(
-    method: methods.HttpMethodWithBody,
-    querySpec: TQuery | undefined,
-  ): MetadataProviderWithQueryAndBody<
-    TArgument,
-    TEndpointMD,
-    TURLData,
-    { [P in TQuery["queryParameterNames"][number]]: unknown }
-  >;
-}
-
-export type MetadataProviderWithURLData<
-  TArguments extends HKTArg,
-  TEndpointMD,
-  TURLData,
-> = MetadataProviderForMethodsBase<TArguments, TEndpointMD, TURLData>;
-
-export interface MetadataProviderWithQuery<
-  TArguments extends HKTArg,
-  TEndpointMD,
-  TURLData,
-  TQuery,
-> {
-  withOutput: <
-    TOutput extends data.DataValidatorResponseOutputSpec<
-      unknown,
-      unknown,
-      Record<string, unknown>
-    >,
-  >(
-    outputSpec: TOutput,
-    metadataArguments: Kind<
-      TArguments,
-      TURLData,
-      TQuery,
-      undefined,
-      { [P in keyof TOutput["validatorSpec"]]: unknown }
-    >,
-  ) => SingleEndpointResult<TEndpointMD>;
-}
-
-export interface MetadataProviderWithQueryAndBody<
-  TArguments extends HKTArg,
-  TEndpointMD,
-  TURLData,
-  TQuery,
-> extends MetadataProviderWithQuery<TArguments, TEndpointMD, TURLData, TQuery> {
-  withInputAndOutput: <
-    TInput extends data.DataValidatorRequestInputSpec<
-      unknown,
-      unknown,
-      Record<string, unknown>
-    >,
-    TOutput extends data.DataValidatorResponseOutputSpec<
-      unknown,
-      unknown,
-      Record<string, unknown>
-    >,
-  >(
-    inputSpec: TInput,
-    outputSpec: TOutput,
-    metadataArguments: Kind<
-      TArguments,
-      TURLData,
-      TQuery,
-      undefined,
-      { [P in keyof TOutput["validatorSpec"]]: unknown }
+    methods: Partial<
+      Record<
+        string,
+        {
+          querySpec:
+            | Omit<
+                data.QueryValidatorSpec<unknown, unknown, string>,
+                "validator"
+              >
+            | undefined;
+          inputSpec:
+            | Omit<
+                data.DataValidatorRequestInputSpec<
+                  unknown,
+                  unknown,
+                  Record<string, unknown>
+                >,
+                "validator"
+              >
+            | undefined;
+          outputSpec: Omit<
+            data.DataValidatorResponseOutputSpec<
+              unknown,
+              unknown,
+              Record<string, unknown>
+            >,
+            "validator"
+          >;
+          metadataArguments: Kind<
+            TArgument,
+            Record<string, unknown>,
+            Record<string, unknown>,
+            Record<string, unknown>,
+            Record<string, unknown>
+          >;
+        }
+      >
     >,
   ) => SingleEndpointResult<TEndpointMD>;
 }
@@ -187,6 +125,7 @@ export type SingleEndpointResult<TEndpointMD> = (
 interface OpenAPIArguments extends HKTArg {
   readonly type: OpenAPIArgumentsURLData<this["_TURLData"]> &
     OpenAPIArgumentsQuery<this["_TQuery"]> &
+    OpenAPIArgumentsInput<this["_TBody"]> &
     OpenAPIArgumentsOutput<this["_TOutput"]>;
 }
 
@@ -200,11 +139,17 @@ interface OpenAPIArgumentsQuery<TQuery> {
   };
 }
 
+interface OpenAPIArgumentsInput<TBody> {
+  body: { [P in keyof TBody]: { example: TBody[P] } };
+}
+
 interface OpenAPIArgumentsOutput<TOutput> {
-  outputDescription: string;
-  outputInfo: {
-    [P in keyof TOutput]: {
-      encoding: string;
+  output: {
+    description: string;
+    info: {
+      [P in keyof TOutput]: {
+        example: TOutput[P];
+      };
     };
   };
 }
@@ -220,54 +165,36 @@ interface OpenAPISecurityScheme {
 interface OpenAPIOperation {
   summary: string;
 }
+
+interface OpenAPIPathItem
+  extends Partial<Record<Lowercase<methods.HttpMethod>, OpenAPIOperation>> {
+  summary: string;
+}
+
+type OpenAPIPaths = Record<string, OpenAPIPathItem>;
+
 export const openApiProvider: InitialMetadataProvider<
   OpenAPIArguments,
-  OpenAPIOperation,
+  OpenAPIPaths,
   OpenAPIContextArgs
 > = new InitialMetadataProviderClass<
   OpenAPIArguments,
-  OpenAPIOperation,
+  OpenAPIPaths,
   OpenAPIContextArgs
 >(
   {
     securitySchemes: [],
   },
-  (ctx) => null!,
+  (ctx) => ({
+    getEndpointsMetadata: (urlSpec, methods) => {
+      const path: OpenAPIPathItem = {
+        summary: "Wat",
+      };
+      for (const [method, specs] of Object.entries(methods)) {
+        // eslint-disable-next-line no-console
+        console.info(`TODO ${method} ${specs}`);
+      }
+      return (urlPrefix) => ({});
+    },
+  }),
 );
-
-const test = openApiProvider
-  .getBuilder()
-  .withURLParameters({
-    urlParam: {
-      regExp: /moi/,
-      validator: null!,
-    },
-  })
-  .withMethod("GET", {
-    validator: null!,
-    queryParameterNames: ["queryParam"] as const,
-  })
-  .withOutput(
-    {
-      validator: null!,
-      validatorSpec: { "application/json": null },
-    },
-    {
-      urlParameters: {
-        urlParam: {
-          description: "moi",
-        },
-      },
-      queryParameters: {
-        queryParam: {
-          description: "moi",
-        },
-      },
-      outputDescription: "moi",
-      outputInfo: {
-        "application/json": {
-          encoding: "moi",
-        },
-      },
-    },
-  );

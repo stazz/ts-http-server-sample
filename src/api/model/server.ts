@@ -1,6 +1,6 @@
 import * as data from "./data";
 import * as ep from "./endpoint";
-import * as m from "./method";
+import * as m from "./methods";
 
 import * as stream from "stream";
 import * as q from "querystring";
