@@ -82,7 +82,7 @@ const endpointsAsKoaMiddleware = (
             // Metadata about endpoint (as dictated by "withMetadataProvider" above)
             {
               openapi: {
-                summary: "Query a thing",
+                operation: { summary: "Query a thing" },
                 urlParameters: {
                   id: {
                     description: "ID description",
@@ -96,7 +96,7 @@ const endpointsAsKoaMiddleware = (
                 body: undefined,
                 output: {
                   description: "Output description",
-                  info: {
+                  mediaTypes: {
                     "application/json": {
                       example: "Example",
                     },
@@ -142,7 +142,7 @@ const endpointsAsKoaMiddleware = (
             // Metadata about endpoint (as dictated by "withMetadataProvider" above)
             {
               openapi: {
-                summary: "Create a thing",
+                operation: { summary: "Create a thing" },
                 urlParameters: undefined,
                 body: {
                   "application/json": {
@@ -157,7 +157,7 @@ const endpointsAsKoaMiddleware = (
                 queryParameters: {},
                 output: {
                   description: "Output description",
-                  info: {
+                  mediaTypes: {
                     "application/json": {
                       example: {
                         property: "00000000-0000-0000-0000-000000000000",
@@ -207,7 +207,7 @@ const endpointsAsKoaMiddleware = (
             // Metadata about endpoint (as dictated by "withMetadataProvider" above)
             {
               openapi: {
-                summary: "Connect one thing to another",
+                operation: { summary: "Connect one thing to another" },
                 urlParameters: {
                   id: {
                     description: "ID description",
@@ -226,7 +226,7 @@ const endpointsAsKoaMiddleware = (
                 },
                 output: {
                   description: "Output description",
-                  info: {
+                  mediaTypes: {
                     "application/json": {
                       example: {
                         connected: true,
@@ -254,13 +254,13 @@ const endpointsAsKoaMiddleware = (
         // Metadata about endpoint (as dictated by "withMetadataProvider" above)
         {
           openapi: {
-            summary: "Returns this OpenAPI document",
+            operation: { summary: "Returns this OpenAPI document" },
             urlParameters: undefined,
             queryParameters: {},
             body: undefined,
             output: {
               description: "Output description",
-              info: {
+              mediaTypes: {
                 "application/json": {
                   example: "Example",
                 },

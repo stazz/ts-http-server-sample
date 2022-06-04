@@ -1,5 +1,8 @@
 import * as data from "./data";
-import * as methods from "./methods";
+// The openapi-types is pretty good, but not perfect
+// E.g. the ParameterObject's "in" property is just "string", instead of "'query' | 'header' | 'path' | 'cookie'", as mentioned in spec.
+// Maybe define own OpenAPI types at some point, altho probably no need, as these types can be modified with things like Omit and Pick.
+import type { OpenAPIV3_1 as openapi } from "openapi-types";
 
 // Higher-kinded-type trick from: https://www.matechs.com/blog/encoding-hkts-in-typescript-once-again
 export interface HKTArg {
@@ -89,6 +92,11 @@ export class InitialMetadataProviderClass<
   }
 }
 
+export type URLParameterSpec = Omit<
+  data.URLDataParameterValidatorSpec<unknown, unknown>,
+  "validator"
+> & { name: string };
+
 export interface MetadataBuilder<
   TArgument extends HKTArg,
   TEndpointArg,
@@ -96,13 +104,7 @@ export interface MetadataBuilder<
 > {
   getEndpointsMetadata: (
     arg: TEndpointArg,
-    urlSpec: ReadonlyArray<
-      | string
-      | (Omit<
-          data.URLDataParameterValidatorSpec<unknown, unknown>,
-          "validator"
-        > & { name: string })
-    >,
+    urlSpec: ReadonlyArray<string | URLParameterSpec>,
     methods: Partial<
       Record<
         string,
@@ -156,89 +158,103 @@ interface OpenAPIArguments extends HKTArg {
     OpenAPIArgumentsOutput<this["_TOutput"]>;
 }
 
-interface OpenAPIArgumentsStatic {
-  summary: string;
+type OpenAPIArgumentsStatic = {
+  operation: Omit<
+    openapi.OperationObject,
+    "parameters" | "requestBody" | "responses" | "security"
+  >;
+};
+
+type OpenAPIParameterInput = Pick<
+  openapi.ParameterObject,
+  "description" | "deprecated"
+>;
+
+interface OpenAPIParameterMedia<T> {
+  example: T;
 }
 
 interface OpenAPIArgumentsURLData<TURLData> {
-  urlParameters: { [P in keyof TURLData]: { description: string } };
+  urlParameters: { [P in keyof TURLData]: OpenAPIParameterInput };
 }
 
 interface OpenAPIArgumentsQuery<TQuery> {
   queryParameters: {
-    [P in keyof TQuery]: { description: string };
+    [P in keyof TQuery]: OpenAPIParameterInput;
   };
 }
 
 interface OpenAPIArgumentsInput<TBody> {
-  body: { [P in keyof TBody]: { example: TBody[P] } };
+  body: { [P in keyof TBody]: OpenAPIParameterMedia<TBody[P]> };
 }
 
 interface OpenAPIArgumentsOutput<TOutput> {
   output: {
     description: string;
-    info: {
-      [P in keyof TOutput]: {
-        example: TOutput[P];
-      };
+    mediaTypes: {
+      [P in keyof TOutput]: OpenAPIParameterMedia<TOutput[P]>;
     };
   };
 }
 
 interface OpenAPIContextArgs {
-  securitySchemes: Array<OpenAPISecurityScheme>;
+  securitySchemes: Array<openapi.SecuritySchemeObject>;
 }
 
-interface OpenAPISecurityScheme {
-  type: string;
-}
-
-interface OpenAPIOperation {
-  summary: string;
-}
-
-interface OpenAPIPathItemArg {
-  summary?: string;
-  description?: string;
-}
-
-type OpenAPIPathItemMethods = Partial<
-  Record<Lowercase<methods.HttpMethod>, OpenAPIOperation>
+type OpenAPIPathItemArg = Omit<
+  openapi.PathItemObject,
+  openapi.HttpMethods | "$ref" | "parameters"
 >;
-
-interface OpenAPIPathItem extends OpenAPIPathItemArg, OpenAPIPathItemMethods {}
-
-type OpenAPIPaths = Record<string, OpenAPIPathItem>;
 
 export const openApiProvider: InitialMetadataProvider<
   OpenAPIArguments,
   OpenAPIPathItemArg,
-  OpenAPIPaths,
+  openapi.PathsObject,
   OpenAPIContextArgs
 > = new InitialMetadataProviderClass<
   OpenAPIArguments,
   OpenAPIPathItemArg,
-  OpenAPIPaths,
+  openapi.PathsObject,
   OpenAPIContextArgs
 >(
   {
     securitySchemes: [],
   },
-  (ctx) => ({
+  ({ securitySchemes }) => ({
     getEndpointsMetadata: (pathItemBase, urlSpec, methods) => {
       const urlString = urlSpec.map((stringOrSpec) =>
         typeof stringOrSpec === "string"
           ? stringOrSpec
           : `{${stringOrSpec.name}}`,
       );
-      const path: OpenAPIPathItem = { ...pathItemBase };
+      const path: openapi.PathItemObject = { ...pathItemBase };
+      path.parameters = urlSpec
+        .filter((s): s is URLParameterSpec => typeof s !== "string")
+        .map(({ name }) => ({
+          name: name,
+          in: "path",
+          required: true,
+        }));
       for (const [method, specs] of Object.entries(methods)) {
         if (specs) {
-          (path as OpenAPIPathItemMethods)[
-            method.toLowerCase() as Lowercase<methods.HttpMethod>
-          ] = {
-            summary: specs.metadataArguments.summary,
+          const parameters: Array<openapi.ParameterObject> = [];
+          (
+            path as {
+              [method in openapi.HttpMethods]?: openapi.OperationObject;
+            }
+          )[method.toLowerCase() as Lowercase<openapi.HttpMethods>] = {
+            ...specs.metadataArguments.operation,
           };
+          parameters.push(
+            ...(specs.querySpec?.queryParameterNames.map((qParamName) => ({
+              in: "query",
+              name: qParamName,
+              // TODO required
+            })) ?? []),
+          );
+          if (parameters.length > 0) {
+            path.parameters = parameters;
+          }
         }
         // eslint-disable-next-line no-console
         console.info(`TODO`, method, specs);
