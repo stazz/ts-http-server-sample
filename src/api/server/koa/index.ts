@@ -31,11 +31,11 @@ export const validateContextState = <TData, TError, TInput>(
 
 // Using given various endpoints, create object which is able to create Koa middlewares.
 // The factory object accepts callbacks to execute on certain scenarios (mostly on errors).
-export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
+export const koaMiddlewareFactory = <TValidationError>(
   ...endpoints: Array<
     core.AppEndpoint<
       KoaContext,
-      TRefinedContext,
+      KoaContext,
       TValidationError,
       Record<string, unknown>
     >

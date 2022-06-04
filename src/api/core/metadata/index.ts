@@ -34,24 +34,6 @@ export type Kind<
       readonly TOutput: () => TOutput;
     };
 
-export interface InitialMetadataProvider<
-  TArgument extends HKTArg,
-  TEndpointArg,
-  TEndpointMD,
-  TContextArguments,
-> {
-  withRefinedContext(
-    contextArgs: TContextArguments,
-  ): InitialMetadataProvider<
-    TArgument,
-    TEndpointArg,
-    TEndpointMD,
-    TContextArguments
-  >;
-
-  getBuilder(): MetadataBuilder<TArgument, TEndpointArg, TEndpointMD>;
-}
-
 export interface MetadataProvider<
   TArgument extends HKTArg,
   TEndpointArg,
@@ -59,12 +41,19 @@ export interface MetadataProvider<
   TContextArguments,
   TFinalMetadataArgs,
   TFinalMetadata,
-> extends InitialMetadataProvider<
+> {
+  withRefinedContext(
+    contextArgs: TContextArguments,
+  ): MetadataProvider<
     TArgument,
     TEndpointArg,
     TEndpointMD,
-    TContextArguments
-  > {
+    TContextArguments,
+    TFinalMetadataArgs,
+    TFinalMetadata
+  >;
+
+  getBuilder(): MetadataBuilder<TArgument, TEndpointArg, TEndpointMD>;
   createFinalMetadata(
     args: TFinalMetadataArgs,
     endpointsMetadatas: ReadonlyArray<TEndpointMD>,
@@ -102,11 +91,13 @@ export class InitialMetadataProviderClass<
 
   public withRefinedContext(
     contextArgs: TContextArguments,
-  ): InitialMetadataProvider<
+  ): MetadataProvider<
     TArgument,
     TEndpointArg,
     TEndpointMD,
-    TContextArguments
+    TContextArguments,
+    TFinalMetadataArgs,
+    TFinalMetadata
   > {
     return new InitialMetadataProviderClass(
       contextArgs,

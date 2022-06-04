@@ -73,7 +73,7 @@ export function atPrefix<
     },
     getMetadata: (urlPrefix) => {
       return (
-        endpoints.reduce((curResult, { getMetadata }) => {
+        allEndpoints.reduce((curResult, { getMetadata }) => {
           const mdDic = getMetadata(`${urlPrefix}${prefix}`);
           if (curResult === undefined) {
             curResult = core.transformEntries(mdDic, () => []);

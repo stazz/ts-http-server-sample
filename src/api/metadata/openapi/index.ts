@@ -26,7 +26,7 @@ type OpenAPIParameterInput = Pick<
 >;
 
 interface OpenAPIParameterMedia<T> {
-  example: T;
+  example?: T;
 }
 
 interface OpenAPIArgumentsURLData<TURLData> {
@@ -44,8 +44,7 @@ interface OpenAPIArgumentsInput<TBody> {
 }
 
 interface OpenAPIArgumentsOutput<TOutput> {
-  output: {
-    description: string;
+  output: Pick<openapi.ResponseObject, "description"> & {
     mediaTypes: {
       [P in keyof TOutput]: OpenAPIParameterMedia<TOutput[P]>;
     };
@@ -86,11 +85,6 @@ export const openApiProvider: md.MetadataProvider<
   },
   ({ securitySchemes }) => ({
     getEndpointsMetadata: (pathItemBase, urlSpec, methods) => {
-      const urlString = urlSpec.map((stringOrSpec) =>
-        typeof stringOrSpec === "string"
-          ? stringOrSpec
-          : `{${stringOrSpec.name}}`,
-      );
       const path: openapi.PathItemObject = { ...pathItemBase };
       path.parameters = urlSpec
         .filter((s): s is md.URLParameterSpec => typeof s !== "string")
@@ -120,9 +114,14 @@ export const openApiProvider: md.MetadataProvider<
             path.parameters = parameters;
           }
         }
-        // eslint-disable-next-line no-console
-        console.info(`TODO`, method, specs);
       }
+      const urlString = urlSpec
+        .map((stringOrSpec) =>
+          typeof stringOrSpec === "string"
+            ? stringOrSpec
+            : `{${stringOrSpec.name}}`,
+        )
+        .join("");
       return (urlPrefix) => ({
         urlDescription: `${urlPrefix}${urlString}`,
         path,

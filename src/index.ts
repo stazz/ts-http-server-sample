@@ -16,6 +16,7 @@ import * as koa from "./api/server/koa";
 const uuidRegex =
   /[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}/i;
 // Create middleware in such way that IDs are valid UUID strings (instead of any strings).
+// Any amount of endpoint informations can be passed to createKoaMiddleware - there always will be exactly one RegExp generated to perform endpoint match.
 const middlewareFactory = koa.koaMiddlewareFactory(
   ...endpoints.createEndpoints(
     uuidRegex,

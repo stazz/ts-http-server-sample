@@ -19,7 +19,7 @@ export class AppEndpointBuilderProvider<
   TValidationError,
   TMetadataProviders extends Record<
     string,
-    md.InitialMetadataProvider<md.HKTArg, unknown, unknown, unknown>
+    md.MetadataProvider<md.HKTArg, unknown, unknown, unknown, unknown, unknown>
   >,
 > {
   public constructor(
@@ -154,7 +154,7 @@ export class AppEndpointBuilderProvider<
   public withMetadataProvider<
     TMetadataKind extends string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    TMetadataProvider extends md.InitialMetadataProvider<any, any, any, any>,
+    TMetadataProvider extends md.MetadataProvider<any, any, any, any, any, any>,
   >(
     metadataKind: TMetadataKind,
     metadataProvider: TMetadataProvider,
@@ -168,6 +168,62 @@ export class AppEndpointBuilderProvider<
       ...this._mdProviders,
       [metadataKind]: metadataProvider,
     });
+  }
+
+  public getMetadataFinalResult(
+    mdArgs: {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProvider<
+        infer _,
+        infer _1,
+        infer _2,
+        infer _3,
+        infer TArg,
+        unknown
+      >
+        ? TArg
+        : never;
+    },
+    endpoints: ReadonlyArray<{
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProvider<
+        infer _,
+        infer _1,
+        infer TEndpointMD,
+        infer _2,
+        infer _3,
+        infer _4
+      >
+        ? Array<TEndpointMD>
+        : never;
+    }>,
+  ): {
+    [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProvider<
+      infer _,
+      infer _1,
+      infer _2,
+      infer _3,
+      infer _4,
+      infer TResult
+    >
+      ? TResult
+      : never;
+  } {
+    return core.transformEntries(this._mdProviders, (md, key) =>
+      md.createFinalMetadata(
+        mdArgs[key],
+        endpoints.flatMap((ep) => ep[key]),
+      ),
+    ) as {
+      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProvider<
+        infer _,
+        infer _1,
+        infer _2,
+        infer _3,
+        infer _4,
+        infer TResult
+      >
+        ? TResult
+        : never;
+    };
   }
 }
 
