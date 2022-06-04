@@ -1,8 +1,5 @@
-import * as utils from "./utils";
-import * as methods from "./methods";
-import * as data from "./data";
-import * as ep from "./endpoint";
-import * as md from "./metadata-provider";
+import * as core from "../core";
+import * as md from "../metadata";
 
 export const bindNecessaryTypes = <
   TContext,
@@ -26,7 +23,7 @@ export class AppEndpointBuilderProvider<
   >,
 > {
   public constructor(
-    private readonly _contextTransform: data.ContextValidatorSpec<
+    private readonly _contextTransform: core.ContextValidatorSpec<
       TContext,
       TRefinedContext,
       TValidationError
@@ -38,7 +35,7 @@ export class AppEndpointBuilderProvider<
     TContext,
     TRefinedContext,
     TValidationError,
-    methods.HttpMethod,
+    core.HttpMethod,
     {
       [P in keyof TMetadataProviders]: ReturnType<
         TMetadataProviders[P]["getBuilder"]
@@ -67,7 +64,7 @@ export class AppEndpointBuilderProvider<
         TContext,
         TRefinedContext,
         TValidationError,
-        methods.HttpMethod,
+        core.HttpMethod,
         {
           [P in keyof TMetadataProviders]: ReturnType<
             TMetadataProviders[P]["getBuilder"]
@@ -97,7 +94,7 @@ export class AppEndpointBuilderProvider<
             methods: {},
             // TODO fix this typing (may require extracting this method into class, as anonymous methods with method generic arguments don't behave well)
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            metadata: utils.transformEntries(this._mdProviders, (md) =>
+            metadata: core.transformEntries(this._mdProviders, (md) =>
               md.getBuilder(),
             ) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
           });
@@ -111,7 +108,7 @@ export class AppEndpointBuilderProvider<
         fragments,
         methods: {},
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        metadata: utils.transformEntries(this._mdProviders, (md) =>
+        metadata: core.transformEntries(this._mdProviders, (md) =>
           md.getBuilder(),
         ) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       });
@@ -119,7 +116,7 @@ export class AppEndpointBuilderProvider<
   }
 
   public refineContext<TNewContext>(
-    transform: data.ContextValidatorSpec<
+    transform: core.ContextValidatorSpec<
       TRefinedContext,
       TNewContext,
       TValidationError
@@ -148,7 +145,7 @@ export class AppEndpointBuilderProvider<
           }
         },
       },
-      utils.transformEntries(this._mdProviders, (provider, key) =>
+      core.transformEntries(this._mdProviders, (provider, key) =>
         provider.withRefinedContext(mdArgs[key]),
       ) as TMetadataProviders,
     );
@@ -186,7 +183,7 @@ export interface URLDataNames<
 > {
   validateURLData: <
     TValidation extends {
-      [P in TNames]: data.URLDataParameterValidatorSpec<
+      [P in TNames]: core.URLDataParameterValidatorSpec<
         unknown,
         TValidationError
       >;
@@ -197,8 +194,8 @@ export interface URLDataNames<
     TContext,
     TRefinedContext,
     TValidationError,
-    { [P in TNames]: data.URLParameterDataType<TValidation[P]["validator"]> },
-    methods.HttpMethod,
+    { [P in TNames]: core.URLParameterDataType<TValidation[P]["validator"]> },
+    core.HttpMethod,
     TMetadataProviders
   >;
 }
@@ -208,7 +205,7 @@ class AppEndpointBuilderWithURLDataInitial<
   TRefinedContext,
   TValidationError,
   TDataInURL,
-  TAllowedMethods extends methods.HttpMethod,
+  TAllowedMethods extends core.HttpMethod,
   TMetadataProviders extends Record<
     string,
     md.MetadataBuilder<md.HKTArg, unknown, unknown>
@@ -224,7 +221,7 @@ class AppEndpointBuilderWithURLDataInitial<
   ) {}
 
   public forMethod<TMethods extends TAllowedMethods>(
-    method: TMethods & methods.HttpMethodWithoutBody,
+    method: TMethods & core.HttpMethodWithoutBody,
   ): AppEndpointBuilderForURLDataAndMethods<
     TContext,
     TRefinedContext,
@@ -236,7 +233,7 @@ class AppEndpointBuilderWithURLDataInitial<
     TMetadataProviders
   >;
   public forMethod<TMethods extends TAllowedMethods>(
-    method: TMethods & methods.HttpMethodWithBody,
+    method: TMethods & core.HttpMethodWithBody,
   ): AppEndpointBuilderForURLDataAndMethodsAndBody<
     TContext,
     TRefinedContext,
@@ -252,8 +249,8 @@ class AppEndpointBuilderWithURLDataInitial<
     TQuery,
     TQueryKeys extends string,
   >(
-    method: TMethods & methods.HttpMethodWithoutBody,
-    query: data.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>,
+    method: TMethods & core.HttpMethodWithoutBody,
+    query: core.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>,
   ): AppEndpointBuilderForURLDataAndMethods<
     TContext,
     TRefinedContext,
@@ -269,8 +266,8 @@ class AppEndpointBuilderWithURLDataInitial<
     TQuery,
     TQueryKeys extends string,
   >(
-    method: TMethods & methods.HttpMethodWithBody,
-    query: data.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>,
+    method: TMethods & core.HttpMethodWithBody,
+    query: core.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>,
   ): AppEndpointBuilderForURLDataAndMethodsAndBody<
     TContext,
     TRefinedContext,
@@ -287,7 +284,7 @@ class AppEndpointBuilderWithURLDataInitial<
     TQueryKeys extends string,
   >(
     method: TMethods,
-    query?: data.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>,
+    query?: core.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>,
   ):
     | AppEndpointBuilderForURLDataAndMethods<
         TContext,
@@ -337,11 +334,11 @@ interface StaticAppEndpointBuilderSpec<
 > {
   builder: StaticAppEndpointBuilder<TContext, TRefinedContext, TBodyError>;
   queryValidation?: Omit<
-    data.QueryValidatorSpec<unknown, TBodyError, string>,
+    core.QueryValidatorSpec<unknown, TBodyError, string>,
     "validator"
   >;
   inputValidation?: Omit<
-    data.DataValidatorRequestInputSpec<
+    core.DataValidatorRequestInputSpec<
       unknown,
       TBodyError,
       Record<string, unknown>
@@ -349,7 +346,7 @@ interface StaticAppEndpointBuilderSpec<
     "validator"
   >;
   outputValidation: Omit<
-    data.DataValidatorResponseOutputSpec<
+    core.DataValidatorResponseOutputSpec<
       unknown,
       TBodyError,
       Record<string, unknown>
@@ -376,7 +373,7 @@ interface StaticAppEndpointBuilderSpec<
 type StaticAppEndpointBuilder<TContext, TRefinedContext, TBodyError> = (
   groupNamePrefix: string,
   // groups: Record<string, string>,
-) => ep.StaticAppEndpointHandler<TContext, TRefinedContext, TBodyError>;
+) => core.StaticAppEndpointHandler<TContext, TRefinedContext, TBodyError>;
 
 interface AppEndpointBuilderState<
   TContext,
@@ -390,7 +387,7 @@ interface AppEndpointBuilderState<
   fragments: TemplateStringsArray;
   methods: Partial<
     Record<
-      methods.HttpMethod,
+      core.HttpMethod,
       StaticAppEndpointBuilderSpec<
         TContext,
         TRefinedContext,
@@ -399,7 +396,7 @@ interface AppEndpointBuilderState<
       >
     >
   >;
-  contextTransform: data.ContextValidatorSpec<
+  contextTransform: core.ContextValidatorSpec<
     TContext,
     TRefinedContext,
     TValidationError
@@ -424,7 +421,7 @@ interface AppEndpointBuilderWithURLDataState<
   args: ReadonlyArray<string>;
   validation: Record<
     string,
-    data.URLDataParameterValidatorSpec<unknown, TValidationError>
+    core.URLDataParameterValidatorSpec<unknown, TValidationError>
   >;
 }
 
@@ -433,7 +430,7 @@ export class AppEndpointBuilderWithURLData<
   TRefinedContext,
   TValidationError,
   TDataInURL,
-  TAllowedMethods extends methods.HttpMethod,
+  TAllowedMethods extends core.HttpMethod,
   TMetadataProviders extends Record<
     string,
     md.MetadataBuilder<md.HKTArg, unknown, unknown>
@@ -454,7 +451,7 @@ export class AppEndpointBuilderWithURLData<
     >
       ? TArg
       : never;
-  }): ep.AppEndpoint<
+  }): core.AppEndpoint<
     TContext,
     TRefinedContext,
     TValidationError,
@@ -482,7 +479,7 @@ export class AppEndpointBuilderWithURLData<
           typeof fragmentOrValidation === "string"
             ? fragmentOrValidation
             : {
-                ...utils.omit(fragmentOrValidation.validation, "validator"),
+                ...core.omit(fragmentOrValidation.validation, "validator"),
                 name: fragmentOrValidation.name,
               },
         ),
@@ -504,7 +501,7 @@ export class AppEndpointBuilderWithURLData<
         }),
         getMetadata: (urlPrefix) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-          return utils.transformEntries(metadata, (md) => [
+          return core.transformEntries(metadata, (md) => [
             md(urlPrefix) as typeof md extends md.SingleEndpointResult<
               infer TEndpointMD
             >
@@ -546,7 +543,7 @@ export class AppEndpointBuilderForURLDataAndMethods<
   TRefinedContext,
   TValidationError,
   TDataInURL,
-  TAllowedMethods extends methods.HttpMethod,
+  TAllowedMethods extends core.HttpMethod,
   TArgs,
   TQueryKeys extends string,
   TMetadataProviders extends Record<
@@ -582,7 +579,7 @@ export class AppEndpointBuilderForURLDataAndMethods<
     {
       validator,
       ...outputSpec
-    }: data.DataValidatorResponseOutputSpec<
+    }: core.DataValidatorResponseOutputSpec<
       THandlerResult,
       TValidationError,
       TOutputValidatorSpec
@@ -607,7 +604,7 @@ export class AppEndpointBuilderForURLDataAndMethods<
     TRefinedContext,
     TValidationError,
     TDataInURL,
-    Exclude<methods.HttpMethod, TAllowedMethods>,
+    Exclude<core.HttpMethod, TAllowedMethods>,
     TMetadataProviders
   > {
     const { query, getEndpointArgs } = this._queryInfo;
@@ -649,7 +646,7 @@ export class AppEndpointBuilderForURLDataAndMethods<
       mdArgs: mdArgs as any,
     };
     if (query) {
-      handler.queryValidation = utils.omit(query, "validator");
+      handler.queryValidation = core.omit(query, "validator");
     }
     return new AppEndpointBuilderWithURLData({
       ...this._state,
@@ -669,7 +666,7 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
   TRefinedContext,
   TValidationError,
   TDataInURL,
-  TAllowedMethods extends methods.HttpMethod,
+  TAllowedMethods extends core.HttpMethod,
   TArgs,
   TQueryKeys extends string,
   TMetadataProviders extends Record<
@@ -695,7 +692,7 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
     {
       validator: inputValidator,
       ...inputSpec
-    }: data.DataValidatorRequestInputSpec<
+    }: core.DataValidatorRequestInputSpec<
       TBody,
       TValidationError,
       TInputContentTypes
@@ -710,7 +707,7 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
     {
       validator: outputValidator,
       ...outputSpec
-    }: data.DataValidatorResponseOutputSpec<
+    }: core.DataValidatorResponseOutputSpec<
       TResult,
       TValidationError,
       TOutputValidatorSpec
@@ -735,7 +732,7 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
     TRefinedContext,
     TValidationError,
     TDataInURL,
-    Exclude<methods.HttpMethod, TAllowedMethods>,
+    Exclude<core.HttpMethod, TAllowedMethods>,
     TMetadataProviders
   > {
     const { query, getEndpointArgs } = this._queryInfo;
@@ -777,7 +774,7 @@ export class AppEndpointBuilderForURLDataAndMethodsAndBody<
       mdArgs: mdArgs as any,
     };
     if (query) {
-      handler.queryValidation = utils.omit(query, "validator");
+      handler.queryValidation = core.omit(query, "validator");
     }
     return new AppEndpointBuilderWithURLData({
       ...this._state,
@@ -796,7 +793,7 @@ export class AppEndpointBuilderInitial<
   TContext,
   TRefinedContext,
   TValidationError,
-  TAllowedMethods extends methods.HttpMethod,
+  TAllowedMethods extends core.HttpMethod,
   TMetadataProviders extends Record<
     string,
     md.MetadataBuilder<md.HKTArg, unknown, unknown>
@@ -812,7 +809,7 @@ export class AppEndpointBuilderInitial<
   ) {}
 
   public forMethod<TMethods extends TAllowedMethods>(
-    method: TMethods & methods.HttpMethodWithoutBody,
+    method: TMethods & core.HttpMethodWithoutBody,
   ): AppEndpointBuilderForMethods<
     TContext,
     TRefinedContext,
@@ -823,7 +820,7 @@ export class AppEndpointBuilderInitial<
     TMetadataProviders
   >;
   public forMethod<TMethods extends TAllowedMethods>(
-    method: TMethods & methods.HttpMethodWithBody,
+    method: TMethods & core.HttpMethodWithBody,
   ): AppEndpointBuilderForMethodsAndBody<
     TContext,
     TRefinedContext,
@@ -838,8 +835,8 @@ export class AppEndpointBuilderInitial<
     TQuery,
     TQueryKeys extends string,
   >(
-    method: TMethods & methods.HttpMethodWithoutBody,
-    query: data.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>,
+    method: TMethods & core.HttpMethodWithoutBody,
+    query: core.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>,
   ): AppEndpointBuilderForMethods<
     TContext,
     TRefinedContext,
@@ -854,8 +851,8 @@ export class AppEndpointBuilderInitial<
     TQuery,
     TQueryKeys extends string,
   >(
-    method: TMethods & methods.HttpMethodWithBody,
-    query: data.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>,
+    method: TMethods & core.HttpMethodWithBody,
+    query: core.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>,
   ): AppEndpointBuilderForMethodsAndBody<
     TContext,
     TRefinedContext,
@@ -872,7 +869,7 @@ export class AppEndpointBuilderInitial<
   >(
     method: TMethods,
     query?:
-      | data.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>
+      | core.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>
       | undefined,
   ):
     | AppEndpointBuilderForMethods<
@@ -914,7 +911,7 @@ export class AppEndpointBuilder<
   TContext,
   TRefinedContext,
   TValidationError,
-  TAllowedMethods extends methods.HttpMethod,
+  TAllowedMethods extends core.HttpMethod,
   TMetadataProviders extends Record<
     string,
     md.MetadataBuilder<md.HKTArg, unknown, unknown>
@@ -934,7 +931,7 @@ export class AppEndpointBuilder<
     >
       ? TArg
       : never;
-  }): ep.AppEndpoint<
+  }): core.AppEndpoint<
     TContext,
     TRefinedContext,
     TValidationError,
@@ -954,7 +951,7 @@ export class AppEndpointBuilder<
       ]);
       return {
         getRegExpAndHandler: (groupNamePrefix) => ({
-          url: new RegExp(utils.escapeRegExp(this._state.fragments.join(""))),
+          url: new RegExp(core.escapeRegExp(this._state.fragments.join(""))),
           handler: (method) =>
             checkMethodsForHandler(
               this._state.methods,
@@ -964,7 +961,7 @@ export class AppEndpointBuilder<
         }),
         getMetadata: (urlPrefix) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-          return utils.transformEntries(metadata, (md) => [
+          return core.transformEntries(metadata, (md) => [
             md(urlPrefix) as typeof md extends md.SingleEndpointResult<
               infer TEndpointMD
             >
@@ -985,7 +982,7 @@ export class AppEndpointBuilderForMethods<
   TContext,
   TRefinedContext,
   TValidationError,
-  TAllowedMethods extends methods.HttpMethod,
+  TAllowedMethods extends core.HttpMethod,
   TArgs,
   TQueryKeys extends string,
   TMetadataProviders extends Record<
@@ -1019,7 +1016,7 @@ export class AppEndpointBuilderForMethods<
     {
       validator,
       ...outputSpec
-    }: data.DataValidatorResponseOutputSpec<
+    }: core.DataValidatorResponseOutputSpec<
       TOutput,
       TValidationError,
       TOutputValidatorSpec
@@ -1043,7 +1040,7 @@ export class AppEndpointBuilderForMethods<
     TContext,
     TRefinedContext,
     TValidationError,
-    Exclude<methods.HttpMethod, TAllowedMethods>,
+    Exclude<core.HttpMethod, TAllowedMethods>,
     TMetadataProviders
   > {
     const { query, getEndpointArgs } = this._queryInfo;
@@ -1069,7 +1066,7 @@ export class AppEndpointBuilderForMethods<
       mdArgs: mdArgs as any,
     };
     if (query) {
-      handler.queryValidation = utils.omit(query, "validator");
+      handler.queryValidation = core.omit(query, "validator");
     }
     return new AppEndpointBuilder({
       ...this._state,
@@ -1088,7 +1085,7 @@ export class AppEndpointBuilderForMethodsAndBody<
   TContext,
   TRefinedContext,
   TValidationError,
-  TAllowedMethods extends methods.HttpMethod,
+  TAllowedMethods extends core.HttpMethod,
   TArgs,
   TQueryKeys extends string,
   TMetadataProviders extends Record<
@@ -1113,7 +1110,7 @@ export class AppEndpointBuilderForMethodsAndBody<
     {
       validator: inputValidator,
       ...inputSpec
-    }: data.DataValidatorRequestInputSpec<
+    }: core.DataValidatorRequestInputSpec<
       TBody,
       TValidationError,
       TInputContentTypes
@@ -1127,7 +1124,7 @@ export class AppEndpointBuilderForMethodsAndBody<
     {
       validator: outputValidator,
       ...outputSpec
-    }: data.DataValidatorResponseOutputSpec<
+    }: core.DataValidatorResponseOutputSpec<
       THandlerResult,
       TValidationError,
       TOutputValidatorSpec
@@ -1151,7 +1148,7 @@ export class AppEndpointBuilderForMethodsAndBody<
     TContext,
     TRefinedContext,
     TValidationError,
-    Exclude<methods.HttpMethod, TAllowedMethods>,
+    Exclude<core.HttpMethod, TAllowedMethods>,
     TMetadataProviders
   > {
     const { query, getEndpointArgs } = this._queryInfo;
@@ -1180,7 +1177,7 @@ export class AppEndpointBuilderForMethodsAndBody<
       mdArgs: mdArgs as any,
     };
     if (query) {
-      handler.queryValidation = utils.omit(query, "validator");
+      handler.queryValidation = core.omit(query, "validator");
     }
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return new AppEndpointBuilder({
@@ -1197,12 +1194,12 @@ export class AppEndpointBuilderForMethodsAndBody<
 }
 
 interface QueryInfo<TValidationError, TArgs, TQueryKeys extends string> {
-  query?: data.QueryValidatorSpec<unknown, TValidationError, TQueryKeys>;
+  query?: core.QueryValidatorSpec<unknown, TValidationError, TQueryKeys>;
   getEndpointArgs: (query: unknown) => TArgs;
 }
 
 const forMethodImpl = <
-  TMethods extends methods.HttpMethod,
+  TMethods extends core.HttpMethod,
   TQuery,
   TValidationError,
   TQueryKeys extends string,
@@ -1210,7 +1207,7 @@ const forMethodImpl = <
   stateMethods: Record<string, unknown>,
   method: TMethods,
   queryValidation:
-    | data.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>
+    | core.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>
     | undefined,
 ) => {
   const overlappingMehods = new Set(
@@ -1247,7 +1244,7 @@ const forMethodImpl = <
     queryInfo,
   };
 
-  return methods.isMethodWithoutBody(method)
+  return core.isMethodWithoutBody(method)
     ? ({
         body: "none",
         method,
@@ -1255,7 +1252,7 @@ const forMethodImpl = <
       } as const)
     : ({
         body: "present",
-        method: method as methods.HttpMethodWithBody,
+        method: method as core.HttpMethodWithBody,
         ...common,
       } as const);
 };
@@ -1277,9 +1274,9 @@ const checkMethodsForHandler = <
       TMetadataProviders
     >;
   },
-  method: methods.HttpMethod,
+  method: core.HttpMethod,
   groupNamePrefix: string,
-): ep.DynamicHandlerResponse<TContext, TRefinedContext, TValidationError> =>
+): core.DynamicHandlerResponse<TContext, TRefinedContext, TValidationError> =>
   method in state
     ? {
         found: "handler" as const,
@@ -1287,7 +1284,7 @@ const checkMethodsForHandler = <
       }
     : {
         found: "invalid-method" as const,
-        allowedMethods: Object.keys(state) as Array<methods.HttpMethod>,
+        allowedMethods: Object.keys(state) as Array<core.HttpMethod>,
       };
 
 function* getURLItemsInOrder(
@@ -1295,7 +1292,7 @@ function* getURLItemsInOrder(
   names: ReadonlyArray<string>,
   validation: Record<
     string,
-    data.URLDataParameterValidatorSpec<unknown, unknown>
+    core.URLDataParameterValidatorSpec<unknown, unknown>
   >,
 ) {
   for (const [idx, fragment] of fragments.entries()) {
@@ -1318,7 +1315,7 @@ const buildURLRegExp = (
   names: ReadonlyArray<string>,
   validation: Record<
     string,
-    data.URLDataParameterValidatorSpec<unknown, unknown>
+    core.URLDataParameterValidatorSpec<unknown, unknown>
   >,
   groupNamePrefix: string,
 ) => {
@@ -1327,7 +1324,7 @@ const buildURLRegExp = (
       (currentRegExp, fragmentOrValidation) => {
         return `${currentRegExp}${
           typeof fragmentOrValidation === "string"
-            ? utils.escapeRegExp(fragmentOrValidation)
+            ? core.escapeRegExp(fragmentOrValidation)
             : `(?<${groupNamePrefix}${fragmentOrValidation.name}>${fragmentOrValidation.validation.regExp.source})`
         }`;
       },
@@ -1336,7 +1333,7 @@ const buildURLRegExp = (
   );
   // return new RegExp(
   //   fragments.reduce((currentRegExp, fragment, idx) => {
-  //     let fragmentRegExp = utils.escapeRegExp(fragment);
+  //     let fragmentRegExp = core.escapeRegExp(fragment);
   //     if (idx < names.length) {
   //       const name = names[idx];
   //       fragmentRegExp = `${fragmentRegExp}(?<${groupNamePrefix}${name}>${validation[name].regExp.source})`;
@@ -1376,12 +1373,12 @@ const constructMDResults = <
   urlSpec: ReadonlyArray<
     | string
     | (Omit<
-        data.URLDataParameterValidatorSpec<unknown, unknown>,
+        core.URLDataParameterValidatorSpec<unknown, unknown>,
         "validator"
       > & { name: string })
   >,
 ) => {
-  return utils.transformEntries(state.metadata, (md, mdKey) =>
+  return core.transformEntries(state.metadata, (md, mdKey) =>
     md.getEndpointsMetadata(
       mdArgs[mdKey],
       urlSpec,

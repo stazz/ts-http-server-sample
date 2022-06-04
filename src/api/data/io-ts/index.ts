@@ -1,4 +1,4 @@
-import * as model from "../model";
+import * as core from "../../core/core";
 import * as t from "io-ts";
 import { PathReporter } from "io-ts/PathReporter";
 import * as rawbody from "raw-body";
@@ -25,8 +25,8 @@ export type OutputValidatorSpec = {
 export const urlParameter = <T extends Decoder<unknown> & t.Mixed>(
   validation: StringParameterTransform<T>,
   regExp?: RegExp,
-): model.URLDataParameterValidatorSpec<t.TypeOf<T>, ValidationError> => ({
-  regExp: regExp ?? model.defaultParameterRegExp(),
+): core.URLDataParameterValidatorSpec<t.TypeOf<T>, ValidationError> => ({
+  regExp: regExp ?? core.defaultParameterRegExp(),
   validator: createValidatorForStringParameter(validation),
 });
 
@@ -44,7 +44,7 @@ export const queryValidator = <
   TRequired,
   TOptional,
   TValidation
->): model.QueryValidatorSpec<
+>): core.QueryValidatorSpec<
   { [P in TRequired]: t.TypeOf<TValidation[P]["validation"]> } & {
     [P in TOptional]?: t.TypeOf<TValidation[P]["validation"]>;
   },
@@ -67,7 +67,7 @@ export const queryValidator = <
       createValidatorForStringParameter(paramValidation),
     ]),
   );
-  const finalValidator = model.transitiveDataValidation(
+  const finalValidator = core.transitiveDataValidation(
     initialValidator,
     (data) => {
       const finalResult: Record<string, unknown> = {};
@@ -96,7 +96,7 @@ export const queryValidator = <
   return {
     validator: {
       query: "object",
-      validator: finalValidator as model.DataValidator<
+      validator: finalValidator as core.DataValidator<
         q.ParsedUrlQuery,
         { [P in TRequired]: t.TypeOf<TValidation[P]["validation"]> } & {
           [P in TOptional]?: t.TypeOf<TValidation[P]["validation"]>;
@@ -165,8 +165,8 @@ const parameterBooleanValue: StringParameterTransform<t.BooleanType> = {
 export const inputValidator = <T>(
   validation: Decoder<T>,
   strictContentType = false,
-): model.DataValidatorRequestInputSpec<T, ValidationError, ValidatorSpec> => {
-  const jsonValidation = model.transitiveDataValidation(
+): core.DataValidatorRequestInputSpec<T, ValidationError, ValidatorSpec> => {
+  const jsonValidation = core.transitiveDataValidation(
     (inputString: string) => {
       if (inputString.length > 0) {
         try {
@@ -207,7 +207,7 @@ export const inputValidator = <T>(
 
 export const outputValidator = <TOutput, TSerialized>(
   validation: Encoder<TOutput, TSerialized>,
-): model.DataValidatorResponseOutputSpec<
+): core.DataValidatorResponseOutputSpec<
   TOutput,
   ValidationError,
   OutputValidatorSpec
@@ -236,13 +236,13 @@ export const outputValidator = <TOutput, TSerialized>(
 export const plainValidator =
   <TInput, TData>(
     validation: Decoder<TData, TInput>,
-  ): model.DataValidator<TInput, TData, ValidationError> =>
+  ): core.DataValidator<TInput, TData, ValidationError> =>
   (input) =>
     transformIoTsResultToModelResult(validation.decode(input));
 
 const transformIoTsResultToModelResult = <TData>(
   validationResult: t.Validation<TData>,
-): model.DataValidatorResult<TData, ValidationError> =>
+): core.DataValidatorResult<TData, ValidationError> =>
   validationResult._tag === "Right"
     ? {
         error: "none",
@@ -275,7 +275,7 @@ const createValidatorForStringParameter =
     transform,
     validation,
     stringValidation,
-  }: StringParameterTransform<TValidation>): model.DataValidator<
+  }: StringParameterTransform<TValidation>): core.DataValidator<
     string,
     t.TypeOf<TValidation>,
     ValidationError

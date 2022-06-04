@@ -1,11 +1,13 @@
+import * as core from "../../core/core";
+import * as prefix from "../../core/prefix";
+import * as server from "../../core/server";
 import type * as koa from "koa";
-import * as model from "../model";
 
 export type KoaContext = koa.Context;
 
 export const validateContextState = <TData, TError, TInput>(
-  validator: model.DataValidator<TInput, TData, TError>,
-): model.ContextValidatorSpec<
+  validator: core.DataValidator<TInput, TData, TError>,
+): core.ContextValidatorSpec<
   koa.ParameterizedContext<TInput>,
   koa.ParameterizedContext<TData>,
   TError
@@ -31,7 +33,7 @@ export const validateContextState = <TData, TError, TInput>(
 // The factory object accepts callbacks to execute on certain scenarios (mostly on errors).
 export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
   ...endpoints: Array<
-    model.AppEndpoint<
+    core.AppEndpoint<
       KoaContext,
       TRefinedContext,
       TValidationError,
@@ -40,14 +42,14 @@ export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
   >
 ): KoaMiddlewareFactory<TValidationError> => {
   // Combine given endpoints into top-level entrypoint
-  const { url: regExp, handler } = model
+  const { url: regExp, handler } = prefix
     .atPrefix("", ...endpoints)
     .getRegExpAndHandler("");
   // Return Koa middleware handler factory
   return {
     use: (prev, events) =>
       prev.use(async (ctx) => {
-        const groupsAndEventArgs = model.checkURLPathNameForHandler(
+        const groupsAndEventArgs = server.checkURLPathNameForHandler(
           events,
           ctx,
           ctx.URL,
@@ -56,11 +58,11 @@ export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
         if (groupsAndEventArgs) {
           const { groups, eventArgs } = groupsAndEventArgs;
           // We have a match -> get the handler that will handle our match
-          const foundHandler = model.checkMethodForHandler(
+          const foundHandler = server.checkMethodForHandler(
             events,
             eventArgs,
             groups,
-            ctx.method as model.HttpMethod,
+            ctx.method as core.HttpMethod,
             handler,
           );
 
@@ -77,21 +79,22 @@ export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
             // At this point, check context state.
             // State typically includes things like username etc, so verifying it as a first thing before checking body is meaningful.
             // Also, allow the context state checker return custom status code, e.g. 401 for when lacking credentials.
-            const contextValidation = model.checkContextForHandler(
+            const contextValidation = server.checkContextForHandler(
               events,
               eventArgs,
               contextValidator,
             );
             if (contextValidation.result === "context") {
               // State was OK, validate url & query & body
-              const [proceedAfterURL, url] = model.checkURLParametersForHandler(
-                events,
-                eventArgs,
-                groups,
-                urlValidator,
-              );
+              const [proceedAfterURL, url] =
+                server.checkURLParametersForHandler(
+                  events,
+                  eventArgs,
+                  groups,
+                  urlValidator,
+                );
               if (proceedAfterURL) {
-                const [proceedAfterQuery, query] = model.checkQueryForHandler(
+                const [proceedAfterQuery, query] = server.checkQueryForHandler(
                   events,
                   eventArgs,
                   queryValidator,
@@ -100,7 +103,7 @@ export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
                 );
                 if (proceedAfterQuery) {
                   const [proceedAfterBody, body] =
-                    await model.checkBodyForHandler(
+                    await server.checkBodyForHandler(
                       events,
                       eventArgs,
                       bodyValidator,
@@ -108,7 +111,7 @@ export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
                       ctx.req,
                     );
                   if (proceedAfterBody) {
-                    const retVal = model.invokeHandler(
+                    const retVal = server.invokeHandler(
                       events,
                       eventArgs,
                       handler,
@@ -170,7 +173,7 @@ export const koaMiddlewareFactory = <TValidationError, TRefinedContext>(
 export interface KoaMiddlewareFactory<TValidationError> {
   use: <TState>(
     previous: koa<TState>,
-    events?: model.RequestProcessingEvents<
+    events?: server.RequestProcessingEvents<
       TValidationError,
       koa.ParameterizedContext<TState>
     >,

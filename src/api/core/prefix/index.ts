@@ -1,5 +1,4 @@
-import * as utils from "./utils";
-import * as ep from "./endpoint";
+import * as core from "../core";
 
 export function atPrefix<
   TValidationError,
@@ -9,9 +8,9 @@ export function atPrefix<
 >(
   prefix: string,
   ...endpoints: Array<
-    ep.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
+    core.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
   >
-): ep.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>;
+): core.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>;
 export function atPrefix<
   TValidationError,
   TRefinedContext,
@@ -21,9 +20,9 @@ export function atPrefix<
   prefix: string,
   regexpGroupNamePrefix: string,
   ...endpoints: Array<
-    ep.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
+    core.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
   >
-): ep.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>;
+): core.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>;
 export function atPrefix<
   TValidationError,
   TRefinedContext,
@@ -32,13 +31,13 @@ export function atPrefix<
 >(
   prefix: string,
   endpointOrGroupNamePrefix:
-    | ep.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
+    | core.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
     | string
     | undefined,
   ...endpoints: Array<
-    ep.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
+    core.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
   >
-): ep.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata> {
+): core.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata> {
   const allEndpoints =
     typeof endpointOrGroupNamePrefix === "string" || !endpointOrGroupNamePrefix
       ? endpoints
@@ -52,7 +51,7 @@ export function atPrefix<
           : undefined,
       );
       return {
-        url: new RegExp(`${utils.escapeRegExp(prefix)}(${regExp.source})`),
+        url: new RegExp(`${core.escapeRegExp(prefix)}(${regExp.source})`),
         handler: (method, groups) => {
           const matchingHandler = findFirstMatching(
             builtEndpoints,
@@ -77,7 +76,7 @@ export function atPrefix<
         endpoints.reduce((curResult, { getMetadata }) => {
           const mdDic = getMetadata(`${urlPrefix}${prefix}`);
           if (curResult === undefined) {
-            curResult = utils.transformEntries(mdDic, () => []);
+            curResult = core.transformEntries(mdDic, () => []);
           }
           for (const key of Object.keys(mdDic)) {
             curResult[key].push(...mdDic[key]);
@@ -100,7 +99,7 @@ const buildEndpoints = <
   TMetadata extends Record<string, unknown>,
 >(
   endpoints: ReadonlyArray<
-    ep.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
+    core.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
   >,
   regExpGroupNamePrefix?: string,
 ) => {
