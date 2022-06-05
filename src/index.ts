@@ -27,15 +27,33 @@ const middlewareFactory = koa.koaMiddlewareFactory(
 const middleWareToSetUsernameFromJWTToken = (): Koa.Middleware<
   Partial<endpoints.KoaState>
 > => {
-  // Simulate lazy fetching of JWT info from remote server.
-  let jwtInfo: Promise<string> | undefined;
-  const fetchJwtInfo = () => Promise.resolve("get-jwt-info-from-some-url");
   return async (ctx, next) => {
-    if (!jwtInfo) {
-      jwtInfo = fetchJwtInfo();
+    const auth = ctx.get("authorization");
+    const scheme = auth.substring(0, 6).toLowerCase();
+    let username: string | undefined;
+    if (scheme.startsWith("basic ")) {
+      try {
+        const authData = Buffer.from(
+          auth.substring(scheme.length),
+          "base64",
+        ).toString();
+        const idx = authData.indexOf(":");
+        if (idx > 0) {
+          // Hardcoded creds, just because of sample
+          if (
+            authData.substring(0, idx) === "secret" &&
+            authData.substring(idx + 1) === "secret"
+          ) {
+            username = authData.substring(0, idx);
+          }
+        }
+      } catch {
+        // Ignore, will return 403
+      }
     }
-    await fetchJwtInfo(); // Once awaited, the Promise will not be executed again. It is safe to await on already awaited Promise.
-    ctx.state.username = "username-from-jwt-token-or-none";
+    if (username) {
+      ctx.state.username = username;
+    }
     await next();
   };
 };

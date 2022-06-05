@@ -3,7 +3,7 @@ import * as prefix from "../../core/prefix";
 import * as server from "../../core/server";
 import type * as koa from "koa";
 
-export type KoaContext = koa.Context;
+export type KoaContext<T = koa.DefaultState> = koa.ParameterizedContext<T>;
 
 export const validateContextState = <TData, TError, TInput>(
   validator: core.DataValidator<TInput, TData, TError>,

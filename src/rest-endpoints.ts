@@ -33,14 +33,11 @@ export const createEndpoints = (
 ) => {
   const initial = spec
     // Lock in to Koa and IO-TS
-    .bindNecessaryTypes<koa.KoaContext, tPlugin.ValidationError>();
+    .bindNecessaryTypes<
+      koa.KoaContext<Partial<KoaState>>,
+      tPlugin.ValidationError
+    >();
   const notAuthenticated = initial
-    .refineContext(
-      koa.validateContextState(
-        tPlugin.plainValidator(t.partial(koaState.props, "InitialState")),
-      ),
-      {},
-    )
     // All endpoints must specify enough metadata to be able to auto-generate OpenAPI specification
     .withMetadataProvider("openapi", openapi.openApiProvider);
 
@@ -271,7 +268,7 @@ export const createEndpoints = (
 
   const notAuthenticatedAPI = prefix.atPrefix("/api", things);
   const authenticatedAPI = prefix.atPrefix("/api", secret);
-  const unauthenticatedMetadata = notAuthenticated.getMetadataFinalResult(
+  const notAuthenticatedMetadata = notAuthenticated.getMetadataFinalResult(
     {
       openapi: {
         title: "Sample REST API (Authenticated)",
@@ -289,7 +286,9 @@ export const createEndpoints = (
     },
     [notAuthenticatedAPI.getMetadata(""), authenticatedAPI.getMetadata("")],
   ).openapi;
-  const docs = initial.atURL`/doc`
+
+  // OpenAPI JSON endpoint
+  const docs = initial.atURL`/api-md`
     .forMethod("GET")
     .withoutBody(
       ({
@@ -297,16 +296,14 @@ export const createEndpoints = (
           state: { username },
         },
       }) => {
-        return username ? authenticatedMetadata : unauthenticatedMetadata;
+        return username ? authenticatedMetadata : notAuthenticatedMetadata;
       },
+      // Proper validator for OpenAPI objects is out of scope of this sample
       tPlugin.outputValidator(t.UnknownRecord),
+      // No metadata - as this is the metadata-returning endpoints itself
       {},
     )
-    .createEndpoint({
-      openapi: {
-        summary: "Summary",
-      },
-    });
+    .createEndpoint({});
 
   return [notAuthenticatedAPI, authenticatedAPI, docs];
 };
