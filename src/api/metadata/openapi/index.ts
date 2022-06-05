@@ -52,7 +52,10 @@ interface OpenAPIArgumentsOutput<TOutput> {
 }
 
 interface OpenAPIContextArgs {
-  securitySchemes: Array<openapi.SecuritySchemeObject>;
+  securitySchemes: Array<{
+    name: string;
+    scheme: openapi.SecuritySchemeObject;
+  }>;
 }
 
 type OpenAPIPathItemArg = Omit<
@@ -65,77 +68,80 @@ export interface PathsObjectInfo {
   path: openapi.PathItemObject;
 }
 
-export const openApiProvider: md.MetadataProvider<
+// TODO - the argument would be callback to get JSON schema from data validator.
+export const createOpenAPIProvider = (): md.MetadataProvider<
   OpenAPIArguments,
   OpenAPIPathItemArg,
   PathsObjectInfo,
   OpenAPIContextArgs,
   openapi.InfoObject,
   openapi.Document
-> = new md.InitialMetadataProviderClass<
-  OpenAPIArguments,
-  OpenAPIPathItemArg,
-  PathsObjectInfo,
-  OpenAPIContextArgs,
-  openapi.InfoObject,
-  openapi.Document
->(
-  {
+> => {
+  const initialContextArgs: OpenAPIContextArgs = {
     securitySchemes: [],
-  },
-  ({ securitySchemes }) => ({
-    getEndpointsMetadata: (pathItemBase, urlSpec, methods) => {
-      const path: openapi.PathItemObject = { ...pathItemBase };
-      path.parameters = urlSpec
-        .filter((s): s is md.URLParameterSpec => typeof s !== "string")
-        .map(({ name }) => ({
-          name: name,
-          in: "path",
-          required: true,
-        }));
-      for (const [method, specs] of Object.entries(methods)) {
-        if (specs) {
-          const parameters: Array<openapi.ParameterObject> = [];
-          (
-            path as {
-              [method in openapi.HttpMethods]?: openapi.OperationObject;
+  };
+  return new md.InitialMetadataProviderClass(
+    initialContextArgs,
+    ({ securitySchemes }) => ({
+      getEndpointsMetadata: (pathItemBase, urlSpec, methods) => {
+        const path: openapi.PathItemObject = { ...pathItemBase };
+        path.parameters = urlSpec
+          .filter((s): s is md.URLParameterSpec => typeof s !== "string")
+          .map(({ name }) => ({
+            name: name,
+            in: "path",
+            required: true,
+          }));
+        for (const [method, specs] of Object.entries(methods)) {
+          if (specs) {
+            const parameters: Array<openapi.ParameterObject> = [];
+            (
+              path as {
+                [method in openapi.HttpMethods]?: openapi.OperationObject;
+              }
+            )[method.toLowerCase() as Lowercase<openapi.HttpMethods>] = {
+              ...specs.metadataArguments.operation,
+              security: securitySchemes.map(({ name }) => ({ [name]: [] })),
+            };
+            parameters.push(
+              ...(specs.querySpec?.queryParameterNames.map((qParamName) => ({
+                in: "query",
+                name: qParamName,
+                // TODO required
+              })) ?? []),
+            );
+            if (parameters.length > 0) {
+              path.parameters = parameters;
             }
-          )[method.toLowerCase() as Lowercase<openapi.HttpMethods>] = {
-            ...specs.metadataArguments.operation,
-          };
-          parameters.push(
-            ...(specs.querySpec?.queryParameterNames.map((qParamName) => ({
-              in: "query",
-              name: qParamName,
-              // TODO required
-            })) ?? []),
-          );
-          if (parameters.length > 0) {
-            path.parameters = parameters;
           }
         }
-      }
-      const urlString = urlSpec
-        .map((stringOrSpec) =>
-          typeof stringOrSpec === "string"
-            ? stringOrSpec
-            : `{${stringOrSpec.name}}`,
-        )
-        .join("");
-      return (urlPrefix) => ({
-        urlDescription: `${urlPrefix}${urlString}`,
-        path,
-      });
+        const urlString = urlSpec
+          .map((stringOrSpec) =>
+            typeof stringOrSpec === "string"
+              ? stringOrSpec
+              : `{${stringOrSpec.name}}`,
+          )
+          .join("");
+        return (urlPrefix) => ({
+          urlDescription: `${urlPrefix}${urlString}`,
+          path,
+        });
+      },
+    }),
+    ({ securitySchemes }, info, paths) => {
+      const doc: openapi.Document = {
+        openapi: "3.0.3",
+        info,
+        components: {
+          securitySchemes: Object.fromEntries(
+            securitySchemes.map(({ name, scheme }) => [name, scheme]),
+          ),
+        },
+        paths: Object.fromEntries(
+          paths.map(({ urlDescription, path }) => [urlDescription, path]),
+        ),
+      };
+      return doc;
     },
-  }),
-  (ctx, info, paths) => {
-    return {
-      openapi: "3.0.3",
-      info,
-      components: [],
-      paths: Object.fromEntries(
-        paths.map(({ urlDescription, path }) => [urlDescription, path]),
-      ),
-    };
-  },
-);
+  );
+};

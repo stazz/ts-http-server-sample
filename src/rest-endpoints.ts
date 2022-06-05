@@ -39,7 +39,7 @@ export const createEndpoints = (
     >();
   const notAuthenticated = initial
     // All endpoints must specify enough metadata to be able to auto-generate OpenAPI specification
-    .withMetadataProvider("openapi", openapi.openApiProvider);
+    .withMetadataProvider("openapi", openapi.createOpenAPIProvider());
 
   const authenticated = notAuthenticated.refineContext(
     koa.validateContextState(
@@ -51,8 +51,11 @@ export const createEndpoints = (
       openapi: {
         securitySchemes: [
           {
-            type: "http",
-            scheme: "basic",
+            name: "authentication",
+            scheme: {
+              type: "http",
+              scheme: "basic",
+            },
           },
         ],
       },

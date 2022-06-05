@@ -24,3 +24,6 @@ export const transformEntries = <T extends Record<string, unknown>, TResult>(
     ]),
   ) as { [P in keyof T]: ReturnType<typeof transform> };
 };
+
+const DEFAULT_PARAM_REGEXP = /[^/]+/;
+export const defaultParameterRegExp = () => new RegExp(DEFAULT_PARAM_REGEXP);

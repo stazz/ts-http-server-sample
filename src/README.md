@@ -1,20 +1,22 @@
 # Source Code
-This folder contains all the source code used in this project.
-The [api](./api) folder contains code related to REST API, while [lib](./lib) folder contains code related to business logic.
-In case of this sample, this business logic is just about "things" and how to query, create, and connect them.
-
-Notice that business logic folder is not aware of REST API, and is free to utilize whatever typing necessary to best convoy what functions accept, and what they return.
+This folder contains all the source code used in this sample.
 
 # Entrypoint
 The file [index.ts](./index.ts) contains the entrypoint for the sample.
 This entrypoint locks in the libraries used - right now they are [io-ts](http://npmjs.org/package/io-ts) for data validation and [koa](http://npmjs.org/package/koa) for running HTTP server and configure its middleware.
 If the libraries are decided to be changed, then the code in `index.ts` would need to be changed too, but the business logic layer would remain the same.
 
-The `index.ts` file starts (after `import`s) with definition of `endpointsAsKoaMiddleware` function.
-This function uses the "glue" layer in [api/plugins](./api/plugins) folder to parametrize generic code of [api/model](./api/model) to understand concepts specific to `io-ts` and `koa` libraries.
-The "glue" layer is passed definitions of REST API endpoints, each specifying how to behave in respect to REST-specific concepts (URL, body, etc), and which business logic functionality to invoke.
+The `index.ts` file starts (after `import`s) with call to `koaMiddlewareFactory` function.
+This function is in the Koa Server "glue" layer in [api/server/koa](./api/server/koa) folder to parametrize generic code of [api/core](./api/core) to understand concepts specific to `koa` library.
+The code in `index.ts` further continues to define simplistic credential validation Koa middleware, and then starts the Koa server.
 
-The code continues onward to define `middleWareToSetUsernameFromJWTToken` Koa middleware - just semi-dummy function to simulate authenticating the user, to get a feeling on how username authentication could be handled with Koa middleware.
+The argument to `koaMiddlewareFactory` function comes from result of invocation of function in [rest-endpoints.ts](./rest-endpoints.ts) file.
+This file contains the full REST API specification: the endpoints, their URL and query and body inputs, and the outputs.
+For all of this, OpenAPI metadata additional information is defined.
+The code to specify these things could be put in multiple files, however, for this sample purpose, it is put in one file.
 
-As last code chunk, the Koa application is created, the middleware is configured to it using return values of `endpointsAsKoaMiddleware` and `middleWareToSetUsernameFromJWTToken` functions, and server is started.
-When configuring middleware for result of `endpointsAsKoaMiddleware`, the callbacks are registered to the events emitted by Koa middleware helper in [api/plugins/koa.ts](./api/plugins/koa.ts), to demonstrate how logging could be done.
+# Further Code
+The [api](./api) folder contains code related to REST API, while [lib](./lib) folder contains code related to business logic.
+In case of this sample, this business logic is just about "things" and how to query, create, and connect them.
+
+Notice that business logic folder is not aware of REST API, and is free to utilize whatever typing necessary to best convoy what functions accept, and what they return.

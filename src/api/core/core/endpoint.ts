@@ -85,19 +85,3 @@ export type StaticAppEndpointHandlerFunction<TContext, TBodyError> = (args: {
   data.DataValidatorResponseOutputSuccess,
   TBodyError
 >;
-
-// export interface EndpointHandlerArgs<TContext> {
-//   context: TContext;
-// }
-
-// export interface EndpointHandlerArgsWithURL<TDataInURL> {
-//   url: TDataInURL;
-// }
-
-// export interface EndpointHandlerArgsWithBody<TBody> {
-//   body: TBody;
-// }
-
-// export type EndpointHandler<TArgs, THandlerResult> = (
-//   args: TArgs,
-// ) => THandlerResult;
