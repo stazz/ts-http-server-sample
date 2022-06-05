@@ -1,6 +1,9 @@
 # Sample Project on Unopinionated and Typesafe HTTP Server
 This Git repository contains a sample TypeScript project to demonstrate one way of writing HTTP server exposing a set of configurable REST API endpoints.
-Each endpoint has its own URL/body validation, and output transforms.
+Since this is a sample, it is by no means a complete product, or final representation of such.
+
+Instead, it envisions a way on how REST APIs could be defined in TypeScript code, centralizing the various aspects (input/output validation, endpoint metadata, etc) into one place, and pushing as much checks as possible down to be compile-time checks.
+This enables <1second reaction time by IDE to any typos, or otherwise erroneus code put into the REST API specification.
 
 ## Experimenting
 To get quick hands-on experience, feel free to clone this Git repo and open the project in your favourite IDE.
@@ -28,19 +31,22 @@ This project uses Yarn as package manager, so as very first step, run:
 yarn install --frozen-lockfile
 ```
 
-Good starting point is file `src/index.ts`.
-The following things are good experiments to kick off full project exploration:
-- On line `50` ( ``urlBuilder.atURL`/${"id"}` ``), try change the literal `"id"` into other literal, like `"id_typoed"`.
+Good starting point is file `src/rest-endpoint.ts`.
+This file contains the code which fully specifies the REST API - its endpoints, the input and output they accept, the output they produce, and their OpenAPI metadata.
+Such code does not need to be in one file, however, for this sample, it is located in just one file.
+
+The following things are good experiments to do in `src/rest-endpoint.ts` to kick off full project exploration:
+- On line `63` ( ``urlBuilder.atURL`/${"id"}` ``), try change the literal `"id"` into other literal, like `"id_typoed"`.
   Observe immediate compile-time errors.
 - On same line, try to change the literal `"id"` into e.g. number `42` or even reference to some string variable.
   Observe immediate compile-time errors.
-- On line `53` ( `id: idInURL,` ), try change the property name from `id` to something else, like `id_typoed`.
+- On line `66` ( `id: tPlugin.urlParameter(tPlugin.parameterString(idInBody), idRegex),` ), try change the property name from `id` to something else, like `id_typoed`.
   Observe immediate compile-time errors.
-- On line `56` ( `.withoutBody(` ), try change the invoked method name to `withBody`.
+- On line `78` ( `.withoutBody(` ), try change the invoked method name to `withBody`.
   Observe immediate compile-time errors (because `"GET"` handlers can not specify body).
-- On line `58` ( `({ id }) => functionality.queryThing(id),` ), try to change the property name of the argument (`{ id }` into something else, like `{ id_typoed }`).
+- On line `80` ( `({ url: { id }, query: { includeDeleted } }) =>` ), try to change the property name of the argument (`{ id }` into something else, like `{ id_typoed }`).
   Observe immediate compile-time errors.
-- On line `60` ( `tPlugin.outputValidator(t.string)` ), try change the output type `t.string` to something else, like `t.number`, so that the line becomes `tPlugin.outputValidator(t.number)`.
+- On line `83` ( `tPlugin.outputValidator(t.string)` ), try change the output type `t.string` to something else, like `t.number`, so that the line becomes `tPlugin.outputValidator(t.number)`.
   Observe immediate compile-time errors.
 - Feel free to try similar things with other endpoints, and other places in the code.
   All folder in [source code folder](src) also contain `README.md` files for documentation.
@@ -52,8 +58,10 @@ Before delving deeper into the code, try starting the HTTP server with command `
   There should be no errors, and the returned value should be same as supplied body.
 - `curl -v -X POST -H 'Content-Type: application/json' -d'{"anotherThingId": "00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing/00000000-0000-0000-0000-000000000000/connectToAnotherThing` to test endpoint in `src/lib/connect.ts`.
   There should be no errors, and the returned value should be `{"connected":true,"connectedAt":"<current time in ISO format>"}`.
-- `curl -v http://localhost:3000/doc` to test endpoint specified inline in `src/index.ts`.
-  There should be no errors, and the returned value should be `"This is our documentation"`.
+- `curl -v -X GET http://localhost:3000/api/secret` to test simplistic credential checker in `src/index.ts`.
+  The status code should be `403`.
+- `curl -v http://localhost:3000/api-md` to test OpenAPI stub JSON endpoint.
+  There should be no errors, and the returned value should be valid, but incomplete (because of the scope of the sample) OpenAPI JSON specification.
 - `curl -v http://localhost:3000/non-existing` to test how situation is handled when there are no suitable endpoints for URL.
   The response code should be `404`, and Koa server should have logged an error to stdout.
 - `curl -v -X POST -H 'Content-Type: application/json' -d'{"property":"00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing` to test correct endpoint, but wrong method.

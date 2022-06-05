@@ -42,7 +42,11 @@ export const createEndpoints = (
     .withMetadataProvider("openapi", openapi.openApiProvider);
 
   const authenticated = notAuthenticated.refineContext(
-    koa.validateContextState(tPlugin.plainValidator(koaState)),
+    koa.validateContextState(
+      tPlugin.plainValidator(koaState),
+      // If username is missing -> there was no authentication -> return 403
+      403,
+    ),
     {
       openapi: {
         securitySchemes: [

@@ -97,14 +97,17 @@ export const checkContextForHandler = <
       context: validationResult.data,
     };
   } else {
+    const isProtocolError = validationResult.error === "protocol-error";
     events?.onInvalidContext?.({
       ...eventArgs,
-      validationError: validationResult.errorInfo,
+      validationError: isProtocolError ? undefined : validationResult.errorInfo,
     });
     validatedContextOrError = {
       result: "error",
-      customStatusCode: undefined, // TODO get it from validationResult
-      customBody: undefined, // TODO get it from validationResult
+      customStatusCode: isProtocolError
+        ? validationResult.statusCode
+        : undefined,
+      customBody: isProtocolError ? validationResult.body : undefined,
     };
   }
 
@@ -298,7 +301,9 @@ export interface RequestProcessingEvents<TValidationError, TContext> {
   onInvalidUrl?: (args: Omit<EventArguments<TContext>, "groups">) => unknown;
   onInvalidMethod?: (args: EventArguments<TContext>) => unknown;
   onInvalidContext?: (
-    args: EventArguments<TContext> & ValidationErrorArgs<TValidationError>,
+    args: EventArguments<TContext> & {
+      validationError: TValidationError | undefined;
+    },
   ) => unknown;
   // URL matched combined regex, but parameter validation failed
   onInvalidUrlParameters?: (

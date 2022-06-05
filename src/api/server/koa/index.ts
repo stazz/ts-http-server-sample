@@ -7,6 +7,12 @@ export type KoaContext<T = koa.DefaultState> = koa.ParameterizedContext<T>;
 
 export const validateContextState = <TData, TError, TInput>(
   validator: core.DataValidator<TInput, TData, TError>,
+  protocolErrorInfo?:
+    | number
+    | {
+        statusCode: number;
+        body: string | undefined;
+      },
 ): core.ContextValidatorSpec<
   koa.ParameterizedContext<TInput>,
   koa.ParameterizedContext<TData>,
@@ -21,10 +27,22 @@ export const validateContextState = <TData, TError, TInput>(
           data: ctx as unknown as koa.ParameterizedContext<TData>,
         };
       default:
-        return {
-          error: "error",
-          errorInfo: transformed.errorInfo,
-        };
+        return protocolErrorInfo === undefined
+          ? {
+              error: "error",
+              errorInfo: transformed.errorInfo,
+            }
+          : {
+              error: "protocol-error",
+              statusCode:
+                typeof protocolErrorInfo === "number"
+                  ? protocolErrorInfo
+                  : protocolErrorInfo.statusCode,
+              body:
+                typeof protocolErrorInfo === "number"
+                  ? undefined
+                  : protocolErrorInfo.body,
+            };
     }
   },
 });

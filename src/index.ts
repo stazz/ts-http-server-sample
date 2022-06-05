@@ -114,9 +114,11 @@ middlewareFactory
       onInvalidContext: ({ ctx: { state }, validationError }) => {
         // eslint-disable-next-line no-console
         console.error(
-          `State validation failed for ${JSON.stringify(
-            state,
-          )}.\n${tPlugin.getHumanReadableErrorMessage(validationError)}`,
+          `State validation failed for ${JSON.stringify(state)}.\n${
+            validationError
+              ? tPlugin.getHumanReadableErrorMessage(validationError)
+              : "Protocol-related error"
+          }`,
         );
       },
       onInvalidResponse: ({ ctx: { state, method, url }, validationError }) => {

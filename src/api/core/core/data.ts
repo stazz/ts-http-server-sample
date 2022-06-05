@@ -89,9 +89,18 @@ export interface ContextValidatorSpec<
   validator: ContextValidator<TContext, TRefinedContext, TValidationError>;
 }
 
-// TODO allow returning custom status codes from this one.
 export type ContextValidator<TContext, TRefinedContext, TValidationError> =
-  DataValidator<TContext, TRefinedContext, TValidationError>;
+  DataValidator<
+    TContext,
+    TRefinedContext,
+    TValidationError,
+    | DataValidatorResult<TRefinedContext, TValidationError>
+    | {
+        error: "protocol-error";
+        statusCode: number;
+        body: string | undefined;
+      }
+  >;
 
 export interface QueryValidatorSpec<
   TQuery,
