@@ -80,10 +80,6 @@ Before delving deeper into the code, try starting the HTTP server with command `
 This should be quite good introduction to the project.
 Feel free to explore subfolders in `src` folder, read included `README.md` files, and play around with code to see which changes invoke immediate IDE compiler response.
 
-Notice - there are barely any documentation so far, and all of the unit tests are missing.
-Furthermore, URL query parameter validation is also missing.
-I did this whole sample in a matter of some hours during weekend - if it gets past PoC, the lacking features can be added.
-
 ## Design Principles and How They Are Achieved
 This chapter talks on higher level about the motivation behind this sample, and the features that using this sample hopefully exposes.
 All the features mentioned strive for one goal: *Ability to write robust and trustworthy code in most efficient manner*.
