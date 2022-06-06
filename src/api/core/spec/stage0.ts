@@ -1,5 +1,6 @@
 import * as core from "../core";
 import * as md from "../metadata";
+import * as common from "./common";
 import * as stage1 from "./stage1";
 
 export const bindNecessaryTypes = <
@@ -38,6 +39,7 @@ export class AppEndpointBuilderProvider<
     TContext,
     TRefinedContext,
     TValidationError,
+    {}, // eslint-disable-line @typescript-eslint/ban-types
     core.HttpMethod,
     {
       [P in keyof TMetadataProviders]: ReturnType<
@@ -67,6 +69,7 @@ export class AppEndpointBuilderProvider<
         TContext,
         TRefinedContext,
         TValidationError,
+        {}, // eslint-disable-line @typescript-eslint/ban-types
         core.HttpMethod,
         {
           [P in keyof TMetadataProviders]: ReturnType<
@@ -89,17 +92,19 @@ export class AppEndpointBuilderProvider<
       // URL template has arguments -> return URL data validator which allows to build endpoints
       return {
         validateURLData: (validation) => {
-          return new stage1.AppEndpointBuilderWithURLDataInitial({
+          return new stage1.AppEndpointBuilderInitial({
             contextTransform: this._contextTransform,
             fragments,
-            args,
-            validation,
             methods: {},
             // TODO fix this typing (may require extracting this method into class, as anonymous methods with method generic arguments don't behave well)
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             metadata: core.transformEntries(this._mdProviders, (md) =>
               md.getBuilder(),
             ) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+            urlValidation: {
+              args,
+              validation,
+            },
           });
         },
       };
@@ -114,6 +119,7 @@ export class AppEndpointBuilderProvider<
         metadata: core.transformEntries(this._mdProviders, (md) =>
           md.getBuilder(),
         ) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+        urlValidation: undefined,
       });
     }
   }
@@ -249,11 +255,13 @@ export interface URLDataNames<
     },
   >(
     validation: TValidation,
-  ) => stage1.AppEndpointBuilderWithURLDataInitial<
+  ) => stage1.AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
     TValidationError,
-    { [P in TNames]: core.URLParameterDataType<TValidation[P]["validator"]> },
+    common.EndpointHandlerArgsWithURL<{
+      [P in TNames]: core.URLParameterDataType<TValidation[P]["validator"]>;
+    }>,
     core.HttpMethod,
     TMetadataProviders
   >;

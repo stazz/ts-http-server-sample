@@ -64,13 +64,15 @@ export type StaticAppEndpointHandler<TContext, TRefinedContext, TBodyError> = {
     TRefinedContext,
     TBodyError
   >;
-  urlValidator?: Record<
-    string,
-    {
-      parameterName: string;
-      validator: data.DataValidatorURL<unknown, TBodyError>;
-    }
-  >;
+  urlValidator:
+    | Record<
+        string,
+        {
+          parameterName: string;
+          validator: data.DataValidatorURL<unknown, TBodyError>;
+        }
+      >
+    | undefined;
   queryValidator: data.QueryValidator<unknown, TBodyError> | undefined;
   bodyValidator?: data.DataValidatorRequestInput<unknown, TBodyError>;
   handler: StaticAppEndpointHandlerFunction<TRefinedContext, TBodyError>;

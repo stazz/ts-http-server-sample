@@ -1,5 +1,6 @@
 import * as core from "../core";
 import * as md from "../metadata";
+import * as common from "./common";
 import * as state from "./state";
 import * as stage2 from "./stage2";
 
@@ -7,6 +8,7 @@ export class AppEndpointBuilderInitial<
   TContext,
   TRefinedContext,
   TValidationError,
+  TArgsURL,
   TAllowedMethods extends core.HttpMethod,
   TMetadataProviders extends Record<
     string,
@@ -28,8 +30,9 @@ export class AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
     TValidationError,
+    TArgsURL,
     TMethods,
-    stage2.EndpointHandlerArgs<TRefinedContext>,
+    MakeEndpointHandlerArgs<TRefinedContext>,
     never,
     TMetadataProviders
   >;
@@ -39,8 +42,9 @@ export class AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
     TValidationError,
+    TArgsURL,
     TMethods,
-    stage2.EndpointHandlerArgs<TRefinedContext>,
+    MakeEndpointHandlerArgs<TRefinedContext>,
     never,
     TMetadataProviders
   >;
@@ -55,9 +59,10 @@ export class AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
     TValidationError,
+    TArgsURL,
     TMethods,
-    stage2.EndpointHandlerArgs<TRefinedContext> &
-      stage2.EndpointHandlerArgsWithQuery<TQuery>,
+    MakeEndpointHandlerArgs<TRefinedContext> &
+      common.EndpointHandlerArgsWithQuery<TQuery>,
     TQueryKeys,
     TMetadataProviders
   >;
@@ -72,9 +77,10 @@ export class AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
     TValidationError,
+    TArgsURL,
     TMethods,
-    stage2.EndpointHandlerArgs<TRefinedContext> &
-      stage2.EndpointHandlerArgsWithQuery<TQuery>,
+    MakeEndpointHandlerArgs<TRefinedContext> &
+      common.EndpointHandlerArgsWithQuery<TQuery>,
     TQueryKeys,
     TMetadataProviders
   >;
@@ -92,9 +98,10 @@ export class AppEndpointBuilderInitial<
         TContext,
         TRefinedContext,
         TValidationError,
+        TArgsURL,
         TMethods,
-        | stage2.EndpointHandlerArgs<TRefinedContext>
-        | stage2.EndpointHandlerArgsWithQuery<TQuery>,
+        | MakeEndpointHandlerArgs<TRefinedContext>
+        | common.EndpointHandlerArgsWithQuery<TQuery>,
         string,
         TMetadataProviders
       >
@@ -102,9 +109,10 @@ export class AppEndpointBuilderInitial<
         TContext,
         TRefinedContext,
         TValidationError,
+        TArgsURL,
         TMethods,
-        | stage2.EndpointHandlerArgs<TRefinedContext>
-        | stage2.EndpointHandlerArgsWithQuery<TQuery>,
+        | MakeEndpointHandlerArgs<TRefinedContext>
+        | common.EndpointHandlerArgsWithQuery<TQuery>,
         string,
         TMetadataProviders
       > {
@@ -116,131 +124,6 @@ export class AppEndpointBuilderInitial<
           methodInfo.queryInfo,
         )
       : new stage2.AppEndpointBuilderForMethodsAndBody(
-          this._state,
-          methodInfo.methodsSet,
-          methodInfo.queryInfo,
-        );
-  }
-}
-
-export class AppEndpointBuilderWithURLDataInitial<
-  TContext,
-  TRefinedContext,
-  TValidationError,
-  TDataInURL,
-  TAllowedMethods extends core.HttpMethod,
-  TMetadataProviders extends Record<
-    string,
-    md.MetadataBuilder<md.HKTArg, unknown, unknown>
-  >,
-> {
-  public constructor(
-    protected readonly _state: state.AppEndpointBuilderWithURLDataState<
-      TContext,
-      TRefinedContext,
-      TValidationError,
-      TMetadataProviders
-    >,
-  ) {}
-
-  public forMethod<TMethods extends TAllowedMethods>(
-    method: TMethods & core.HttpMethodWithoutBody,
-  ): stage2.AppEndpointBuilderForURLDataAndMethods<
-    TContext,
-    TRefinedContext,
-    TValidationError,
-    TDataInURL,
-    TMethods,
-    stage2.EndpointHandlerArgs<TRefinedContext>,
-    never,
-    TMetadataProviders
-  >;
-  public forMethod<TMethods extends TAllowedMethods>(
-    method: TMethods & core.HttpMethodWithBody,
-  ): stage2.AppEndpointBuilderForURLDataAndMethodsAndBody<
-    TContext,
-    TRefinedContext,
-    TValidationError,
-    TDataInURL,
-    TMethods,
-    stage2.EndpointHandlerArgs<TRefinedContext>,
-    never,
-    TMetadataProviders
-  >;
-  public forMethod<
-    TMethods extends TAllowedMethods,
-    TQuery,
-    TQueryKeys extends string,
-  >(
-    method: TMethods & core.HttpMethodWithoutBody,
-    query: core.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>,
-  ): stage2.AppEndpointBuilderForURLDataAndMethods<
-    TContext,
-    TRefinedContext,
-    TValidationError,
-    TDataInURL,
-    TMethods,
-    stage2.EndpointHandlerArgs<TRefinedContext> &
-      stage2.EndpointHandlerArgsWithQuery<TQuery>,
-    TQueryKeys,
-    TMetadataProviders
-  >;
-  public forMethod<
-    TMethods extends TAllowedMethods,
-    TQuery,
-    TQueryKeys extends string,
-  >(
-    method: TMethods & core.HttpMethodWithBody,
-    query: core.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>,
-  ): stage2.AppEndpointBuilderForURLDataAndMethodsAndBody<
-    TContext,
-    TRefinedContext,
-    TValidationError,
-    TDataInURL,
-    TMethods,
-    stage2.EndpointHandlerArgs<TRefinedContext> &
-      stage2.EndpointHandlerArgsWithQuery<TQuery>,
-    TQueryKeys,
-    TMetadataProviders
-  >;
-  forMethod<
-    TMethods extends TAllowedMethods,
-    TQuery,
-    TQueryKeys extends string,
-  >(
-    method: TMethods,
-    query?: core.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>,
-  ):
-    | stage2.AppEndpointBuilderForURLDataAndMethods<
-        TContext,
-        TRefinedContext,
-        TValidationError,
-        TDataInURL,
-        TMethods,
-        | stage2.EndpointHandlerArgs<TRefinedContext>
-        | stage2.EndpointHandlerArgsWithQuery<TQuery>,
-        string,
-        TMetadataProviders
-      >
-    | stage2.AppEndpointBuilderForURLDataAndMethodsAndBody<
-        TContext,
-        TRefinedContext,
-        TValidationError,
-        TDataInURL,
-        TMethods,
-        | stage2.EndpointHandlerArgs<TRefinedContext>
-        | stage2.EndpointHandlerArgsWithQuery<TQuery>,
-        string,
-        TMetadataProviders
-      > {
-    const methodInfo = forMethodImpl(this._state.methods, method, query);
-    return methodInfo.body === "none"
-      ? new stage2.AppEndpointBuilderForURLDataAndMethods(
-          this._state,
-          methodInfo.methodsSet,
-          methodInfo.queryInfo,
-        )
-      : new stage2.AppEndpointBuilderForURLDataAndMethodsAndBody(
           this._state,
           methodInfo.methodsSet,
           methodInfo.queryInfo,
@@ -275,14 +158,14 @@ const forMethodImpl = <
 
   const queryInfo: stage2.QueryInfo<
     TValidationError,
-    stage2.EndpointHandlerArgsWithQuery<TQuery>,
+    common.EndpointHandlerArgsWithQuery<TQuery>,
     TQueryKeys
   > = {
     getEndpointArgs: (q) =>
       queryValidation
         ? { query: q as TQuery }
         : // Fugly, but has to do for now.
-          ({} as stage2.EndpointHandlerArgsWithQuery<TQuery>),
+          ({} as common.EndpointHandlerArgsWithQuery<TQuery>),
   };
   if (queryValidation) {
     queryInfo.query = queryValidation;
@@ -306,3 +189,6 @@ const forMethodImpl = <
         ...common,
       } as const);
 };
+
+export type MakeEndpointHandlerArgs<TRefinedContext> =
+  common.EndpointHandlerArgs<TRefinedContext>;

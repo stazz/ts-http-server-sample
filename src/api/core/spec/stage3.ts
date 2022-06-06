@@ -7,6 +7,7 @@ export class AppEndpointBuilder<
   TContext,
   TRefinedContext,
   TValidationError,
+  TArgsURL,
   TAllowedMethods extends core.HttpMethod,
   TMetadataProviders extends Record<
     string,
@@ -16,6 +17,7 @@ export class AppEndpointBuilder<
   TContext,
   TRefinedContext,
   TValidationError,
+  TArgsURL,
   TAllowedMethods,
   TMetadataProviders
 > {
@@ -42,105 +44,18 @@ export class AppEndpointBuilder<
     }
   > {
     if (Object.keys(this._state.methods).length > 0) {
-      const metadata = constructMDResults(this._state, mdArgs, [
-        ...this._state.fragments,
-      ]);
+      const { urlValidation } = this._state;
+      const metadata = constructMDResults(this._state, mdArgs);
       return {
         getRegExpAndHandler: (groupNamePrefix) => ({
-          url: new RegExp(core.escapeRegExp(this._state.fragments.join(""))),
-          handler: (method) =>
-            checkMethodsForHandler(
-              this._state.methods,
-              method,
-              groupNamePrefix,
-            ),
-        }),
-        getMetadata: (urlPrefix) => {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-          return core.transformEntries(metadata, (md) => [
-            md(urlPrefix) as typeof md extends md.SingleEndpointResult<
-              infer TEndpointMD
-            >
-              ? TEndpointMD
-              : never,
-          ]) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-        },
-      };
-    } else {
-      throw new Error(
-        "Please specify at least one method before building endpoint",
-      );
-    }
-  }
-}
-
-export class AppEndpointBuilderWithURLData<
-  TContext,
-  TRefinedContext,
-  TValidationError,
-  TDataInURL,
-  TAllowedMethods extends core.HttpMethod,
-  TMetadataProviders extends Record<
-    string,
-    md.MetadataBuilder<md.HKTArg, unknown, unknown>
-  >,
-> extends stage1.AppEndpointBuilderWithURLDataInitial<
-  TContext,
-  TRefinedContext,
-  TValidationError,
-  TDataInURL,
-  TAllowedMethods,
-  TMetadataProviders
-> {
-  public createEndpoint(mdArgs: {
-    [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
-      infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
-      infer TArg,
-      unknown
-    >
-      ? TArg
-      : never;
-  }): core.AppEndpoint<
-    TContext,
-    TRefinedContext,
-    TValidationError,
-    {
-      [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
-        infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
-        infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
-        infer TEndpointMD
-      >
-        ? TEndpointMD
-        : never;
-    }
-  > {
-    if (Object.keys(this._state.methods).length > 0) {
-      const metadata = constructMDResults(
-        this._state,
-        mdArgs,
-        Array.from(
-          getURLItemsInOrder(
-            this._state.fragments,
-            this._state.args,
-            this._state.validation,
-          ),
-        ).map((fragmentOrValidation) =>
-          typeof fragmentOrValidation === "string"
-            ? fragmentOrValidation
-            : {
-                ...core.omit(fragmentOrValidation.validation, "validator"),
-                name: fragmentOrValidation.name,
-              },
-        ),
-      );
-      return {
-        getRegExpAndHandler: (groupNamePrefix) => ({
-          url: buildURLRegExp(
-            this._state.fragments,
-            this._state.args,
-            this._state.validation,
-            groupNamePrefix,
-          ),
+          url: urlValidation
+            ? buildURLRegExp(
+                this._state.fragments,
+                urlValidation.args,
+                urlValidation.validation,
+                groupNamePrefix,
+              )
+            : new RegExp(core.escapeRegExp(this._state.fragments.join(""))),
           handler: (method) =>
             checkMethodsForHandler(
               this._state.methods,
@@ -252,14 +167,14 @@ const constructMDResults = <
     md.MetadataBuilder<md.HKTArg, unknown, unknown>
   >,
 >(
-  state: Pick<
-    state.AppEndpointBuilderState<
-      TContext,
-      TRefinedContext,
-      TValidationError,
-      TMetadata
-    >,
-    "metadata" | "methods"
+  {
+    urlValidation,
+    ...state
+  }: state.AppEndpointBuilderState<
+    TContext,
+    TRefinedContext,
+    TValidationError,
+    TMetadata
   >,
   mdArgs: {
     [P in keyof TMetadata]: TMetadata[P] extends md.MetadataBuilder<
@@ -270,14 +185,24 @@ const constructMDResults = <
       ? TArg
       : never;
   },
-  urlSpec: ReadonlyArray<
-    | string
-    | (Omit<
-        core.URLDataParameterValidatorSpec<unknown, unknown>,
-        "validator"
-      > & { name: string })
-  >,
 ) => {
+  const urlSpec = urlValidation
+    ? Array.from(
+        getURLItemsInOrder(
+          state.fragments,
+          urlValidation.args,
+          urlValidation.validation,
+        ),
+      ).map((fragmentOrValidation) =>
+        typeof fragmentOrValidation === "string"
+          ? fragmentOrValidation
+          : {
+              ...core.omit(fragmentOrValidation.validation, "validator"),
+              name: fragmentOrValidation.name,
+            },
+      )
+    : [...state.fragments];
+
   return core.transformEntries(state.metadata, (md, mdKey) =>
     md.getEndpointsMetadata(
       mdArgs[mdKey],

@@ -28,27 +28,15 @@ export interface AppEndpointBuilderState<
     TValidationError
   >;
   metadata: TMetadata;
-}
-
-export interface AppEndpointBuilderWithURLDataState<
-  TContext,
-  TRefinedContext,
-  TValidationError,
-  TMetadata extends Record<
-    string,
-    md.MetadataBuilder<md.HKTArg, unknown, unknown>
-  >,
-> extends AppEndpointBuilderState<
-    TContext,
-    TRefinedContext,
-    TValidationError,
-    TMetadata
-  > {
-  args: ReadonlyArray<string>;
-  validation: Record<
-    string,
-    core.URLDataParameterValidatorSpec<unknown, TValidationError>
-  >;
+  urlValidation:
+    | {
+        args: ReadonlyArray<string>;
+        validation: Record<
+          string,
+          core.URLDataParameterValidatorSpec<unknown, TValidationError>
+        >;
+      }
+    | undefined;
 }
 
 export interface StaticAppEndpointBuilderSpec<

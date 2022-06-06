@@ -158,7 +158,7 @@ export const createEndpoints = (
                 },
               },
             },
-            queryParameters: {},
+            queryParameters: undefined,
             output: {
               description: "Output description",
               mediaTypes: {
@@ -214,7 +214,7 @@ export const createEndpoints = (
                 description: "ID description",
               },
             },
-            queryParameters: {},
+            queryParameters: undefined,
             body: {
               "application/json": {
                 example: {
@@ -257,7 +257,7 @@ export const createEndpoints = (
       {
         openapi: {
           urlParameters: undefined,
-          queryParameters: {},
+          queryParameters: undefined,
           body: undefined,
           operation: {},
           output: {
