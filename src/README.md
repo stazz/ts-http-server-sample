@@ -1,5 +1,6 @@
 # Source Code
 This folder contains all the source code used in this sample.
+The idea is that everything in [api](./api) folder would be eventually encapsulated as NPM libraries, while everything in [lib](./lib) folder and in [index.ts](./index.ts) and [rest-endpoints.ts](./rest-endpoints.ts) files would be domain-specific code.
 
 # Entrypoint
 The file [index.ts](./index.ts) contains the entrypoint for the sample.
