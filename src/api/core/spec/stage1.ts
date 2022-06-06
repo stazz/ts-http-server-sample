@@ -32,8 +32,7 @@ export class AppEndpointBuilderInitial<
     TValidationError,
     TArgsURL,
     TMethods,
-    MakeEndpointHandlerArgs<TRefinedContext>,
-    never,
+    common.EndpointHandlerArgs<TRefinedContext>,
     TMetadataProviders
   >;
   public forMethod<TMethods extends TAllowedMethods>(
@@ -44,8 +43,7 @@ export class AppEndpointBuilderInitial<
     TValidationError,
     TArgsURL,
     TMethods,
-    MakeEndpointHandlerArgs<TRefinedContext>,
-    never,
+    common.EndpointHandlerArgs<TRefinedContext>,
     TMetadataProviders
   >;
   public forMethod<
@@ -61,9 +59,8 @@ export class AppEndpointBuilderInitial<
     TValidationError,
     TArgsURL,
     TMethods,
-    MakeEndpointHandlerArgs<TRefinedContext> &
+    common.EndpointHandlerArgs<TRefinedContext> &
       common.EndpointHandlerArgsWithQuery<TQuery>,
-    TQueryKeys,
     TMetadataProviders
   >;
   public forMethod<
@@ -79,9 +76,8 @@ export class AppEndpointBuilderInitial<
     TValidationError,
     TArgsURL,
     TMethods,
-    MakeEndpointHandlerArgs<TRefinedContext> &
+    common.EndpointHandlerArgs<TRefinedContext> &
       common.EndpointHandlerArgsWithQuery<TQuery>,
-    TQueryKeys,
     TMetadataProviders
   >;
   forMethod<
@@ -100,9 +96,8 @@ export class AppEndpointBuilderInitial<
         TValidationError,
         TArgsURL,
         TMethods,
-        | MakeEndpointHandlerArgs<TRefinedContext>
+        | common.EndpointHandlerArgs<TRefinedContext>
         | common.EndpointHandlerArgsWithQuery<TQuery>,
-        string,
         TMetadataProviders
       >
     | stage2.AppEndpointBuilderForMethodsAndBody<
@@ -111,84 +106,47 @@ export class AppEndpointBuilderInitial<
         TValidationError,
         TArgsURL,
         TMethods,
-        | MakeEndpointHandlerArgs<TRefinedContext>
+        | common.EndpointHandlerArgs<TRefinedContext>
         | common.EndpointHandlerArgsWithQuery<TQuery>,
-        string,
         TMetadataProviders
       > {
-    const methodInfo = forMethodImpl(this._state.methods, method, query);
-    return methodInfo.body === "none"
+    const overlappingMehods = new Set(
+      Object.keys(this._state.methods).filter(
+        (existingMethod) => existingMethod === method,
+      ),
+    );
+    if (overlappingMehods.size > 0) {
+      throw new Error(
+        `The methods ${Array.from(overlappingMehods).join(
+          ", ",
+        )} are already specified`,
+      );
+    }
+
+    const queryInfo: stage2.QueryInfo<
+      TValidationError,
+      common.EndpointHandlerArgsWithQuery<TQuery>
+    > = {
+      getEndpointArgs: (q) =>
+        query
+          ? { query: q as TQuery }
+          : // Fugly, but has to do for now.
+            ({} as common.EndpointHandlerArgsWithQuery<TQuery>),
+    };
+    if (query) {
+      queryInfo.query = query;
+    }
+
+    return core.isMethodWithoutBody(method)
       ? new stage2.AppEndpointBuilderForMethods(
           this._state,
-          methodInfo.methodsSet,
-          methodInfo.queryInfo,
+          new Set([method]),
+          queryInfo,
         )
       : new stage2.AppEndpointBuilderForMethodsAndBody(
           this._state,
-          methodInfo.methodsSet,
-          methodInfo.queryInfo,
+          new Set([method]),
+          queryInfo,
         );
   }
 }
-
-const forMethodImpl = <
-  TMethods extends core.HttpMethod,
-  TQuery,
-  TValidationError,
-  TQueryKeys extends string,
->(
-  stateMethods: Record<string, unknown>,
-  method: TMethods,
-  queryValidation:
-    | core.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>
-    | undefined,
-) => {
-  const overlappingMehods = new Set(
-    Object.keys(stateMethods).filter(
-      (existingMethod) => existingMethod === method,
-    ),
-  );
-  if (overlappingMehods.size > 0) {
-    throw new Error(
-      `The methods ${Array.from(overlappingMehods).join(
-        ", ",
-      )} are already specified`,
-    );
-  }
-
-  const queryInfo: stage2.QueryInfo<
-    TValidationError,
-    common.EndpointHandlerArgsWithQuery<TQuery>,
-    TQueryKeys
-  > = {
-    getEndpointArgs: (q) =>
-      queryValidation
-        ? { query: q as TQuery }
-        : // Fugly, but has to do for now.
-          ({} as common.EndpointHandlerArgsWithQuery<TQuery>),
-  };
-  if (queryValidation) {
-    queryInfo.query = queryValidation;
-  }
-
-  const common = {
-    methodsSet: new Set([method]),
-
-    queryInfo,
-  };
-
-  return core.isMethodWithoutBody(method)
-    ? ({
-        body: "none",
-        method,
-        ...common,
-      } as const)
-    : ({
-        body: "present",
-        method: method as core.HttpMethodWithBody,
-        ...common,
-      } as const);
-};
-
-export type MakeEndpointHandlerArgs<TRefinedContext> =
-  common.EndpointHandlerArgs<TRefinedContext>;

@@ -11,7 +11,6 @@ export class AppEndpointBuilderForMethods<
   TArgsURL,
   TAllowedMethods extends core.HttpMethod,
   TArgsQuery,
-  TQueryKeys extends string,
   TMetadataProviders extends Record<
     string,
     md.MetadataBuilder<md.HKTArg, unknown, unknown>
@@ -25,11 +24,7 @@ export class AppEndpointBuilderForMethods<
       TMetadataProviders
     >,
     protected readonly _methods: Set<TAllowedMethods>,
-    protected readonly _queryInfo: QueryInfo<
-      TValidationError,
-      TArgsQuery,
-      TQueryKeys
-    >,
+    protected readonly _queryInfo: QueryInfo<TValidationError, TArgsQuery>,
   ) {}
 
   public withoutBody<
@@ -153,7 +148,6 @@ export class AppEndpointBuilderForMethodsAndBody<
   TArgsURL,
   TAllowedMethods extends core.HttpMethod,
   TArgsQuery,
-  TQueryKeys extends string,
   TMetadataProviders extends Record<
     string,
     md.MetadataBuilder<md.HKTArg, unknown, unknown>
@@ -165,7 +159,6 @@ export class AppEndpointBuilderForMethodsAndBody<
   TArgsURL,
   TAllowedMethods,
   TArgsQuery,
-  TQueryKeys,
   TMetadataProviders
 > {
   public withBody<
@@ -284,7 +277,6 @@ export class AppEndpointBuilderForMethodsAndBody<
     if (query) {
       handler.queryValidation = core.omit(query, "validator");
     }
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return new stage3.AppEndpointBuilder({
       ...this._state,
       methods: Object.assign(
@@ -302,7 +294,7 @@ export type EndpointHandler<TArgs, THandlerResult> = (
   args: TArgs,
 ) => THandlerResult;
 
-export interface QueryInfo<TValidationError, TArgs, TQueryKeys extends string> {
-  query?: core.QueryValidatorSpec<unknown, TValidationError, TQueryKeys>;
+export interface QueryInfo<TValidationError, TArgs> {
+  query?: core.QueryValidatorSpec<unknown, TValidationError, string>;
   getEndpointArgs: (query: unknown) => TArgs;
 }
