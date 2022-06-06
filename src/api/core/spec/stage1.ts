@@ -2,7 +2,10 @@ import * as core from "../core";
 import * as md from "../metadata";
 import * as common from "./common";
 import * as state from "./state";
-import * as stage2 from "./stage2";
+import {
+  AppEndpointBuilderForMethods,
+  AppEndpointBuilderForMethodsAndBody,
+} from ".";
 
 export class AppEndpointBuilderInitial<
   TContext,
@@ -26,7 +29,7 @@ export class AppEndpointBuilderInitial<
 
   public forMethod<TMethods extends TAllowedMethods>(
     method: TMethods & core.HttpMethodWithoutBody,
-  ): stage2.AppEndpointBuilderForMethods<
+  ): AppEndpointBuilderForMethods<
     TContext,
     TRefinedContext,
     TValidationError,
@@ -37,7 +40,7 @@ export class AppEndpointBuilderInitial<
   >;
   public forMethod<TMethods extends TAllowedMethods>(
     method: TMethods & core.HttpMethodWithBody,
-  ): stage2.AppEndpointBuilderForMethodsAndBody<
+  ): AppEndpointBuilderForMethodsAndBody<
     TContext,
     TRefinedContext,
     TValidationError,
@@ -53,7 +56,7 @@ export class AppEndpointBuilderInitial<
   >(
     method: TMethods & core.HttpMethodWithoutBody,
     query: core.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>,
-  ): stage2.AppEndpointBuilderForMethods<
+  ): AppEndpointBuilderForMethods<
     TContext,
     TRefinedContext,
     TValidationError,
@@ -70,7 +73,7 @@ export class AppEndpointBuilderInitial<
   >(
     method: TMethods & core.HttpMethodWithBody,
     query: core.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>,
-  ): stage2.AppEndpointBuilderForMethodsAndBody<
+  ): AppEndpointBuilderForMethodsAndBody<
     TContext,
     TRefinedContext,
     TValidationError,
@@ -90,7 +93,7 @@ export class AppEndpointBuilderInitial<
       | core.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>
       | undefined,
   ):
-    | stage2.AppEndpointBuilderForMethods<
+    | AppEndpointBuilderForMethods<
         TContext,
         TRefinedContext,
         TValidationError,
@@ -100,7 +103,7 @@ export class AppEndpointBuilderInitial<
         | common.EndpointHandlerArgsWithQuery<TQuery>,
         TMetadataProviders
       >
-    | stage2.AppEndpointBuilderForMethodsAndBody<
+    | AppEndpointBuilderForMethodsAndBody<
         TContext,
         TRefinedContext,
         TValidationError,
@@ -123,7 +126,7 @@ export class AppEndpointBuilderInitial<
       );
     }
 
-    const queryInfo: stage2.QueryInfo<
+    const queryInfo: common.QueryInfo<
       TValidationError,
       common.EndpointHandlerArgsWithQuery<TQuery>
     > = {
@@ -138,12 +141,12 @@ export class AppEndpointBuilderInitial<
     }
 
     return core.isMethodWithoutBody(method)
-      ? new stage2.AppEndpointBuilderForMethods(
+      ? new AppEndpointBuilderForMethods(
           this._state,
           new Set([method]),
           queryInfo,
         )
-      : new stage2.AppEndpointBuilderForMethodsAndBody(
+      : new AppEndpointBuilderForMethodsAndBody(
           this._state,
           new Set([method]),
           queryInfo,

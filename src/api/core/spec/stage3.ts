@@ -1,7 +1,7 @@
 import * as core from "../core";
 import * as md from "../metadata";
 import * as state from "./state";
-import * as stage1 from "./stage1";
+import { AppEndpointBuilderInitial } from ".";
 
 export class AppEndpointBuilder<
   TContext,
@@ -13,7 +13,7 @@ export class AppEndpointBuilder<
     string,
     md.MetadataBuilder<md.HKTArg, unknown, unknown>
   >,
-> extends stage1.AppEndpointBuilderInitial<
+> extends AppEndpointBuilderInitial<
   TContext,
   TRefinedContext,
   TValidationError,

@@ -2,7 +2,7 @@ import * as core from "../core";
 import * as md from "../metadata";
 import * as common from "./common";
 import * as state from "./state";
-import * as stage3 from "./stage3";
+import { AppEndpointBuilder } from ".";
 
 export class AppEndpointBuilderForMethods<
   TContext,
@@ -24,7 +24,10 @@ export class AppEndpointBuilderForMethods<
       TMetadataProviders
     >,
     protected readonly _methods: Set<TAllowedMethods>,
-    protected readonly _queryInfo: QueryInfo<TValidationError, TArgsQuery>,
+    protected readonly _queryInfo: common.QueryInfo<
+      TValidationError,
+      TArgsQuery
+    >,
   ) {}
 
   public withoutBody<
@@ -62,7 +65,7 @@ export class AppEndpointBuilderForMethods<
           >
         : never;
     },
-  ): stage3.AppEndpointBuilder<
+  ): AppEndpointBuilder<
     TContext,
     TRefinedContext,
     TValidationError,
@@ -128,7 +131,7 @@ export class AppEndpointBuilderForMethods<
     if (query) {
       handler.queryValidation = core.omit(query, "validator");
     }
-    return new stage3.AppEndpointBuilder({
+    return new AppEndpointBuilder({
       ...this._state,
       methods: Object.assign(
         {},
@@ -209,7 +212,7 @@ export class AppEndpointBuilderForMethodsAndBody<
           >
         : never;
     },
-  ): stage3.AppEndpointBuilder<
+  ): AppEndpointBuilder<
     TContext,
     TRefinedContext,
     TValidationError,
@@ -277,7 +280,7 @@ export class AppEndpointBuilderForMethodsAndBody<
     if (query) {
       handler.queryValidation = core.omit(query, "validator");
     }
-    return new stage3.AppEndpointBuilder({
+    return new AppEndpointBuilder({
       ...this._state,
       methods: Object.assign(
         {},
@@ -293,8 +296,3 @@ export class AppEndpointBuilderForMethodsAndBody<
 export type EndpointHandler<TArgs, THandlerResult> = (
   args: TArgs,
 ) => THandlerResult;
-
-export interface QueryInfo<TValidationError, TArgs> {
-  query?: core.QueryValidatorSpec<unknown, TValidationError, string>;
-  getEndpointArgs: (query: unknown) => TArgs;
-}

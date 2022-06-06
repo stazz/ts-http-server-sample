@@ -1,7 +1,7 @@
 import * as core from "../core";
 import * as md from "../metadata";
 import * as common from "./common";
-import * as stage1 from "./stage1";
+import { AppEndpointBuilderInitial } from ".";
 
 export const bindNecessaryTypes = <
   TContext,
@@ -33,9 +33,7 @@ export class AppEndpointBuilderProvider<
     private readonly _mdProviders: TMetadataProviders,
   ) {}
 
-  public atURL(
-    fragments: TemplateStringsArray,
-  ): stage1.AppEndpointBuilderInitial<
+  public atURL(fragments: TemplateStringsArray): AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
     TValidationError,
@@ -65,7 +63,7 @@ export class AppEndpointBuilderProvider<
     fragments: TemplateStringsArray,
     ...args: TArgs
   ):
-    | stage1.AppEndpointBuilderInitial<
+    | AppEndpointBuilderInitial<
         TContext,
         TRefinedContext,
         TValidationError,
@@ -92,7 +90,7 @@ export class AppEndpointBuilderProvider<
       // URL template has arguments -> return URL data validator which allows to build endpoints
       return {
         validateURLData: (validation) => {
-          return new stage1.AppEndpointBuilderInitial({
+          return new AppEndpointBuilderInitial({
             contextTransform: this._contextTransform,
             fragments,
             methods: {},
@@ -111,7 +109,7 @@ export class AppEndpointBuilderProvider<
     } else {
       // URL has no arguments -> return builder which can build endpoints without URL validation
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return new stage1.AppEndpointBuilderInitial({
+      return new AppEndpointBuilderInitial({
         contextTransform: this._contextTransform,
         fragments,
         methods: {},
@@ -182,10 +180,10 @@ export class AppEndpointBuilderProvider<
   public getMetadataFinalResult(
     mdArgs: {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProvider<
-        infer _,
-        infer _1,
-        infer _2,
-        infer _3,
+        infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
+        infer _1, // eslint-disable-line @typescript-eslint/no-unused-vars
+        infer _2, // eslint-disable-line @typescript-eslint/no-unused-vars
+        infer _3, // eslint-disable-line @typescript-eslint/no-unused-vars
         infer TArg,
         unknown
       >
@@ -194,23 +192,23 @@ export class AppEndpointBuilderProvider<
     },
     endpoints: ReadonlyArray<{
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProvider<
-        infer _,
-        infer _1,
+        infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
+        infer _1, // eslint-disable-line @typescript-eslint/no-unused-vars
         infer TEndpointMD,
-        infer _2,
-        infer _3,
-        infer _4
+        infer _2, // eslint-disable-line @typescript-eslint/no-unused-vars
+        infer _3, // eslint-disable-line @typescript-eslint/no-unused-vars
+        infer _4 // eslint-disable-line @typescript-eslint/no-unused-vars
       >
         ? Array<TEndpointMD>
         : never;
     }>,
   ): {
     [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProvider<
-      infer _,
-      infer _1,
-      infer _2,
-      infer _3,
-      infer _4,
+      infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
+      infer _1, // eslint-disable-line @typescript-eslint/no-unused-vars
+      infer _2, // eslint-disable-line @typescript-eslint/no-unused-vars
+      infer _3, // eslint-disable-line @typescript-eslint/no-unused-vars
+      infer _4, // eslint-disable-line @typescript-eslint/no-unused-vars
       infer TResult
     >
       ? TResult
@@ -223,11 +221,11 @@ export class AppEndpointBuilderProvider<
       ),
     ) as {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataProvider<
-        infer _,
-        infer _1,
-        infer _2,
-        infer _3,
-        infer _4,
+        infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
+        infer _1, // eslint-disable-line @typescript-eslint/no-unused-vars
+        infer _2, // eslint-disable-line @typescript-eslint/no-unused-vars
+        infer _3, // eslint-disable-line @typescript-eslint/no-unused-vars
+        infer _4, // eslint-disable-line @typescript-eslint/no-unused-vars
         infer TResult
       >
         ? TResult
@@ -255,7 +253,7 @@ export interface URLDataNames<
     },
   >(
     validation: TValidation,
-  ) => stage1.AppEndpointBuilderInitial<
+  ) => AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
     TValidationError,
