@@ -4,3 +4,6 @@ The URL prefix is specified as string.
 The returned `AppEndpoint` will correctly route the request to correct actual handler.
 
 The `atPefix` effectively introduces monoidical-ish behaviour to `AppEndpoint`s.
+
+Notice that prefixed `AppEndpoint` still returns exactly *one* RegExp object, that can be used to match the URL pathname.
+This one object will then contain enough information for prefixed `AppEndpoint` to identify which actual endpoint to invoke.

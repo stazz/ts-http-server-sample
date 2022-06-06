@@ -1,7 +1,6 @@
 import * as core from "../core";
 
 import * as stream from "stream";
-import * as q from "querystring";
 import * as u from "url";
 
 export const checkURLPathNameForHandler = <TValidationError, TContext>(
@@ -174,7 +173,9 @@ export const checkQueryForHandler = <TValidationError, TContext>(
     TValidationError
   >["queryValidator"],
   queryString: string,
-  queryObject: q.ParsedUrlQuery | (() => TValidationError),
+  queryObject:
+    | Record<string, string | Array<string> | undefined>
+    | (() => TValidationError),
 ) => {
   let proceedToInvokeHandler: boolean;
   let query: unknown;
