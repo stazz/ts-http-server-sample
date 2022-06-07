@@ -26,13 +26,7 @@ export type Kind<
       _TBody: TBody;
       _TOutput: TOutput;
     })["type"]
-  : {
-      readonly _F: F;
-      readonly _TURLData: () => TURLData;
-      readonly TQuery: () => TQuery;
-      readonly TBody: () => TBody;
-      readonly TOutput: () => TOutput;
-    };
+  : never; // This is simplified version from original HKT pattern in the link, because we don't use the functional properties of this specific HKT.
 
 export interface MetadataProvider<
   TArgument extends HKTArg,

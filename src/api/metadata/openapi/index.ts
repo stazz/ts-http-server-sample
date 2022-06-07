@@ -64,8 +64,8 @@ type OpenAPIPathItemArg = Omit<
 >;
 
 export interface PathsObjectInfo {
-  urlDescription: string;
-  path: openapi.PathItemObject;
+  urlPath: string;
+  pathObject: openapi.PathItemObject;
 }
 
 // TODO - the argument would be callback to get JSON schema from data validator.
@@ -84,8 +84,8 @@ export const createOpenAPIProvider = (): md.MetadataProvider<
     initialContextArgs,
     ({ securitySchemes }) => ({
       getEndpointsMetadata: (pathItemBase, urlSpec, methods) => {
-        const path: openapi.PathItemObject = { ...pathItemBase };
-        path.parameters = urlSpec
+        const pathObject: openapi.PathItemObject = { ...pathItemBase };
+        pathObject.parameters = urlSpec
           .filter((s): s is md.URLParameterSpec => typeof s !== "string")
           .map(({ name }) => ({
             name: name,
@@ -96,7 +96,7 @@ export const createOpenAPIProvider = (): md.MetadataProvider<
           if (specs) {
             const parameters: Array<openapi.ParameterObject> = [];
             (
-              path as {
+              pathObject as {
                 [method in openapi.HttpMethods]?: openapi.OperationObject;
               }
             )[method.toLowerCase() as Lowercase<openapi.HttpMethods>] = {
@@ -104,16 +104,16 @@ export const createOpenAPIProvider = (): md.MetadataProvider<
               security: securitySchemes.map(({ name }) => ({ [name]: [] })),
             };
             parameters.push(
-              ...Object.entries(specs.querySpec?.isParameterRequired ?? {}).map(
-                ([qParamName, isRequired]) => ({
-                  in: "query",
-                  name: qParamName,
-                  isRequired,
-                }),
-              ),
+              ...Object.entries(
+                specs.querySpec?.isParameterRequired ?? {},
+              ).map<openapi.ParameterObject>(([qParamName, required]) => ({
+                in: "query",
+                name: qParamName,
+                required,
+              })),
             );
             if (parameters.length > 0) {
-              path.parameters = parameters;
+              pathObject.parameters = parameters;
             }
           }
         }
@@ -125,8 +125,8 @@ export const createOpenAPIProvider = (): md.MetadataProvider<
           )
           .join("");
         return (urlPrefix) => ({
-          urlDescription: `${urlPrefix}${urlString}`,
-          path,
+          urlPath: `${urlPrefix}${urlString}`,
+          pathObject,
         });
       },
     }),
@@ -140,7 +140,7 @@ export const createOpenAPIProvider = (): md.MetadataProvider<
           ),
         },
         paths: Object.fromEntries(
-          paths.map(({ urlDescription, path }) => [urlDescription, path]),
+          paths.map(({ urlPath, pathObject }) => [urlPath, pathObject]),
         ),
       };
       return doc;
