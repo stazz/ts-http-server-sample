@@ -48,8 +48,7 @@ export const queryValidator = <
   { [P in TRequired]: t.TypeOf<TValidation[P]["validation"]> } & {
     [P in TOptional]?: t.TypeOf<TValidation[P]["validation"]>;
   },
-  ValidationError,
-  TRequired | TOptional
+  ValidationError
 > => {
   const initialValidator = plainValidator(
     t.exact(
@@ -104,7 +103,11 @@ export const queryValidator = <
         ValidationError
       >,
     },
-    queryParameterNames: [...required, ...optional],
+    isParameterRequired: Object.fromEntries(
+      required
+        .map<[string, boolean]>((r) => [r, true])
+        .concat(optional.map((o) => [o, false])),
+    ),
   };
 };
 

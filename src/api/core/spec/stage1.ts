@@ -49,13 +49,9 @@ export class AppEndpointBuilderInitial<
     common.EndpointHandlerArgs<TRefinedContext>,
     TMetadataProviders
   >;
-  public forMethod<
-    TMethods extends TAllowedMethods,
-    TQuery,
-    TQueryKeys extends string,
-  >(
+  public forMethod<TMethods extends TAllowedMethods, TQuery>(
     method: TMethods & core.HttpMethodWithoutBody,
-    query: core.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>,
+    query: core.QueryValidatorSpec<TQuery, TValidationError>,
   ): AppEndpointBuilderForMethods<
     TContext,
     TRefinedContext,
@@ -66,13 +62,9 @@ export class AppEndpointBuilderInitial<
       common.EndpointHandlerArgsWithQuery<TQuery>,
     TMetadataProviders
   >;
-  public forMethod<
-    TMethods extends TAllowedMethods,
-    TQuery,
-    TQueryKeys extends string,
-  >(
+  public forMethod<TMethods extends TAllowedMethods, TQuery>(
     method: TMethods & core.HttpMethodWithBody,
-    query: core.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>,
+    query: core.QueryValidatorSpec<TQuery, TValidationError>,
   ): AppEndpointBuilderForMethodsAndBody<
     TContext,
     TRefinedContext,
@@ -83,15 +75,9 @@ export class AppEndpointBuilderInitial<
       common.EndpointHandlerArgsWithQuery<TQuery>,
     TMetadataProviders
   >;
-  forMethod<
-    TMethods extends TAllowedMethods,
-    TQuery,
-    TQueryKeys extends string,
-  >(
+  forMethod<TMethods extends TAllowedMethods, TQuery>(
     method: TMethods,
-    query?:
-      | core.QueryValidatorSpec<TQuery, TValidationError, TQueryKeys>
-      | undefined,
+    query?: core.QueryValidatorSpec<TQuery, TValidationError> | undefined,
   ):
     | AppEndpointBuilderForMethods<
         TContext,

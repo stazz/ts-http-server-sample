@@ -102,13 +102,9 @@ export type ContextValidator<TContext, TRefinedContext, TValidationError> =
       }
   >;
 
-export interface QueryValidatorSpec<
-  TQuery,
-  TValidationError,
-  TQueryKeys extends string,
-> {
+export interface QueryValidatorSpec<TQuery, TValidationError> {
   validator: QueryValidator<TQuery, TValidationError>;
-  queryParameterNames: ReadonlyArray<TQueryKeys>;
+  isParameterRequired: Record<string, boolean>;
 }
 
 export type QueryValidator<TQuery, TValidationError> =

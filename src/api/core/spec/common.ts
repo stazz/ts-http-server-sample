@@ -17,6 +17,6 @@ export interface EndpointHandlerArgsWithBody<TBody> {
 }
 
 export interface QueryInfo<TValidationError, TArgs> {
-  query?: core.QueryValidatorSpec<unknown, TValidationError, string>;
+  query?: core.QueryValidatorSpec<unknown, TValidationError>;
   getEndpointArgs: (query: unknown) => TArgs;
 }

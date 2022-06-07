@@ -104,11 +104,13 @@ export const createOpenAPIProvider = (): md.MetadataProvider<
               security: securitySchemes.map(({ name }) => ({ [name]: [] })),
             };
             parameters.push(
-              ...(specs.querySpec?.queryParameterNames.map((qParamName) => ({
-                in: "query",
-                name: qParamName,
-                // TODO required
-              })) ?? []),
+              ...Object.entries(specs.querySpec?.isParameterRequired ?? {}).map(
+                ([qParamName, isRequired]) => ({
+                  in: "query",
+                  name: qParamName,
+                  isRequired,
+                }),
+              ),
             );
             if (parameters.length > 0) {
               path.parameters = parameters;

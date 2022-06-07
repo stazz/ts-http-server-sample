@@ -50,7 +50,7 @@ export interface StaticAppEndpointBuilderSpec<
 > {
   builder: StaticAppEndpointBuilder<TContext, TRefinedContext, TBodyError>;
   queryValidation?: Omit<
-    core.QueryValidatorSpec<unknown, TBodyError, string>,
+    core.QueryValidatorSpec<unknown, TBodyError>,
     "validator"
   >;
   inputValidation?: Omit<

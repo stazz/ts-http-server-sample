@@ -136,10 +136,7 @@ export interface MetadataBuilder<
         string,
         {
           querySpec:
-            | Omit<
-                core.QueryValidatorSpec<unknown, unknown, string>,
-                "validator"
-              >
+            | Omit<core.QueryValidatorSpec<unknown, unknown>, "validator">
             | undefined;
           inputSpec:
             | Omit<
