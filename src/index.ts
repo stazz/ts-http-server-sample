@@ -22,7 +22,7 @@ const middlewareFactory = koa.koaMiddlewareFactory(
   ),
 );
 
-const middleWareToSetUsernameFromJWTToken = (): Koa.Middleware<
+const middleWareToSetUsernameFromBasicAuth = (): Koa.Middleware<
   Partial<endpoints.KoaState>
 > => {
   return async (ctx, next) => {
@@ -62,7 +62,7 @@ middlewareFactory
     // Create Koa app
     new Koa()
       // First do auth (will modify context's state)
-      .use(middleWareToSetUsernameFromJWTToken()),
+      .use(middleWareToSetUsernameFromBasicAuth()),
     // Hook up to events of the applications
     {
       onInvalidBody: ({ ctx: { state, method, url }, validationError }) => {

@@ -41,6 +41,8 @@ export const createEndpoints = (
     // All endpoints must specify enough metadata to be able to auto-generate OpenAPI specification
     .withMetadataProvider("openapi", openapi.createOpenAPIProvider());
 
+  // Add validation that some previous middleware has set the username to Koa state.
+  // Instruct validation to return error code 403 if no username has been set (= no auth).
   const authenticated = notAuthenticated.refineContext(
     koa.validateContextState(
       tPlugin.plainValidator(koaState),
