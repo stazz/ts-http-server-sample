@@ -38,17 +38,17 @@ This file contains the code which fully specifies the REST API - its endpoints, 
 Such code does not need to be in one file, however, for this sample, it is located in just one file.
 
 The following things are good experiments to do in `src/rest-endpoint.ts` to kick off full project exploration:
-- On line `63` ( ``urlBuilder.atURL`/${"id"}` ``), try change the literal `"id"` into other literal, like `"id_typoed"`.
+- On line `72` ( ``notAuthenticated.atURL`/${"id"}` ``), try change the literal `"id"` into other literal, like `"id_typoed"`.
   Observe immediate compile-time errors.
 - On same line, try to change the literal `"id"` into e.g. number `42` or even reference to some string variable.
   Observe immediate compile-time errors.
-- On line `66` ( `id: tPlugin.urlParameter(tPlugin.parameterString(idInBody), idRegex),` ), try change the property name from `id` to something else, like `id_typoed`.
+- On line `75` ( `id: tPlugin.urlParameter(tPlugin.parameterString(idInBody), idRegex),` ), try change the property name from `id` to something else, like `id_typoed`.
   Observe immediate compile-time errors.
-- On line `78` ( `.withoutBody(` ), try change the invoked method name to `withBody`.
+- On line `87` ( `.withoutBody(` ), try change the invoked method name to `withBody`.
   Observe immediate compile-time errors (because `"GET"` handlers can not specify body).
-- On line `80` ( `({ url: { id }, query: { includeDeleted } }) =>` ), try to change the property name of the argument (`{ id }` into something else, like `{ id_typoed }`).
+- On line `89` ( `({ url: { id }, query: { includeDeleted } }) =>` ), try to change the property name of the argument (`{ id }` into something else, like `{ id_typoed }`).
   Observe immediate compile-time errors.
-- On line `83` ( `tPlugin.outputValidator(t.string)` ), try change the output type `t.string` to something else, like `t.number`, so that the line becomes `tPlugin.outputValidator(t.number)`.
+- On line `92` ( `tPlugin.outputValidator(t.string)` ), try change the output type `t.string` to something else, like `t.number`, so that the line becomes `tPlugin.outputValidator(t.number)`.
   Observe immediate compile-time errors.
 - Feel free to try similar things with other endpoints, and other places in the code.
   All folder in [source code folder](src) also contain `README.md` files for documentation.
