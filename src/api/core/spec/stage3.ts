@@ -6,6 +6,7 @@ import { AppEndpointBuilderInitial } from ".";
 export class AppEndpointBuilder<
   TContext,
   TRefinedContext,
+  TState,
   TValidationError,
   TArgsURL,
   TAllowedMethods extends core.HttpMethod,
@@ -16,6 +17,7 @@ export class AppEndpointBuilder<
 > extends AppEndpointBuilderInitial<
   TContext,
   TRefinedContext,
+  TState,
   TValidationError,
   TArgsURL,
   TAllowedMethods,
@@ -161,6 +163,7 @@ const buildURLRegExp = (
 const constructMDResults = <
   TContext,
   TRefinedContext,
+  TState,
   TValidationError,
   TMetadata extends Record<
     string,
@@ -173,6 +176,7 @@ const constructMDResults = <
   }: state.AppEndpointBuilderState<
     TContext,
     TRefinedContext,
+    TState,
     TValidationError,
     TMetadata
   >,

@@ -16,6 +16,7 @@ export const validateContextState = <TData, TError, TInput>(
 ): core.ContextValidatorSpec<
   koa.ParameterizedContext<TInput>,
   koa.ParameterizedContext<TData>,
+  TData,
   TError
 > => ({
   validator: (ctx) => {
@@ -45,6 +46,7 @@ export const validateContextState = <TData, TError, TInput>(
             };
     }
   },
+  getState: (ctx) => ctx.state,
 });
 
 // Using given various endpoints, create object which is able to create Koa middlewares.
@@ -103,18 +105,22 @@ export const koaMiddlewareFactory = <TValidationError>(
               contextValidator,
             );
             if (contextValidation.result === "context") {
+              const eventArgsWithState = {
+                ...eventArgs,
+                state: contextValidation.getState(contextValidation.context),
+              };
               // State was OK, validate url & query & body
               const [proceedAfterURL, url] =
                 server.checkURLParametersForHandler(
                   events,
-                  eventArgs,
+                  eventArgsWithState,
                   groups,
                   urlValidator,
                 );
               if (proceedAfterURL) {
                 const [proceedAfterQuery, query] = server.checkQueryForHandler(
                   events,
-                  eventArgs,
+                  eventArgsWithState,
                   queryValidator,
                   ctx.querystring,
                   ctx.query,
@@ -123,7 +129,7 @@ export const koaMiddlewareFactory = <TValidationError>(
                   const [proceedAfterBody, body] =
                     await server.checkBodyForHandler(
                       events,
-                      eventArgs,
+                      eventArgsWithState,
                       bodyValidator,
                       ctx.get("content-type"),
                       ctx.req,
@@ -131,10 +137,13 @@ export const koaMiddlewareFactory = <TValidationError>(
                   if (proceedAfterBody) {
                     const retVal = server.invokeHandler(
                       events,
-                      eventArgs,
+                      eventArgsWithState,
                       handler,
                       {
                         context: contextValidation.context,
+                        state: contextValidation.getState(
+                          contextValidation.context,
+                        ),
                         url,
                         body,
                         query,
@@ -192,8 +201,9 @@ export interface KoaMiddlewareFactory<TValidationError> {
   use: <TState>(
     previous: koa<TState>,
     events?: server.RequestProcessingEvents<
-      TValidationError,
-      koa.ParameterizedContext<TState>
+      koa.ParameterizedContext<TState>,
+      TState,
+      TValidationError
     >,
   ) => koa<TState>;
 }

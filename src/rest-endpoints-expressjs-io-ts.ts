@@ -24,7 +24,7 @@ export const state = t.type(
   },
   "KoaState", // Friendly name for error messages
 );
-export type KoaState = t.TypeOf<typeof state>;
+export type State = t.TypeOf<typeof state>;
 
 // Function to create REST API specification, utilizing generic REST API things in ./api and our functionality in ./lib.
 export const createEndpoints = (
@@ -34,7 +34,7 @@ export const createEndpoints = (
   const initial = spec
     // Lock in to Koa and IO-TS
     .bindNecessaryTypes<
-      server.Context<Partial<KoaState>>,
+      server.Context<Partial<State>>,
       tPlugin.ValidationError
     >();
   const notAuthenticated = initial

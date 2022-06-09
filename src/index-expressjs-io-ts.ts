@@ -27,7 +27,7 @@ const middleWareToSetUsernameFromBasicAuth = (): express.RequestHandler<
   any,
   any,
   Record<string, string>,
-  Partial<endpoints.KoaState>
+  Partial<endpoints.State>
 > => {
   return (req, res, next) => {
     const auth = req.get("authorization") ?? "";

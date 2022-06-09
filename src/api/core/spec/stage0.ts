@@ -3,14 +3,20 @@ import * as md from "../metadata";
 import * as common from "./common";
 import { AppEndpointBuilderInitial } from ".";
 
-export const bindNecessaryTypes = <
+export const bindNecessaryTypes = <TContext, TState, TValidationError>(
+  getInitialState: (ctx: TContext) => TState,
+): AppEndpointBuilderProvider<
   TContext,
+  TContext,
+  TState,
   TValidationError,
   // eslint-disable-next-line @typescript-eslint/ban-types
->(): AppEndpointBuilderProvider<TContext, TContext, TValidationError, {}> =>
+  {}
+> =>
   new AppEndpointBuilderProvider(
     {
       validator: (ctx) => ({ error: "none", data: ctx }),
+      getState: getInitialState,
     },
     {},
   );
@@ -18,6 +24,7 @@ export const bindNecessaryTypes = <
 export class AppEndpointBuilderProvider<
   TContext,
   TRefinedContext,
+  TState,
   TValidationError,
   TMetadataProviders extends Record<
     string,
@@ -28,6 +35,7 @@ export class AppEndpointBuilderProvider<
     private readonly _contextTransform: core.ContextValidatorSpec<
       TContext,
       TRefinedContext,
+      TState,
       TValidationError
     >,
     private readonly _mdProviders: TMetadataProviders,
@@ -36,6 +44,7 @@ export class AppEndpointBuilderProvider<
   public atURL(fragments: TemplateStringsArray): AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
+    TState,
     TValidationError,
     {}, // eslint-disable-line @typescript-eslint/ban-types
     core.HttpMethod,
@@ -51,6 +60,7 @@ export class AppEndpointBuilderProvider<
   ): URLDataNames<
     TContext,
     TRefinedContext,
+    TState,
     TValidationError,
     TArgs[number],
     {
@@ -66,6 +76,7 @@ export class AppEndpointBuilderProvider<
     | AppEndpointBuilderInitial<
         TContext,
         TRefinedContext,
+        TState,
         TValidationError,
         {}, // eslint-disable-line @typescript-eslint/ban-types
         core.HttpMethod,
@@ -78,6 +89,7 @@ export class AppEndpointBuilderProvider<
     | URLDataNames<
         TContext,
         TRefinedContext,
+        TState,
         TValidationError,
         TArgs[number],
         {
@@ -122,10 +134,11 @@ export class AppEndpointBuilderProvider<
     }
   }
 
-  public refineContext<TNewContext>(
+  public refineContext<TNewContext, TNewState>(
     transform: core.ContextValidatorSpec<
       TRefinedContext,
       TNewContext,
+      TNewState,
       TValidationError
     >,
     mdArgs: {
@@ -136,6 +149,7 @@ export class AppEndpointBuilderProvider<
   ): AppEndpointBuilderProvider<
     TContext,
     TNewContext,
+    TNewState,
     TValidationError,
     TMetadataProviders
   > {
@@ -168,6 +182,7 @@ export class AppEndpointBuilderProvider<
   ): AppEndpointBuilderProvider<
     TContext,
     TRefinedContext,
+    TState,
     TValidationError,
     TMetadataProviders & { [P in TMetadataKind]: TMetadataProvider }
   > {
@@ -237,6 +252,7 @@ export class AppEndpointBuilderProvider<
 export interface URLDataNames<
   TContext,
   TRefinedContext,
+  TState,
   TValidationError,
   TNames extends string,
   TMetadataProviders extends Record<
@@ -256,6 +272,7 @@ export interface URLDataNames<
   ) => AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
+    TState,
     TValidationError,
     common.EndpointHandlerArgsWithURL<{
       [P in TNames]: core.URLParameterDataType<TValidation[P]["validator"]>;

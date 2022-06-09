@@ -59,10 +59,9 @@ export type DynamicHandlerResponse<
     };
 
 export type StaticAppEndpointHandler<TContext, TRefinedContext, TBodyError> = {
-  contextValidator: data.ContextValidator<
-    TContext,
-    TRefinedContext,
-    TBodyError
+  contextValidator: Pick<
+    data.ContextValidatorSpec<TContext, TRefinedContext, unknown, TBodyError>,
+    "validator" | "getState"
   >;
   urlValidator:
     | Record<
@@ -80,6 +79,7 @@ export type StaticAppEndpointHandler<TContext, TRefinedContext, TBodyError> = {
 
 export type StaticAppEndpointHandlerFunction<TContext, TBodyError> = (args: {
   context: TContext;
+  state: unknown;
   url: unknown;
   query: unknown;
   body: unknown;

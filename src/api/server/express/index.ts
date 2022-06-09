@@ -18,7 +18,12 @@ export const validateContextState = <TData, TError, TInput>(
         statusCode: number;
         body: string | undefined;
       },
-): core.ContextValidatorSpec<Context<TInput>, Context<TData>, TError> => ({
+): core.ContextValidatorSpec<
+  Context<TInput>,
+  Context<TData>,
+  TData,
+  TError
+> => ({
   validator: (ctx) => {
     const transformed = validator(ctx.res.locals);
     switch (transformed.error) {
@@ -46,6 +51,7 @@ export const validateContextState = <TData, TError, TInput>(
             };
     }
   },
+  getState: (ctx) => ctx.res.locals,
 });
 
 // Using given various endpoints, create object which is able to create ExpressJS middlewares.
@@ -139,6 +145,9 @@ export const middlewareFactory = <TValidationError>(
                       handler,
                       {
                         context: contextValidation.context,
+                        state: contextValidation.getState(
+                          contextValidation.context,
+                        ),
                         url,
                         body,
                         query,

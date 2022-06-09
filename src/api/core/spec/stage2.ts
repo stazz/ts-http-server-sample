@@ -7,6 +7,7 @@ import { AppEndpointBuilder } from ".";
 export class AppEndpointBuilderForMethods<
   TContext,
   TRefinedContext,
+  TState,
   TValidationError,
   TArgsURL,
   TAllowedMethods extends core.HttpMethod,
@@ -20,6 +21,7 @@ export class AppEndpointBuilderForMethods<
     protected readonly _state: state.AppEndpointBuilderState<
       TContext,
       TRefinedContext,
+      TState,
       TValidationError,
       TMetadataProviders
     >,
@@ -35,7 +37,9 @@ export class AppEndpointBuilderForMethods<
     TOutputValidatorSpec extends Record<string, unknown>,
   >(
     endpointHandler: EndpointHandler<
-      TArgsURL & TArgsQuery & common.EndpointHandlerArgs<TRefinedContext>,
+      TArgsURL &
+        TArgsQuery &
+        common.EndpointHandlerArgs<TRefinedContext, TState>,
       TOutput
     >,
     {
@@ -68,6 +72,7 @@ export class AppEndpointBuilderForMethods<
   ): AppEndpointBuilder<
     TContext,
     TRefinedContext,
+    TState,
     TValidationError,
     TArgsURL,
     Exclude<core.HttpMethod, TAllowedMethods>,
@@ -88,7 +93,7 @@ export class AppEndpointBuilderForMethods<
           TRefinedContext,
           TValidationError
         > = {
-          contextValidator: contextTransform.validator,
+          contextValidator: contextTransform, // TODO use runtime pick props here!
           urlValidator: urlValidation
             ? Object.fromEntries(
                 Object.entries(urlValidation.validation).map(
@@ -105,10 +110,11 @@ export class AppEndpointBuilderForMethods<
               )
             : undefined,
           queryValidator: query?.validator,
-          handler: ({ context, url, query }) => {
+          handler: ({ context, state, url, query }) => {
             const handlerArgs = {
               ...getEndpointArgs(query),
               context,
+              state,
             };
             if (urlValidation) {
               (
@@ -147,6 +153,7 @@ export class AppEndpointBuilderForMethods<
 export class AppEndpointBuilderForMethodsAndBody<
   TContext,
   TRefinedContext,
+  TState,
   TValidationError,
   TArgsURL,
   TAllowedMethods extends core.HttpMethod,
@@ -158,6 +165,7 @@ export class AppEndpointBuilderForMethodsAndBody<
 > extends AppEndpointBuilderForMethods<
   TContext,
   TRefinedContext,
+  TState,
   TValidationError,
   TArgsURL,
   TAllowedMethods,
@@ -181,7 +189,7 @@ export class AppEndpointBuilderForMethodsAndBody<
     endpointHandler: EndpointHandler<
       TArgsURL &
         TArgsQuery &
-        common.EndpointHandlerArgs<TRefinedContext> &
+        common.EndpointHandlerArgs<TRefinedContext, TState> &
         common.EndpointHandlerArgsWithBody<TBody>,
       THandlerResult
     >,
@@ -215,6 +223,7 @@ export class AppEndpointBuilderForMethodsAndBody<
   ): AppEndpointBuilder<
     TContext,
     TRefinedContext,
+    TState,
     TValidationError,
     TArgsURL,
     Exclude<core.HttpMethod, TAllowedMethods>,
@@ -236,7 +245,7 @@ export class AppEndpointBuilderForMethodsAndBody<
           TRefinedContext,
           TValidationError
         > = {
-          contextValidator: contextTransform.validator,
+          contextValidator: contextTransform, // TODO use runtime pick props here!
           urlValidator: urlValidation
             ? Object.fromEntries(
                 Object.entries(urlValidation.validation).map(
@@ -254,10 +263,11 @@ export class AppEndpointBuilderForMethodsAndBody<
             : undefined,
           queryValidator: query?.validator,
           bodyValidator: inputValidator,
-          handler: ({ context, url, body, query }) => {
+          handler: ({ context, state, url, body, query }) => {
             const handlerArgs = {
               ...getEndpointArgs(query),
               context,
+              state,
               body: body as TBody,
             };
             if (urlValidation) {

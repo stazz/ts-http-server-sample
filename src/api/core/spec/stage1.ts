@@ -10,6 +10,7 @@ import {
 export class AppEndpointBuilderInitial<
   TContext,
   TRefinedContext,
+  TState,
   TValidationError,
   TArgsURL,
   TAllowedMethods extends core.HttpMethod,
@@ -22,6 +23,7 @@ export class AppEndpointBuilderInitial<
     protected readonly _state: state.AppEndpointBuilderState<
       TContext,
       TRefinedContext,
+      TState,
       TValidationError,
       TMetadataProviders
     >,
@@ -32,10 +34,11 @@ export class AppEndpointBuilderInitial<
   ): AppEndpointBuilderForMethods<
     TContext,
     TRefinedContext,
+    TState,
     TValidationError,
     TArgsURL,
     TMethods,
-    common.EndpointHandlerArgs<TRefinedContext>,
+    common.EndpointHandlerArgs<TRefinedContext, TState>,
     TMetadataProviders
   >;
   public forMethod<TMethods extends TAllowedMethods>(
@@ -43,10 +46,11 @@ export class AppEndpointBuilderInitial<
   ): AppEndpointBuilderForMethodsAndBody<
     TContext,
     TRefinedContext,
+    TState,
     TValidationError,
     TArgsURL,
     TMethods,
-    common.EndpointHandlerArgs<TRefinedContext>,
+    common.EndpointHandlerArgs<TRefinedContext, TState>,
     TMetadataProviders
   >;
   public forMethod<TMethods extends TAllowedMethods, TQuery>(
@@ -55,10 +59,11 @@ export class AppEndpointBuilderInitial<
   ): AppEndpointBuilderForMethods<
     TContext,
     TRefinedContext,
+    TState,
     TValidationError,
     TArgsURL,
     TMethods,
-    common.EndpointHandlerArgs<TRefinedContext> &
+    common.EndpointHandlerArgs<TRefinedContext, TState> &
       common.EndpointHandlerArgsWithQuery<TQuery>,
     TMetadataProviders
   >;
@@ -68,10 +73,11 @@ export class AppEndpointBuilderInitial<
   ): AppEndpointBuilderForMethodsAndBody<
     TContext,
     TRefinedContext,
+    TState,
     TValidationError,
     TArgsURL,
     TMethods,
-    common.EndpointHandlerArgs<TRefinedContext> &
+    common.EndpointHandlerArgs<TRefinedContext, TState> &
       common.EndpointHandlerArgsWithQuery<TQuery>,
     TMetadataProviders
   >;
@@ -82,20 +88,22 @@ export class AppEndpointBuilderInitial<
     | AppEndpointBuilderForMethods<
         TContext,
         TRefinedContext,
+        TState,
         TValidationError,
         TArgsURL,
         TMethods,
-        | common.EndpointHandlerArgs<TRefinedContext>
+        | common.EndpointHandlerArgs<TRefinedContext, TState>
         | common.EndpointHandlerArgsWithQuery<TQuery>,
         TMetadataProviders
       >
     | AppEndpointBuilderForMethodsAndBody<
         TContext,
         TRefinedContext,
+        TState,
         TValidationError,
         TArgsURL,
         TMethods,
-        | common.EndpointHandlerArgs<TRefinedContext>
+        | common.EndpointHandlerArgs<TRefinedContext, TState>
         | common.EndpointHandlerArgsWithQuery<TQuery>,
         TMetadataProviders
       > {

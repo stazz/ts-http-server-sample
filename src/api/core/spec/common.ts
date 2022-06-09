@@ -1,7 +1,8 @@
 import * as core from "../core";
 
-export interface EndpointHandlerArgs<TContext> {
+export interface EndpointHandlerArgs<TContext, TState> {
   context: TContext;
+  state: TState;
 }
 
 export interface EndpointHandlerArgsWithURL<TDataInURL> {

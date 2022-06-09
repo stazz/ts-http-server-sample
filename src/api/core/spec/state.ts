@@ -4,6 +4,7 @@ import * as md from "../metadata";
 export interface AppEndpointBuilderState<
   TContext,
   TRefinedContext,
+  TState,
   TValidationError,
   TMetadata extends Record<
     string,
@@ -25,6 +26,7 @@ export interface AppEndpointBuilderState<
   contextTransform: core.ContextValidatorSpec<
     TContext,
     TRefinedContext,
+    TState,
     TValidationError
   >;
   metadata: TMetadata;

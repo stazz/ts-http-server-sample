@@ -84,9 +84,11 @@ export type DataValidatorResponseOutputSuccess = {
 export interface ContextValidatorSpec<
   TContext,
   TRefinedContext,
+  TState,
   TValidationError,
 > {
   validator: ContextValidator<TContext, TRefinedContext, TValidationError>;
+  getState: (ctx: TRefinedContext) => TState;
 }
 
 export type ContextValidator<TContext, TRefinedContext, TValidationError> =
