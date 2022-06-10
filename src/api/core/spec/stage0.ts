@@ -3,11 +3,15 @@ import * as md from "../metadata";
 import * as common from "./common";
 import { AppEndpointBuilderInitial } from ".";
 
-export const bindNecessaryTypes = <TContext, TState, TValidationError>(
-  getInitialState: (ctx: TContext) => TState,
+export const bindNecessaryTypes = <
+  TContext extends core.HKTContext,
+  TState,
+  TValidationError,
+>(
+  getInitialState: (ctx: core.HKTContextKind<TContext, TState>) => TState,
 ): AppEndpointBuilderProvider<
-  TContext,
-  TContext,
+  core.HKTContextKind<TContext, TState>,
+  core.HKTContextKind<TContext, TState>,
   TState,
   TValidationError,
   // eslint-disable-next-line @typescript-eslint/ban-types
@@ -21,6 +25,7 @@ export const bindNecessaryTypes = <TContext, TState, TValidationError>(
     {},
   );
 
+// TODO use ContextHKT in these
 export class AppEndpointBuilderProvider<
   TContext,
   TRefinedContext,

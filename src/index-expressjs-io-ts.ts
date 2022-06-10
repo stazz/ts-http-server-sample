@@ -1,5 +1,6 @@
 // Import code to create REST API endpoints
-import * as endpoints from "./rest-endpoints-expressjs-io-ts";
+import * as spec from "./api/core/spec";
+import * as endpoints from "./rest-endpoints";
 
 // Lock in our vendor choices:
 // IO-TS as data runtime validator
@@ -14,13 +15,29 @@ import * as server from "./api/server/express";
 // Create middleware in such way that IDs are valid UUID strings (instead of any strings).
 // Any amount of endpoint informations can be passed to createKoaMiddleware - there always will be exactly one RegExp generated to perform endpoint match.
 const middlewareFactory = server.middlewareFactory(
-  ...endpoints.createEndpoints(
+  ...endpoints.createEndpoints<server.HKTContext>(
+    spec
+      // Lock in to Koa and IO-TS
+      .bindNecessaryTypes<
+        server.HKTContext,
+        Partial<endpoints.State>,
+        tPlugin.ValidationError
+      >((ctx) => ctx.res.locals),
+    server.validateContextState,
     // This is RFC-adhering UUID regex. Relax if needed.
     // Taken from https://stackoverflow.com/questions/7905929/how-to-test-valid-uuid-guid
     /[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}/i,
     tt.UUID, // Too bad that io-ts-types does not expose UUID regex it uses (t.string as unknown as t.BrandC<t.StringC, never>),
   ),
 );
+// const middlewareFactory = server.middlewareFactory(
+//   ...endpoints.createEndpoints(
+//     // This is RFC-adhering UUID regex. Relax if needed.
+//     // Taken from https://stackoverflow.com/questions/7905929/how-to-test-valid-uuid-guid
+//     /[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}/i,
+//     tt.UUID, // Too bad that io-ts-types does not expose UUID regex it uses (t.string as unknown as t.BrandC<t.StringC, never>),
+//   ),
+// );
 
 const middleWareToSetUsernameFromBasicAuth = (): express.RequestHandler<
   Record<string, string>,
@@ -62,7 +79,7 @@ const middleWareToSetUsernameFromBasicAuth = (): express.RequestHandler<
 
 // Instantiate application
 middlewareFactory
-  .use(
+  .use<Partial<endpoints.State>>(
     // Create Express app
     express
       .default()
@@ -70,7 +87,13 @@ middlewareFactory
       .use(middleWareToSetUsernameFromBasicAuth()),
     // Hook up to events of the applications
     {
-      onInvalidBody: ({ ctx: { state, method, url }, validationError }) => {
+      onInvalidBody: ({
+        state,
+        ctx: {
+          req: { method, url },
+        },
+        validationError,
+      }) => {
         // eslint-disable-next-line no-console
         console.error(
           `Invalid body: ${method} ${url} (user: ${
@@ -80,13 +103,23 @@ middlewareFactory
           )}`,
         );
       },
-      onInvalidUrl: ({ ctx: { state, method, url } }) => {
+      onInvalidUrl: ({
+        ctx: {
+          req: { method, url },
+          res: { locals: state },
+        },
+      }) => {
         // eslint-disable-next-line no-console
         console.error(
           `Invalid URL supplied: ${method} ${url} (user: ${state.username})`,
         );
       },
-      onInvalidUrlParameters: ({ ctx: { method, url }, validationError }) => {
+      onInvalidUrlParameters: ({
+        ctx: {
+          req: { method, url },
+        },
+        validationError,
+      }) => {
         // eslint-disable-next-line no-console
         console.error(
           `Invalid URL parameters supplied: ${method} ${url}.\n${validationError
@@ -94,7 +127,12 @@ middlewareFactory
             .join("  \n")}`,
         );
       },
-      onInvalidQuery: ({ ctx: { method, url }, validationError }) => {
+      onInvalidQuery: ({
+        ctx: {
+          req: { method, url },
+        },
+        validationError,
+      }) => {
         // eslint-disable-next-line no-console
         console.error(
           `Invalid query supplied: ${method} ${url}.\n${tPlugin.getHumanReadableErrorMessage(
@@ -102,19 +140,35 @@ middlewareFactory
           )}`,
         );
       },
-      onInvalidMethod: ({ ctx: { state, method, url } }) => {
+      onInvalidMethod: ({
+        ctx: {
+          req: { method, url },
+          res: { locals: state },
+        },
+      }) => {
         // eslint-disable-next-line no-console
         console.error(
           `Invalid Method supplied: ${method} ${url} (user: ${state.username})`,
         );
       },
-      onInvalidContentType: ({ ctx: { state, method, url }, contentType }) => {
+      onInvalidContentType: ({
+        state,
+        ctx: {
+          req: { method, url },
+        },
+        contentType,
+      }) => {
         // eslint-disable-next-line no-console
         console.error(
           `Invalid content type specified: ${method} ${url} (user: ${state.username}): ${contentType}`,
         );
       },
-      onInvalidContext: ({ ctx: { state }, validationError }) => {
+      onInvalidContext: ({
+        ctx: {
+          res: { locals: state },
+        },
+        validationError,
+      }) => {
         // eslint-disable-next-line no-console
         console.error(
           `State validation failed for ${JSON.stringify(state)}.\n${
@@ -124,7 +178,13 @@ middlewareFactory
           }`,
         );
       },
-      onInvalidResponse: ({ ctx: { state, method, url }, validationError }) => {
+      onInvalidResponse: ({
+        state,
+        ctx: {
+          req: { method, url },
+        },
+        validationError,
+      }) => {
         // eslint-disable-next-line no-console
         console.error(
           `Invalid response: ${method} ${url} (user: ${

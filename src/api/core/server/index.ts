@@ -91,7 +91,7 @@ export const checkContextForHandler = <
     | {
         result: "context";
         context: TRefinedContext;
-        getState: typeof getState;
+        state: ReturnType<typeof getState>;
       }
     | {
         result: "error";
@@ -102,7 +102,7 @@ export const checkContextForHandler = <
     validatedContextOrError = {
       result: "context",
       context: validationResult.data,
-      getState,
+      state: getState(validationResult.data),
     };
   } else {
     const isProtocolError = validationResult.error === "protocol-error";

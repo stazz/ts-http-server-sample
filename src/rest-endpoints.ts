@@ -1,4 +1,5 @@
 // Import generic REST-related things
+import * as core from "./api/core/core";
 import * as spec from "./api/core/spec";
 // Import prefix functionality for REST endpoints
 import * as prefix from "./api/core/prefix";
@@ -12,31 +13,32 @@ import * as t from "io-ts";
 import * as tt from "io-ts-types";
 // Import plugin for IO-TS
 import * as tPlugin from "./api/data/io-ts";
-// Import plugin from generic REST-related things to Koa framework
-import * as koa from "./api/server/koa";
 // Import plugin for OpenAPI metadata
 import * as openapi from "./api/metadata/openapi";
 
 // This is just a dummy for demonstration purposes
-export const koaState = t.type(
+export const stateValidation = t.type(
   {
     username: t.string,
   },
   "KoaState", // Friendly name for error messages
 );
-export type KoaState = t.TypeOf<typeof koaState>;
+export type State = t.TypeOf<typeof stateValidation>;
 
 // Function to create REST API specification, utilizing generic REST API things in ./api and our functionality in ./lib.
-export const createEndpoints = (
+export const createEndpoints = <TContextHKT extends core.HKTContext>(
+  initial: spec.AppEndpointBuilderProvider<
+    core.HKTContextKind<TContextHKT, Partial<State>>,
+    core.HKTContextKind<TContextHKT, Partial<State>>,
+    Partial<State>,
+    t.Errors,
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    {}
+  >,
+  contextValidatorFactory: core.ContextValidatorFactory<TContextHKT>,
   idRegex: RegExp,
   idInBody: t.BrandC<t.StringC, unknown>,
 ) => {
-  const initial = spec
-    // Lock in to Koa and IO-TS
-    .bindNecessaryTypes<
-      koa.KoaContext<Partial<KoaState>>,
-      tPlugin.ValidationError
-    >();
   const notAuthenticated = initial
     // All endpoints must specify enough metadata to be able to auto-generate OpenAPI specification
     .withMetadataProvider("openapi", openapi.createOpenAPIProvider());
@@ -44,11 +46,7 @@ export const createEndpoints = (
   // Add validation that some previous middleware has set the username to Koa state.
   // Instruct validation to return error code 403 if no username has been set (= no auth).
   const authenticated = notAuthenticated.refineContext(
-    koa.validateContextState(
-      tPlugin.plainValidator(koaState),
-      // If username is missing -> there was no authentication -> return 403
-      403,
-    ),
+    contextValidatorFactory(tPlugin.plainValidator(stateValidation), 403),
     {
       openapi: {
         securitySchemes: [
@@ -250,11 +248,8 @@ export const createEndpoints = (
   const secret = authenticated.atURL`/secret`
     .forMethod("GET")
     .withoutBody(
-      ({
-        context: {
-          state: { username },
-        },
-      }) => functionality.doAuthenticatedAction(username),
+      ({ state: { username } }) =>
+        functionality.doAuthenticatedAction(username),
       tPlugin.outputValidator(t.void),
       {
         openapi: {
@@ -300,11 +295,7 @@ export const createEndpoints = (
   const docs = initial.atURL`/api-md`
     .forMethod("GET")
     .withoutBody(
-      ({
-        context: {
-          state: { username },
-        },
-      }) => {
+      ({ state: { username } }) => {
         return username ? authenticatedMetadata : notAuthenticatedMetadata;
       },
       // Proper validator for OpenAPI objects is out of scope of this sample

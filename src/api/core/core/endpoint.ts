@@ -1,5 +1,6 @@
 import * as method from "./methods";
 import * as data from "./data";
+import * as context from "./context";
 
 export interface AppEndpointFunctionality<
   TContext,
@@ -60,7 +61,12 @@ export type DynamicHandlerResponse<
 
 export type StaticAppEndpointHandler<TContext, TRefinedContext, TBodyError> = {
   contextValidator: Pick<
-    data.ContextValidatorSpec<TContext, TRefinedContext, unknown, TBodyError>,
+    context.ContextValidatorSpec<
+      TContext,
+      TRefinedContext,
+      unknown,
+      TBodyError
+    >,
     "validator" | "getState"
   >;
   urlValidator:

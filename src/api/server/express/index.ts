@@ -5,12 +5,16 @@ import * as express from "express";
 import { URL } from "url";
 
 // eslint-disable-next-line @typescript-eslint/ban-types
-export type Context<T = any> = {
+export interface HKTContext extends core.HKTContext {
+  readonly type: Context<this["_TState"]>;
+}
+// eslint-disable-next-line @typescript-eslint/ban-types
+type Context<T = {}> = {
   req: express.Request;
   res: express.Response<any, T>;
 };
 
-export const validateContextState = <TData, TError, TInput>(
+export const validateContextState = <TInput, TData, TError>(
   validator: core.DataValidator<TInput, TData, TError>,
   protocolErrorInfo?:
     | number
@@ -113,18 +117,23 @@ export const middlewareFactory = <TValidationError>(
               contextValidator,
             );
             if (contextValidation.result === "context") {
+              const eventArgsWithState = {
+                ...eventArgs,
+                // eslint-disable-next-line
+                state: contextValidation.state as any,
+              };
               // State was OK, validate url & query & body
               const [proceedAfterURL, url] =
                 server.checkURLParametersForHandler(
                   events,
-                  eventArgs,
+                  eventArgsWithState,
                   groups,
                   urlValidator,
                 );
               if (proceedAfterURL) {
                 const [proceedAfterQuery, query] = server.checkQueryForHandler(
                   events,
-                  eventArgs,
+                  eventArgsWithState,
                   queryValidator,
                   parsedUrl.search.substring(1), // Remove leading '?'
                   Object.fromEntries(parsedUrl.searchParams.entries()),
@@ -133,7 +142,7 @@ export const middlewareFactory = <TValidationError>(
                   const [proceedAfterBody, body] =
                     await server.checkBodyForHandler(
                       events,
-                      eventArgs,
+                      eventArgsWithState,
                       bodyValidator,
                       req.get("content-type") ?? "",
                       ctx.req,
@@ -141,13 +150,11 @@ export const middlewareFactory = <TValidationError>(
                   if (proceedAfterBody) {
                     const retVal = server.invokeHandler(
                       events,
-                      eventArgs,
+                      eventArgsWithState,
                       handler,
                       {
                         context: contextValidation.context,
-                        state: contextValidation.getState(
-                          contextValidation.context,
-                        ),
+                        state: eventArgsWithState.state,
                         url,
                         body,
                         query,
@@ -206,6 +213,10 @@ export const middlewareFactory = <TValidationError>(
 export interface MiddlewareFactory<TValidationError> {
   use: <TState>(
     previous: express.Application,
-    events?: server.RequestProcessingEvents<TValidationError, Context<TState>>,
+    events?: server.RequestProcessingEvents<
+      Context<TState>,
+      TState,
+      TValidationError
+    >,
   ) => express.Application;
 }

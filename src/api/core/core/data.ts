@@ -81,29 +81,6 @@ export type DataValidatorResponseOutputSuccess = {
   output: string | Buffer | stream.Readable;
 };
 
-export interface ContextValidatorSpec<
-  TContext,
-  TRefinedContext,
-  TState,
-  TValidationError,
-> {
-  validator: ContextValidator<TContext, TRefinedContext, TValidationError>;
-  getState: (ctx: TRefinedContext) => TState;
-}
-
-export type ContextValidator<TContext, TRefinedContext, TValidationError> =
-  DataValidator<
-    TContext,
-    TRefinedContext,
-    TValidationError,
-    | DataValidatorResult<TRefinedContext, TValidationError>
-    | {
-        error: "protocol-error";
-        statusCode: number;
-        body: string | undefined;
-      }
-  >;
-
 export interface QueryValidatorSpec<TQuery, TValidationError> {
   validator: QueryValidator<TQuery, TValidationError>;
   isParameterRequired: Record<string, boolean>;

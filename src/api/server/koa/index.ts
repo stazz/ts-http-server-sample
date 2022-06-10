@@ -3,9 +3,11 @@ import * as prefix from "../../core/prefix";
 import * as server from "../../core/server";
 import type * as koa from "koa";
 
-export type KoaContext<T = koa.DefaultState> = koa.ParameterizedContext<T>;
+export interface HKTContext extends core.HKTContext {
+  readonly type: koa.ParameterizedContext<this["_TState"]>;
+}
 
-export const validateContextState = <TData, TError, TInput>(
+export const validateContextState = <TInput, TData, TError>(
   validator: core.DataValidator<TInput, TData, TError>,
   protocolErrorInfo?:
     | number
@@ -54,8 +56,8 @@ export const validateContextState = <TData, TError, TInput>(
 export const koaMiddlewareFactory = <TValidationError>(
   ...endpoints: Array<
     core.AppEndpoint<
-      KoaContext,
-      KoaContext,
+      koa.Context,
+      koa.Context,
       TValidationError,
       Record<string, unknown>
     >
@@ -107,7 +109,7 @@ export const koaMiddlewareFactory = <TValidationError>(
             if (contextValidation.result === "context") {
               const eventArgsWithState = {
                 ...eventArgs,
-                state: contextValidation.getState(contextValidation.context),
+                state: contextValidation.state as ExtractState<typeof prev>,
               };
               // State was OK, validate url & query & body
               const [proceedAfterURL, url] =
@@ -141,9 +143,7 @@ export const koaMiddlewareFactory = <TValidationError>(
                       handler,
                       {
                         context: contextValidation.context,
-                        state: contextValidation.getState(
-                          contextValidation.context,
-                        ),
+                        state: eventArgsWithState.state,
                         url,
                         body,
                         query,
@@ -207,3 +207,5 @@ export interface KoaMiddlewareFactory<TValidationError> {
     >,
   ) => koa<TState>;
 }
+
+type ExtractState<T> = T extends koa<infer TState> ? TState : never;
