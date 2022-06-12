@@ -1,6 +1,9 @@
 // Import code to create REST API endpoints
 import * as spec from "./api/core/spec";
+import * as server from "./api/core/server";
+
 import * as endpoints from "./rest-endpoints";
+import * as logging from "./logging";
 
 // Lock in our vendor choices:
 // IO-TS as data runtime validator
@@ -14,13 +17,13 @@ import * as koa from "./api/server/koa";
 
 // Create middleware in such way that IDs are valid UUID strings (instead of any strings).
 // Any amount of endpoint informations can be passed to createKoaMiddleware - there always will be exactly one RegExp generated to perform endpoint match.
-const middlewareFactory = koa.koaMiddlewareFactory(
-  ...endpoints.createEndpoints<koa.HKTContext>(
+const performFunctionality = koa.createMiddleware(
+  endpoints.createEndpoints(
     spec
       // Lock in to Koa and IO-TS
       .bindNecessaryTypes<
-        koa.HKTContext,
-        Partial<endpoints.State>,
+        server.HKTContextKind<koa.HKTContext, endpoints.InitialState>,
+        endpoints.InitialState,
         tPlugin.ValidationError
       >((ctx) => ctx.state),
     koa.validateContextState,
@@ -29,11 +32,13 @@ const middlewareFactory = koa.koaMiddlewareFactory(
     /[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}/i,
     tt.UUID, // Too bad that io-ts-types does not expose UUID regex it uses (t.string as unknown as t.BrandC<t.StringC, never>),
   ),
+  logging.logServerEvents(
+    (ctx) => ({ method: ctx.method, url: ctx.url }),
+    tPlugin.getHumanReadableErrorMessage,
+  ),
 );
 
-const middleWareToSetUsernameFromBasicAuth = (): Koa.Middleware<
-  Partial<endpoints.State>
-> => {
+const setUsernameFromBasicAuth = (): Koa.Middleware<endpoints.InitialState> => {
   return async (ctx, next) => {
     const auth = ctx.get("authorization");
     const scheme = auth.substring(0, 6).toLowerCase();
@@ -65,82 +70,15 @@ const middleWareToSetUsernameFromBasicAuth = (): Koa.Middleware<
   };
 };
 
-// Instantiate application
-middlewareFactory
-  .use(
-    // Create Koa app
-    new Koa()
-      // First do auth (will modify context's state)
-      .use(middleWareToSetUsernameFromBasicAuth()),
-    // Hook up to events of the applications
-    {
-      onInvalidBody: ({ state, ctx: { method, url }, validationError }) => {
-        // eslint-disable-next-line no-console
-        console.error(
-          `Invalid body: ${method} ${url} (user: ${
-            state.username
-          }), validation error:\n${tPlugin.getHumanReadableErrorMessage(
-            validationError,
-          )}`,
-        );
-      },
-      onInvalidUrl: ({ ctx: { state, method, url } }) => {
-        // eslint-disable-next-line no-console
-        console.error(
-          `Invalid URL supplied: ${method} ${url} (user: ${state.username})`,
-        );
-      },
-      onInvalidUrlParameters: ({ ctx: { method, url }, validationError }) => {
-        // eslint-disable-next-line no-console
-        console.error(
-          `Invalid URL parameters supplied: ${method} ${url}.\n${validationError
-            .map((error) => tPlugin.getHumanReadableErrorMessage(error))
-            .join("  \n")}`,
-        );
-      },
-      onInvalidQuery: ({ ctx: { method, url }, validationError }) => {
-        // eslint-disable-next-line no-console
-        console.error(
-          `Invalid query supplied: ${method} ${url}.\n${tPlugin.getHumanReadableErrorMessage(
-            validationError,
-          )}`,
-        );
-      },
-      onInvalidMethod: ({ ctx: { state, method, url } }) => {
-        // eslint-disable-next-line no-console
-        console.error(
-          `Invalid Method supplied: ${method} ${url} (user: ${state.username})`,
-        );
-      },
-      onInvalidContentType: ({ state, ctx: { method, url }, contentType }) => {
-        // eslint-disable-next-line no-console
-        console.error(
-          `Invalid content type specified: ${method} ${url} (user: ${state.username}): ${contentType}`,
-        );
-      },
-      onInvalidContext: ({ ctx: { state }, validationError }) => {
-        // eslint-disable-next-line no-console
-        console.error(
-          `State validation failed for ${JSON.stringify(state)}.\n${
-            validationError
-              ? tPlugin.getHumanReadableErrorMessage(validationError)
-              : "Protocol-related error"
-          }`,
-        );
-      },
-      onInvalidResponse: ({ state, ctx: { method, url }, validationError }) => {
-        // eslint-disable-next-line no-console
-        console.error(
-          `Invalid response: ${method} ${url} (user: ${
-            state.username
-          }), validation error:\n${tPlugin.getHumanReadableErrorMessage(
-            validationError,
-          )}`,
-        );
-      },
-    },
-  )
+// Create Koa app
+new Koa()
+  // First do auth (will modify context's state)
+  .use(setUsernameFromBasicAuth())
+  // Then perform the REST API functionality
+  .use(performFunctionality)
+  // Listen to port 3000
   .listen(3000)
+  // Inform that requests can now be sent
   .once("listening", () =>
     // eslint-disable-next-line no-console
     console.info("Koa server started"),

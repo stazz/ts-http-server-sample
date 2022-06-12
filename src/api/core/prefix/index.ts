@@ -1,43 +1,34 @@
 import * as core from "../core";
 
 export function atPrefix<
-  TValidationError,
-  TRefinedContext,
   TContext,
+  TValidationError,
   TMetadata extends Record<string, unknown>,
 >(
   prefix: string,
-  ...endpoints: Array<
-    core.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
-  >
-): core.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>;
+  ...endpoints: Array<core.AppEndpoint<TContext, TValidationError, TMetadata>>
+): core.AppEndpoint<TContext, TValidationError, TMetadata>;
 export function atPrefix<
-  TValidationError,
-  TRefinedContext,
   TContext,
+  TValidationError,
   TMetadata extends Record<string, unknown>,
 >(
   prefix: string,
   regexpGroupNamePrefix: string,
-  ...endpoints: Array<
-    core.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
-  >
-): core.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>;
+  ...endpoints: Array<core.AppEndpoint<TContext, TValidationError, TMetadata>>
+): core.AppEndpoint<TContext, TValidationError, TMetadata>;
 export function atPrefix<
-  TValidationError,
-  TRefinedContext,
   TContext,
+  TValidationError,
   TMetadata extends Record<string, unknown>,
 >(
   prefix: string,
   endpointOrGroupNamePrefix:
-    | core.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
+    | core.AppEndpoint<TContext, TValidationError, TMetadata>
     | string
     | undefined,
-  ...endpoints: Array<
-    core.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
-  >
-): core.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata> {
+  ...endpoints: Array<core.AppEndpoint<TContext, TValidationError, TMetadata>>
+): core.AppEndpoint<TContext, TValidationError, TMetadata> {
   const allEndpoints =
     typeof endpointOrGroupNamePrefix === "string" || !endpointOrGroupNamePrefix
       ? endpoints
@@ -94,12 +85,11 @@ const makeEndpointRegExpGroupName = (prefix: string, idx: number) =>
 
 const buildEndpoints = <
   TContext,
-  TRefinedContext,
   TValidationError,
   TMetadata extends Record<string, unknown>,
 >(
   endpoints: ReadonlyArray<
-    core.AppEndpoint<TContext, TRefinedContext, TValidationError, TMetadata>
+    core.AppEndpoint<TContext, TValidationError, TMetadata>
   >,
   regExpGroupNamePrefix?: string,
 ) => {

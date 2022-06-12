@@ -1,72 +1,38 @@
 import * as method from "./methods";
 import * as data from "./data";
-import * as context from "./context";
-
-export interface AppEndpointFunctionality<
-  TContext,
-  TRefinedContext,
-  TBodyValidationError,
-> {
-  getRegExpAndHandler: (groupNamePrefix: string) => {
-    url: RegExp;
-    handler: DynamicHandlerGetter<
-      TContext,
-      TRefinedContext,
-      TBodyValidationError
-    >;
-  };
-}
 
 export interface AppEndpoint<
   TContext,
-  TRefinedContext,
   TBodyValidationError,
   TMetadata extends Record<string, unknown>,
-> extends AppEndpointFunctionality<
-    TContext,
-    TRefinedContext,
-    TBodyValidationError
-  > {
+> {
+  getRegExpAndHandler: (groupNamePrefix: string) => {
+    url: RegExp;
+    handler: DynamicHandlerGetter<TContext, TBodyValidationError>;
+  };
   getMetadata: (urlPrefix: string) => {
     [P in keyof TMetadata]: Array<TMetadata[P]>;
   };
 }
 
-export type DynamicHandlerGetter<
-  TContext,
-  TRefinedContext,
-  TBodyValidationError,
-> = (
+export type DynamicHandlerGetter<TContext, TBodyValidationError> = (
   method: method.HttpMethod,
   groups: Record<string, string>,
-) => DynamicHandlerResponse<TContext, TRefinedContext, TBodyValidationError>;
+) => DynamicHandlerResponse<TContext, TBodyValidationError>;
 
-export type DynamicHandlerResponse<
-  TContext,
-  TRefinedContext,
-  TBodyValidationError,
-> =
+export type DynamicHandlerResponse<TContext, TBodyValidationError> =
   | {
       found: "invalid-method";
       allowedMethods: Array<method.HttpMethod>;
     }
   | {
       found: "handler";
-      handler: StaticAppEndpointHandler<
-        TContext,
-        TRefinedContext,
-        TBodyValidationError
-      >;
+      handler: StaticAppEndpointHandler<TContext, TBodyValidationError>;
     };
 
-export type StaticAppEndpointHandler<TContext, TRefinedContext, TBodyError> = {
+export type StaticAppEndpointHandler<TContext, TBodyError> = {
   contextValidator: Pick<
-    context.ContextValidatorSpec<
-      TContext,
-      TRefinedContext,
-      unknown,
-      TBodyError
-    >,
+    data.ContextValidatorSpec<TContext, unknown, unknown, TBodyError>,
     "validator" | "getState"
   >;
   urlValidator:
@@ -80,7 +46,7 @@ export type StaticAppEndpointHandler<TContext, TRefinedContext, TBodyError> = {
     | undefined;
   queryValidator: data.QueryValidator<unknown, TBodyError> | undefined;
   bodyValidator?: data.DataValidatorRequestInput<unknown, TBodyError>;
-  handler: StaticAppEndpointHandlerFunction<TRefinedContext, TBodyError>;
+  handler: StaticAppEndpointHandlerFunction<TContext, TBodyError>;
 };
 
 export type StaticAppEndpointHandlerFunction<TContext, TBodyError> = (args: {

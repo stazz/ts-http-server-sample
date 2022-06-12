@@ -33,7 +33,6 @@ export class AppEndpointBuilder<
       : never;
   }): core.AppEndpoint<
     TContext,
-    TRefinedContext,
     TValidationError,
     {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
@@ -86,7 +85,6 @@ export class AppEndpointBuilder<
 
 const checkMethodsForHandler = <
   TContext,
-  TRefinedContext,
   TValidationError,
   TMetadataProviders extends Record<
     string,
@@ -96,14 +94,13 @@ const checkMethodsForHandler = <
   state: {
     [key: string]: state.StaticAppEndpointBuilderSpec<
       TContext,
-      TRefinedContext,
       TValidationError,
       TMetadataProviders
     >;
   },
   method: core.HttpMethod,
   groupNamePrefix: string,
-): core.DynamicHandlerResponse<TContext, TRefinedContext, TValidationError> =>
+): core.DynamicHandlerResponse<TContext, TValidationError> =>
   method in state
     ? {
         found: "handler" as const,

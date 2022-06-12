@@ -114,3 +114,25 @@ export const transitiveDataValidation =
         return intermediate;
     }
   };
+
+export interface ContextValidatorSpec<
+  TInput,
+  TOutput,
+  TState,
+  TValidationError,
+> {
+  validator: ContextValidator<TInput, TOutput, TValidationError>;
+  getState: (ctx: TOutput) => TState;
+}
+
+export type ContextValidator<TInput, TOutput, TValidationError> = DataValidator<
+  TInput,
+  TOutput,
+  TValidationError,
+  | DataValidatorResult<TOutput, TValidationError>
+  | {
+      error: "protocol-error";
+      statusCode: number;
+      body: string | undefined;
+    }
+>;

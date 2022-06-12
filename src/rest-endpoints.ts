@@ -1,7 +1,6 @@
 // Import generic REST-related things
-import * as core from "./api/core/core";
 import * as spec from "./api/core/spec";
-// Import prefix functionality for REST endpoints
+import * as server from "./api/core/server";
 import * as prefix from "./api/core/prefix";
 
 // Import our REST-agnostic functionality
@@ -24,18 +23,19 @@ export const stateValidation = t.type(
   "KoaState", // Friendly name for error messages
 );
 export type State = t.TypeOf<typeof stateValidation>;
+export type InitialState = Partial<State>;
 
 // Function to create REST API specification, utilizing generic REST API things in ./api and our functionality in ./lib.
-export const createEndpoints = <TContextHKT extends core.HKTContext>(
+export const createEndpoints = <TContextHKT extends server.HKTContext>(
   initial: spec.AppEndpointBuilderProvider<
-    core.HKTContextKind<TContextHKT, Partial<State>>,
-    core.HKTContextKind<TContextHKT, Partial<State>>,
+    server.HKTContextKind<TContextHKT, Partial<State>>,
+    server.HKTContextKind<TContextHKT, Partial<State>>,
     Partial<State>,
     t.Errors,
     // eslint-disable-next-line @typescript-eslint/ban-types
     {}
   >,
-  contextValidatorFactory: core.ContextValidatorFactory<TContextHKT>,
+  contextValidatorFactory: server.ContextValidatorFactory<TContextHKT>,
   idRegex: RegExp,
   idInBody: t.BrandC<t.StringC, unknown>,
 ) => {

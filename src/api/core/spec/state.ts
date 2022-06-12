@@ -15,12 +15,7 @@ export interface AppEndpointBuilderState<
   methods: Partial<
     Record<
       core.HttpMethod,
-      StaticAppEndpointBuilderSpec<
-        TContext,
-        TRefinedContext,
-        TValidationError,
-        TMetadata
-      >
+      StaticAppEndpointBuilderSpec<TContext, TValidationError, TMetadata>
     >
   >;
   contextTransform: core.ContextValidatorSpec<
@@ -43,14 +38,13 @@ export interface AppEndpointBuilderState<
 
 export interface StaticAppEndpointBuilderSpec<
   TContext,
-  TRefinedContext,
   TBodyError,
   TMetadata extends Record<
     string,
     md.MetadataBuilder<md.HKTArg, unknown, unknown>
   >,
 > {
-  builder: StaticAppEndpointBuilder<TContext, TRefinedContext, TBodyError>;
+  builder: StaticAppEndpointBuilder<TContext, TBodyError>;
   queryValidation?: Omit<
     core.QueryValidatorSpec<unknown, TBodyError>,
     "validator"
@@ -88,7 +82,7 @@ export interface StaticAppEndpointBuilderSpec<
   };
 }
 
-export type StaticAppEndpointBuilder<TContext, TRefinedContext, TBodyError> = (
+export type StaticAppEndpointBuilder<TContext, TBodyError> = (
   groupNamePrefix: string,
   // groups: Record<string, string>,
-) => core.StaticAppEndpointHandler<TContext, TRefinedContext, TBodyError>;
+) => core.StaticAppEndpointHandler<TContext, TBodyError>;

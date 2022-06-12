@@ -82,7 +82,6 @@ export class AppEndpointBuilderForMethods<
     const { contextTransform, urlValidation } = this._state;
     const handler: state.StaticAppEndpointBuilderSpec<
       TContext,
-      TRefinedContext,
       TValidationError,
       TMetadataProviders
     > = {
@@ -90,10 +89,13 @@ export class AppEndpointBuilderForMethods<
       builder: (groupNamePrefix) => {
         const retVal: core.StaticAppEndpointHandler<
           TContext,
-          TRefinedContext,
           TValidationError
         > = {
-          contextValidator: contextTransform, // TODO use runtime pick props here!
+          // TODO use runtime pick props for contextValidator!
+          contextValidator: contextTransform as core.StaticAppEndpointHandler<
+            TContext,
+            TValidationError
+          >["contextValidator"],
           urlValidator: urlValidation
             ? Object.fromEntries(
                 Object.entries(urlValidation.validation).map(
@@ -123,7 +125,7 @@ export class AppEndpointBuilderForMethods<
             }
             return validator(
               endpointHandler(
-                handlerArgs as Parameters<typeof endpointHandler>[0],
+                handlerArgs as unknown as Parameters<typeof endpointHandler>[0],
               ),
             );
           },
@@ -233,7 +235,6 @@ export class AppEndpointBuilderForMethodsAndBody<
     const { contextTransform, urlValidation } = this._state;
     const handler: state.StaticAppEndpointBuilderSpec<
       TContext,
-      TRefinedContext,
       TValidationError,
       TMetadataProviders
     > = {
@@ -242,10 +243,12 @@ export class AppEndpointBuilderForMethodsAndBody<
       builder: (groupNamePrefix) => {
         const retVal: core.StaticAppEndpointHandler<
           TContext,
-          TRefinedContext,
           TValidationError
         > = {
-          contextValidator: contextTransform, // TODO use runtime pick props here!
+          contextValidator: contextTransform as core.StaticAppEndpointHandler<
+            TContext,
+            TValidationError
+          >["contextValidator"],
           urlValidator: urlValidation
             ? Object.fromEntries(
                 Object.entries(urlValidation.validation).map(
@@ -277,7 +280,7 @@ export class AppEndpointBuilderForMethodsAndBody<
             }
             return outputValidator(
               endpointHandler(
-                handlerArgs as Parameters<typeof endpointHandler>[0],
+                handlerArgs as unknown as Parameters<typeof endpointHandler>[0],
               ),
             );
           },

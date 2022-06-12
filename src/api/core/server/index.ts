@@ -3,14 +3,45 @@ import * as core from "../core";
 import * as stream from "stream";
 import * as u from "url";
 
-export const checkURLPathNameForHandler = <TContext, TValidationError>(
-  events:
-    | Pick<
-        RequestProcessingEvents<TContext, unknown, TValidationError>,
-        "onInvalidUrl"
-      >
-    | undefined,
+// Higher-kinded-type trick from: https://www.matechs.com/blog/encoding-hkts-in-typescript-once-again
+export interface HKTContext {
+  readonly _TState?: unknown;
+  readonly type?: unknown;
+}
+
+export type HKTContextKind<F extends HKTContext, TState> = F extends {
+  readonly type: unknown;
+}
+  ? (F & {
+      readonly _TState: TState;
+    })["type"]
+  : never; // This is simplified version from original HKT pattern in the link, because we don't use the functional properties of this specific HKT.
+
+export type ContextValidatorFactory<TContext extends HKTContext> = <
+  TInput,
+  TData,
+  TError,
+>(
+  validator: core.DataValidator<TInput, TData, TError>,
+  protocolErrorInfo?:
+    | number
+    | {
+        statusCode: number;
+        body: string | undefined;
+      },
+) => core.ContextValidatorSpec<
+  HKTContextKind<TContext, TInput>,
+  HKTContextKind<TContext, TData>,
+  TData,
+  TError
+>;
+
+export const checkURLPathNameForHandler = <TContext, TState>(
   ctx: TContext,
+  state: TState,
+  events:
+    | Pick<RequestProcessingEvents<TContext, TState, unknown>, "onInvalidUrl">
+    | undefined,
   url: u.URL | string,
   regExp: RegExp,
 ) => {
@@ -19,42 +50,32 @@ export const checkURLPathNameForHandler = <TContext, TValidationError>(
   if (!groups) {
     events?.onInvalidUrl?.({
       ctx,
+      state,
       regExp,
     });
   }
   return groups
     ? {
+        ctx,
+        state,
         groups,
-        eventArgs: {
-          ctx,
-          groups,
-          regExp,
-        },
+        regExp,
       }
     : undefined;
 };
 
-export const checkMethodForHandler = <
-  TContext,
-  TRefinedContext,
-  TValidationError,
->(
+export const checkMethodForHandler = <TContext, TState, TValidationError>(
+  eventArgs: EventArguments<TContext, TState>,
   events:
     | Pick<
-        RequestProcessingEvents<TContext, unknown, TValidationError>,
+        RequestProcessingEvents<TContext, TState, TValidationError>,
         "onInvalidMethod"
       >
     | undefined,
-  eventArgs: EventArguments<TContext>,
-  groups: Record<string, string>,
   method: core.HttpMethod,
-  handler: core.DynamicHandlerGetter<
-    TContext,
-    TRefinedContext,
-    TValidationError
-  >,
+  handler: core.DynamicHandlerGetter<TContext, TValidationError>,
 ) => {
-  const foundHandler = handler(method, groups);
+  const foundHandler = handler(method, eventArgs.groups);
   const foundSuccess = foundHandler.found === "handler";
   if (!foundSuccess) {
     events?.onInvalidMethod?.({
@@ -64,25 +85,19 @@ export const checkMethodForHandler = <
   return foundHandler;
 };
 
-export const checkContextForHandler = <
-  TContext,
-  TRefinedContext,
-  TState,
-  TValidationError,
->(
+export const checkContextForHandler = <TContext, TState, TValidationError>(
+  eventArgs: EventArguments<TContext, TState>,
   events:
     | Pick<
         RequestProcessingEvents<TContext, TState, TValidationError>,
         "onInvalidContext"
       >
     | undefined,
-  eventArgs: EventArguments<TContext>,
   {
     validator,
     getState,
   }: core.StaticAppEndpointHandler<
     TContext,
-    TRefinedContext,
     TValidationError
   >["contextValidator"],
 ) => {
@@ -90,7 +105,7 @@ export const checkContextForHandler = <
   let validatedContextOrError:
     | {
         result: "context";
-        context: TRefinedContext;
+        context: unknown;
         state: ReturnType<typeof getState>;
       }
     | {
@@ -127,17 +142,15 @@ export const checkURLParametersForHandler = <
   TState,
   TValidationError,
 >(
+  eventArgs: EventArguments<TContext, TState>,
   events:
     | Pick<
         RequestProcessingEvents<TContext, TState, TValidationError>,
         "onInvalidUrlParameters"
       >
     | undefined,
-  eventArgs: EventArgumentsWithState<TContext, TState>,
-  groups: Record<string, string>,
   urlValidation: core.StaticAppEndpointHandler<
     TContext,
-    unknown,
     TValidationError
   >["urlValidator"],
 ) => {
@@ -149,7 +162,7 @@ export const checkURLParametersForHandler = <
     for (const [groupName, { parameterName, validator }] of Object.entries(
       urlValidation,
     )) {
-      const validatorResult = validator(groups[groupName]);
+      const validatorResult = validator(eventArgs.groups[groupName]);
       switch (validatorResult.error) {
         case "none":
           url[parameterName] = validatorResult.data;
@@ -173,16 +186,15 @@ export const checkURLParametersForHandler = <
 };
 
 export const checkQueryForHandler = <TContext, TState, TValidationError>(
+  eventArgs: EventArguments<TContext, TState>,
   events:
     | Pick<
         RequestProcessingEvents<TContext, TState, TValidationError>,
         "onInvalidQuery"
       >
     | undefined,
-  eventArgs: EventArgumentsWithState<TContext, TState>,
   queryValidation: core.StaticAppEndpointHandler<
     TContext,
-    unknown,
     TValidationError
   >["queryValidator"],
   queryString: string,
@@ -235,16 +247,15 @@ export const checkQueryForHandler = <TContext, TState, TValidationError>(
 };
 
 export const checkBodyForHandler = async <TContext, TState, TValidationError>(
+  eventArgs: EventArguments<TContext, TState>,
   events:
     | Pick<
         RequestProcessingEvents<TContext, TState, TValidationError>,
         "onInvalidBody" | "onInvalidContentType"
       >
     | undefined,
-  eventArgs: EventArgumentsWithState<TContext, TState>,
   isBodyValid: core.StaticAppEndpointHandler<
     TContext,
-    unknown,
     TValidationError
   >["bodyValidator"],
   contentType: string,
@@ -285,24 +296,15 @@ export const checkBodyForHandler = async <TContext, TState, TValidationError>(
   return [proceedToInvokeHandler, body];
 };
 
-export const invokeHandler = <
-  TContext,
-  TRefinedContext,
-  TState,
-  TValidationError,
->(
+export const invokeHandler = <TContext, TState, TValidationError>(
+  eventArgs: EventArguments<TContext, TState>,
   events:
     | Pick<
         RequestProcessingEvents<TContext, TState, TValidationError>,
         "onInvalidResponse"
       >
     | undefined,
-  eventArgs: EventArgumentsWithState<TContext, TState>,
-  handler: core.StaticAppEndpointHandler<
-    TContext,
-    TRefinedContext,
-    TValidationError
-  >["handler"],
+  handler: core.StaticAppEndpointHandler<TContext, TValidationError>["handler"],
   ...handlerParameters: Parameters<typeof handler>
 ) => {
   const retVal = handler(...handlerParameters);
@@ -317,43 +319,41 @@ export const invokeHandler = <
 
 export interface RequestProcessingEvents<TContext, TState, TValidationError> {
   // URL did not match combined regex
-  onInvalidUrl?: (args: Omit<EventArguments<TContext>, "groups">) => unknown;
-  onInvalidMethod?: (args: EventArguments<TContext>) => unknown;
+  onInvalidUrl?: (
+    args: Omit<EventArguments<TContext, TState>, "groups">,
+  ) => unknown;
+  onInvalidMethod?: (args: EventArguments<TContext, TState>) => unknown;
   onInvalidContext?: (
-    args: EventArguments<TContext> & {
+    args: EventArguments<TContext, TState> & {
       validationError: TValidationError | undefined;
     },
   ) => unknown;
   // URL matched combined regex, but parameter validation failed
   onInvalidUrlParameters?: (
-    args: EventArgumentsWithState<TContext, TState> &
+    args: EventArguments<TContext, TState> &
       ValidationErrorArgs<Array<TValidationError>>,
   ) => unknown;
   onInvalidQuery?: (
-    args: EventArgumentsWithState<TContext, TState> &
+    args: EventArguments<TContext, TState> &
       ValidationErrorArgs<TValidationError>,
   ) => unknown;
   onInvalidContentType?: (
-    args: EventArgumentsWithState<TContext, TState> & { contentType: string },
+    args: EventArguments<TContext, TState> & { contentType: string },
   ) => unknown;
   onInvalidBody?: (
-    args: EventArgumentsWithState<TContext, TState> &
+    args: EventArguments<TContext, TState> &
       ValidationErrorArgs<TValidationError>,
   ) => unknown;
   onInvalidResponse?: (
-    args: EventArgumentsWithState<TContext, TState> &
+    args: EventArguments<TContext, TState> &
       ValidationErrorArgs<TValidationError>,
   ) => unknown;
 }
 
-export interface EventArguments<TContext> {
+export interface EventArguments<TContext, TState> {
   ctx: TContext;
   groups: Record<string, string>;
   regExp: RegExp;
-}
-
-export interface EventArgumentsWithState<TContext, TState>
-  extends EventArguments<TContext> {
   state: TState;
 }
 
