@@ -20,8 +20,8 @@ const performFunctionality = expressPlugin.createMiddleware(
     spec
       // Lock in to Koa and IO-TS
       .bindNecessaryTypes<
-        server.HKTContextKind<expressPlugin.HKTContext, endpoints.InitialState>,
-        endpoints.InitialState,
+        server.HKTContextKind<expressPlugin.HKTContext, endpoints.State>,
+        endpoints.State,
         tPlugin.ValidationError
       >((ctx) => ctx.res.locals),
     expressPlugin.validateContextState,
@@ -45,7 +45,7 @@ const middleWareToSetUsernameFromBasicAuth = (): express.RequestHandler<
   any,
   any,
   Record<string, string>,
-  Partial<endpoints.State>
+  endpoints.State
 > => {
   return (req, res, next) => {
     const auth = req.get("authorization") ?? "";

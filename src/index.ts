@@ -22,8 +22,8 @@ const performFunctionality = koa.createMiddleware(
     spec
       // Lock in to Koa and IO-TS
       .bindNecessaryTypes<
-        server.HKTContextKind<koa.HKTContext, endpoints.InitialState>,
-        endpoints.InitialState,
+        server.HKTContextKind<koa.HKTContext, endpoints.State>,
+        endpoints.State,
         tPlugin.ValidationError
       >((ctx) => ctx.state),
     koa.validateContextState,
@@ -38,7 +38,7 @@ const performFunctionality = koa.createMiddleware(
   ),
 );
 
-const setUsernameFromBasicAuth = (): Koa.Middleware<endpoints.InitialState> => {
+const setUsernameFromBasicAuth = (): Koa.Middleware<endpoints.State> => {
   return async (ctx, next) => {
     const auth = ctx.get("authorization");
     const scheme = auth.substring(0, 6).toLowerCase();

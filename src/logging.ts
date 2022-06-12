@@ -10,7 +10,7 @@ export const logServerEvents = <TContext, TValidationError>(
   getValidationErrorMessage: (this: void, error: TValidationError) => string,
 ): server.RequestProcessingEvents<
   TContext,
-  endpoints.InitialState,
+  endpoints.State,
   TValidationError
 > => ({
   onInvalidBody: ({ state, ctx, validationError }) => {

@@ -22,15 +22,16 @@ export const stateValidation = t.type(
   },
   "KoaState", // Friendly name for error messages
 );
-export type State = t.TypeOf<typeof stateValidation>;
-export type InitialState = Partial<State>;
+// This is common state for all endpoints.
+// It is "Partial" because not all endpoints need to have username.
+export type State = Partial<t.TypeOf<typeof stateValidation>>;
 
 // Function to create REST API specification, utilizing generic REST API things in ./api and our functionality in ./lib.
 export const createEndpoints = <TContextHKT extends server.HKTContext>(
   initial: spec.AppEndpointBuilderProvider<
-    server.HKTContextKind<TContextHKT, Partial<State>>,
-    server.HKTContextKind<TContextHKT, Partial<State>>,
-    Partial<State>,
+    server.HKTContextKind<TContextHKT, State>,
+    server.HKTContextKind<TContextHKT, State>,
+    State,
     t.Errors,
     // eslint-disable-next-line @typescript-eslint/ban-types
     {}
