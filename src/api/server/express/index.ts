@@ -4,11 +4,9 @@ import * as server from "../../core/server";
 import * as express from "express";
 import { URL } from "url";
 
-// eslint-disable-next-line @typescript-eslint/ban-types
 export interface HKTContext extends server.HKTContext {
   readonly type: Context<this["_TState"]>;
 }
-// eslint-disable-next-line @typescript-eslint/ban-types
 type Context<T> = {
   req: express.Request;
   res: express.Response<any, T>;
