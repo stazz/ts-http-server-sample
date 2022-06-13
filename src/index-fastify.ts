@@ -12,7 +12,6 @@ import * as tt from "io-ts-types";
 import * as tPlugin from "./api/data/io-ts";
 // Express as HTTP server
 import * as fastify from "fastify";
-import * as middie from "@fastify/middie";
 // Import plugin from generic REST-related things to Koa framework
 import * as fastifyPlugin from "./api/server/fastify";
 
