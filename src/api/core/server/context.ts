@@ -32,3 +32,11 @@ export type ContextValidatorFactory<TContext extends HKTContext> = <
   TData,
   TError
 >;
+
+export type DataValidatorOutput<T> = T extends core.DataValidator<
+  infer _,
+  infer TData,
+  infer _1
+>
+  ? TData
+  : never;

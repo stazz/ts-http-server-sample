@@ -14,27 +14,16 @@ type Context<T> = {
 
 export const validateContextState: server.ContextValidatorFactory<
   HKTContext
-> = <TInput, TData, TError>(
-  validator: core.DataValidator<TInput, TData, TError>,
-  protocolErrorInfo?:
-    | number
-    | {
-        statusCode: number;
-        body: string | undefined;
-      },
-): core.ContextValidatorSpec<
-  Context<TInput>,
-  Context<TData>,
-  TData,
-  TError
-> => ({
+> = (validator, protocolErrorInfo) => ({
   validator: (ctx) => {
     const transformed = validator(ctx.res.locals);
     switch (transformed.error) {
       case "none":
         return {
           error: "none" as const,
-          data: ctx as unknown as Context<TData>,
+          data: ctx as unknown as Context<
+            server.DataValidatorOutput<typeof validator>
+          >,
         };
       default:
         return protocolErrorInfo === undefined
@@ -164,44 +153,47 @@ export const createMiddleware = <TState, TValidationError>(
                       if (output !== undefined) {
                         res
                           .set("Content-Type", contentType)
-                          .send(output) // TODO do we need to pipe readable?
-                          .status(200); // OK
+                          .status(200) // OK
+                          .send(output); // TODO do we need to pipe readable?
                       } else {
-                        res.status(204); // No Content
+                        res
+                          .status(204) // No Content
+                          .send(undefined); // Notice we still must call 'send', otherwise will become stuck
                       }
                     }
                     break;
                   case "error": {
-                    res.status(500); // Internal Server Error
+                    res.status(500).send(undefined); // Internal Server Error
                   }
                 }
               } else {
                 // Body failed validation
-                res.status(422);
+                res.status(422).send(undefined);
               }
             } else {
               // Query parameters failed validation
-              res.status(400).send("");
+              res.status(400).send(undefined);
             }
           } else {
             // While URL matched regex, the parameters failed further validation
-            res.status(400).send("");
+            res.status(400).send(undefined);
           }
         } else {
           // Context validation failed - set status code
           res
             .status(contextValidation.customStatusCode ?? 500) // Internal server error
-            .send(contextValidation.customBody ?? "");
+            .send(contextValidation.customBody);
         }
       } else {
         res
           .status(405) // Method Not Allowed
-          .set("Allow", foundHandler.allowedMethods.join(","));
+          .set("Allow", foundHandler.allowedMethods.join(","))
+          .send(undefined); // Otherwise will become stuck
       }
     } else {
       res
         .status(404) // Not Found
-        .send(""); // Otherwise it will have text "Not Found"
+        .send(undefined); // Otherwise it will have text "Not Found"
     }
   };
 };

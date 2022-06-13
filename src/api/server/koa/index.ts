@@ -9,27 +9,16 @@ export interface HKTContext extends server.HKTContext {
 
 export const validateContextState: server.ContextValidatorFactory<
   HKTContext
-> = <TInput, TData, TError>(
-  validator: core.DataValidator<TInput, TData, TError>,
-  protocolErrorInfo?:
-    | number
-    | {
-        statusCode: number;
-        body: string | undefined;
-      },
-): core.ContextValidatorSpec<
-  koa.ParameterizedContext<TInput>,
-  koa.ParameterizedContext<TData>,
-  TData,
-  TError
-> => ({
+> = (validator, protocolErrorInfo) => ({
   validator: (ctx) => {
     const transformed = validator(ctx.state);
     switch (transformed.error) {
       case "none":
         return {
           error: "none" as const,
-          data: ctx as unknown as koa.ParameterizedContext<TData>,
+          data: ctx as unknown as koa.ParameterizedContext<
+            server.DataValidatorOutput<typeof validator>
+          >,
         };
       default:
         return protocolErrorInfo === undefined

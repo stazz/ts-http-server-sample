@@ -33,9 +33,9 @@ export interface RequestProcessingEvents<TContext, TState, TValidationError> {
 
 export interface EventArguments<TContext, TState> {
   ctx: TContext;
+  state: TState;
   groups: Record<string, string>;
   regExp: RegExp;
-  state: TState;
 }
 
 export interface ValidationErrorArgs<TValidationError> {
