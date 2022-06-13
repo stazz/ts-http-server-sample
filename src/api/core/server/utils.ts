@@ -230,7 +230,7 @@ export const checkBodyForHandler = async <TContext, TState, TValidationError>(
     TValidationError
   >["bodyValidator"],
   contentType: string,
-  bodyStream: stream.Readable,
+  bodyStream: stream.Readable | Buffer,
 ) => {
   let body: unknown;
   let proceedToInvokeHandler: boolean;

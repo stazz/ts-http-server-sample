@@ -48,7 +48,7 @@ export interface DataValidatorRequestInputSpec<
 export type DataValidatorRequestInput<TData, TError> = DataValidator<
   {
     contentType: string;
-    input: stream.Readable;
+    input: stream.Readable | Buffer;
   },
   TData,
   TError,

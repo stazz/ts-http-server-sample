@@ -83,7 +83,18 @@ const middleWareToSetUsernameFromBasicAuth =
 
 const main = async () => {
   // Create Fastify app
-  const server = fastify.default({ logger: { level: "info" } });
+  const server = fastify
+    .default
+    //{ logger: { level: "info" } }
+    ();
+  server.removeAllContentTypeParsers();
+  server.addContentTypeParser<Buffer>(
+    /.*/,
+    { parseAs: "buffer" },
+    (_, rawBody, done) => {
+      done(null, rawBody);
+    },
+  );
   // Make it able to handle middleware
   // await server.register(middie.default);
   await server

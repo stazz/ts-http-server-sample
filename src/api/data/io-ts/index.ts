@@ -203,12 +203,12 @@ export const inputValidator = <T>(
             // The raw-body is a bit silly, and will throw if readable has encoding, AND we specify our own encoding.
             // Furthermore, it uses private members to check for encoding.
             // So instead just read into Buffer and then create a string
-            (
-              await rawbody.default(
-                input,
-                // input.readableEncoding ? undefined : { encoding: "utf8" }, // TODO customize encoding
-              )
-            ).toString(input.readableEncoding ?? "utf-8"),
+            Buffer.isBuffer(input)
+              ? input.toString("utf8")
+              : await rawbody.default(
+                  input,
+                  { encoding: "utf8" }, // TODO customize encoding
+                ),
           )
         : {
             error: "unsupported-content-type",

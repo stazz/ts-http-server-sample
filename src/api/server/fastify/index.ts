@@ -177,13 +177,16 @@ export const createMiddleware = <TState, TValidationError>(
                 Object.fromEntries(parsedUrl.searchParams.entries()),
               );
               if (proceedAfterQuery) {
+                const bodyBuffer = Buffer.isBuffer(req.body)
+                  ? req.body
+                  : Buffer.from("");
                 const [proceedAfterBody, body] =
                   await server.checkBodyForHandler(
                     eventArgs,
                     events,
                     bodyValidator,
                     req.headers["content-type"] ?? "",
-                    ctx.req,
+                    bodyBuffer,
                   );
                 if (proceedAfterBody) {
                   const retVal = server.invokeHandler(
