@@ -1,7 +1,7 @@
 import * as core from "../../core/core";
 import * as prefix from "../../core/prefix";
 import * as server from "../../core/server";
-import * as fastify from "fastify";
+import type * as fastify from "fastify";
 import { URL } from "url";
 import { Readable } from "stream";
 
@@ -88,10 +88,6 @@ export const modifyState = <TState>(
 ) => {
   modify(doGetStateFromRequest(req, { value: initialValue }));
 };
-
-// export const __getStateFromRequest = <T>(req: FastifyContextWithState<T>) => {
-//   return req.__tyrasState;
-// };
 
 // Using given various endpoints, create object which is able to handle the requests as Fastify route.
 export const createMiddleware = <TState, TValidationError>(

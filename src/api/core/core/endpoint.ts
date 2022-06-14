@@ -1,5 +1,5 @@
-import * as method from "./methods";
-import * as data from "./data";
+import type * as method from "./methods";
+import type * as data from "./data";
 
 export interface AppEndpoint<
   TContext,

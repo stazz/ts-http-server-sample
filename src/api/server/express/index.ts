@@ -1,8 +1,8 @@
 import * as core from "../../core/core";
 import * as prefix from "../../core/prefix";
 import * as server from "../../core/server";
-import * as express from "express";
 import { URL } from "url";
+import type * as express from "express";
 
 export interface HKTContext extends server.HKTContext {
   readonly type: Context<this["_TState"]>;

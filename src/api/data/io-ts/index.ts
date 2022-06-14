@@ -2,7 +2,7 @@ import * as core from "../../core/core";
 import * as t from "io-ts";
 import { PathReporter } from "io-ts/PathReporter";
 import * as rawbody from "raw-body";
-import * as q from "querystring";
+import type * as q from "querystring";
 
 // We only support json things for io-ts validation.
 const CONTENT_TYPE = "application/json" as const;

@@ -1,5 +1,5 @@
-import * as q from "querystring";
-import * as stream from "stream";
+import type * as q from "querystring";
+import type * as stream from "stream";
 
 export type DataValidator<
   TInput,
