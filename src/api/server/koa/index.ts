@@ -187,14 +187,3 @@ export const createMiddleware = <TState, TValidationError>(
     }
   };
 };
-
-export interface KoaMiddlewareFactory<TValidationError> {
-  use: <TState>(
-    previous: koa<TState>,
-    events?: server.RequestProcessingEvents<
-      koa.ParameterizedContext<TState>,
-      TState,
-      TValidationError
-    >,
-  ) => koa<TState>;
-}

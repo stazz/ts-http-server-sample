@@ -230,8 +230,6 @@ export const createMiddleware = <TState, TValidationError>(
       } else {
         res.raw.setHeader("Allow", foundHandler.allowedMethods.join(","));
         res.statusCode = 405;
-        // .header("Allow", foundHandler.allowedMethods.join(","))
-        // .code(405); // Method Not Allowed
       }
     } else {
       res.statusCode = 404; // Not Found
