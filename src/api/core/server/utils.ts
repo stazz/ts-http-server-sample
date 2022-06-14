@@ -230,14 +230,24 @@ export const checkBodyForHandler = async <TContext, TState, TValidationError>(
     TValidationError
   >["bodyValidator"],
   contentType: string,
-  bodyStream: stream.Readable | Buffer,
+  bodyStream: stream.Readable | undefined,
 ) => {
   let body: unknown;
   let proceedToInvokeHandler: boolean;
   if (isBodyValid) {
     const bodyValidationResult = await isBodyValid({
       contentType: contentType,
-      input: bodyStream,
+      input:
+        bodyStream ??
+        new stream.Readable({
+          read() {
+            setImmediate(() => {
+              this.push(null);
+              this.push(Buffer.alloc(0));
+              this.push(null);
+            });
+          },
+        }),
     });
     switch (bodyValidationResult.error) {
       case "none":
@@ -260,8 +270,8 @@ export const checkBodyForHandler = async <TContext, TState, TValidationError>(
         break;
     }
   } else {
-    // TODO should we only proceed if no body in context?
-    proceedToInvokeHandler = true;
+    proceedToInvokeHandler =
+      bodyStream === undefined || bodyStream.readableLength === 0;
   }
 
   return [proceedToInvokeHandler, body];

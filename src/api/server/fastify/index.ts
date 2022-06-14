@@ -3,6 +3,7 @@ import * as prefix from "../../core/prefix";
 import * as server from "../../core/server";
 import * as fastify from "fastify";
 import { URL } from "url";
+import { Readable } from "stream";
 
 export interface HKTContext extends server.HKTContext {
   readonly type: Context<this["_TState"]>;
@@ -92,8 +93,7 @@ export const modifyState = <TState>(
 //   return req.__tyrasState;
 // };
 
-// Using given various endpoints, create object which is able to create ExpressJS middlewares.
-// The factory object accepts callbacks to execute on certain scenarios (mostly on errors).
+// Using given various endpoints, create object which is able to handle the requests as Fastify route.
 export const createMiddleware = <TState, TValidationError>(
   endpoints: Array<
     core.AppEndpoint<Context<TState>, TValidationError, Record<string, unknown>>
@@ -102,149 +102,165 @@ export const createMiddleware = <TState, TValidationError>(
   events:
     | server.RequestProcessingEvents<Context<TState>, TState, TValidationError>
     | undefined = undefined,
-): ((
-  ...params: Parameters<fastify.preHandlerAsyncHookHandler>
-) => Promise<unknown>) =>
-  // ((
-  //   req: import("connect").IncomingMessage & middie.IncomingMessageExtended,
-  //   res: import("http").ServerResponse,
-  //   next: () => void,
-  // ) => Promise<void>)
-  {
-    // Combine given endpoints into top-level entrypoint
-    const { url: regExp, handler } = prefix
-      .atPrefix("", ...endpoints)
-      .getRegExpAndHandler("");
-    // Return Koa middleware handler factory
-    return async (req, res) => {
-      const ctx = {
-        req: req.raw as FastifyContextWithState<TState>,
-        res: res.raw,
-      };
-      const parsedUrl = new URL(req.raw.url ?? "<no url>", "http://dummy");
-      const maybeEventArgs = server.checkURLPathNameForHandler(
-        ctx,
-        doGetStateFromContext(ctx, { value: initialState }),
+): FastifyRouteHandler => {
+  // Combine given endpoints into top-level entrypoint
+  const { url: regExp, handler } = prefix
+    .atPrefix("", ...endpoints)
+    .getRegExpAndHandler("");
+  // Return Koa middleware handler factory
+  return async (req, res) => {
+    const ctx = {
+      req: req.raw as FastifyContextWithState<TState>,
+      res: res.raw,
+    };
+    const parsedUrl = new URL(req.raw.url ?? "<no url>", "http://dummy");
+    const maybeEventArgs = server.checkURLPathNameForHandler(
+      ctx,
+      doGetStateFromContext(ctx, { value: initialState }),
+      events,
+      parsedUrl,
+      regExp,
+    );
+    if (maybeEventArgs) {
+      // We have a match -> get the handler that will handle our match
+      const foundHandler = server.checkMethodForHandler(
+        maybeEventArgs,
         events,
-        parsedUrl,
-        regExp,
+        req.method as core.HttpMethod,
+        handler,
       );
-      if (maybeEventArgs) {
-        // We have a match -> get the handler that will handle our match
-        const foundHandler = server.checkMethodForHandler(
+
+      if (foundHandler.found === "handler") {
+        const {
+          handler: {
+            contextValidator,
+            urlValidator,
+            queryValidator,
+            bodyValidator,
+            handler,
+          },
+        } = foundHandler;
+        // At this point, check context state.
+        // State typically includes things like username etc, so verifying it as a first thing before checking body is meaningful.
+        // Also, allow the context state checker return custom status code, e.g. 401 for when lacking credentials.
+        const contextValidation = server.checkContextForHandler(
           maybeEventArgs,
           events,
-          req.method as core.HttpMethod,
-          handler,
+          contextValidator,
         );
-
-        if (foundHandler.found === "handler") {
-          const {
-            handler: {
-              contextValidator,
-              urlValidator,
-              queryValidator,
-              bodyValidator,
-              handler,
-            },
-          } = foundHandler;
-          // At this point, check context state.
-          // State typically includes things like username etc, so verifying it as a first thing before checking body is meaningful.
-          // Also, allow the context state checker return custom status code, e.g. 401 for when lacking credentials.
-          const contextValidation = server.checkContextForHandler(
-            maybeEventArgs,
+        if (contextValidation.result === "context") {
+          const eventArgs = {
+            ...maybeEventArgs,
+            ctx: contextValidation.context as typeof ctx,
+            state: contextValidation.state as TState,
+          };
+          // State was OK, validate url & query & body
+          const [proceedAfterURL, url] = server.checkURLParametersForHandler(
+            eventArgs,
             events,
-            contextValidator,
+            urlValidator,
           );
-          if (contextValidation.result === "context") {
-            const eventArgs = {
-              ...maybeEventArgs,
-              ctx: contextValidation.context as typeof ctx,
-              state: contextValidation.state as TState,
-            };
-            // State was OK, validate url & query & body
-            const [proceedAfterURL, url] = server.checkURLParametersForHandler(
+          if (proceedAfterURL) {
+            const [proceedAfterQuery, query] = server.checkQueryForHandler(
               eventArgs,
               events,
-              urlValidator,
+              queryValidator,
+              parsedUrl.search.substring(1), // Remove leading '?'
+              Object.fromEntries(parsedUrl.searchParams.entries()),
             );
-            if (proceedAfterURL) {
-              const [proceedAfterQuery, query] = server.checkQueryForHandler(
+            if (proceedAfterQuery) {
+              const bodyStream =
+                req.body instanceof Readable ? req.body : undefined;
+              const [proceedAfterBody, body] = await server.checkBodyForHandler(
                 eventArgs,
                 events,
-                queryValidator,
-                parsedUrl.search.substring(1), // Remove leading '?'
-                Object.fromEntries(parsedUrl.searchParams.entries()),
+                bodyValidator,
+                req.headers["content-type"] ?? "",
+                bodyStream,
               );
-              if (proceedAfterQuery) {
-                const bodyBuffer = Buffer.isBuffer(req.body)
-                  ? req.body
-                  : Buffer.from("");
-                const [proceedAfterBody, body] =
-                  await server.checkBodyForHandler(
-                    eventArgs,
-                    events,
-                    bodyValidator,
-                    req.headers["content-type"] ?? "",
-                    bodyBuffer,
-                  );
-                if (proceedAfterBody) {
-                  const retVal = server.invokeHandler(
-                    eventArgs,
-                    events,
-                    handler,
+              if (proceedAfterBody) {
+                const retVal = server.invokeHandler(
+                  eventArgs,
+                  events,
+                  handler,
+                  {
+                    context: eventArgs.ctx,
+                    state: eventArgs.state,
+                    url,
+                    body,
+                    query,
+                  },
+                );
+                switch (retVal.error) {
+                  case "none":
                     {
-                      context: eventArgs.ctx,
-                      state: eventArgs.state,
-                      url,
-                      body,
-                      query,
-                    },
-                  );
-                  switch (retVal.error) {
-                    case "none":
-                      {
-                        const { contentType, output } = retVal.data;
-                        if (output !== undefined) {
-                          await res
-                            .header("Content-Type", contentType)
-                            .code(200) // OK
-                            .send(output); // TODO do we need to pipe readable?
-                        } else {
-                          res.statusCode = 204; // No Content
-                        }
+                      const { contentType, output } = retVal.data;
+                      if (output !== undefined) {
+                        await res
+                          .header("Content-Type", contentType)
+                          .code(200) // OK
+                          .send(output); // TODO do we need to pipe readable?
+                      } else {
+                        res.statusCode = 204; // No Content
                       }
-                      break;
-                    case "error": {
-                      res.statusCode = 500; // Internal Server Error
                     }
+                    break;
+                  case "error": {
+                    res.statusCode = 500; // Internal Server Error
                   }
-                } else {
-                  // Body failed validation
-                  res.statusCode = 422;
                 }
               } else {
-                // Query parameters failed validation
-                res.statusCode = 400;
+                // Body failed validation
+                res.statusCode = 422;
               }
             } else {
-              // While URL matched regex, the parameters failed further validation
+              // Query parameters failed validation
               res.statusCode = 400;
             }
           } else {
-            // Context validation failed - set status code
-            await res
-              .code(contextValidation.customStatusCode ?? 500) // Internal server error
-              .send(contextValidation.customBody);
+            // While URL matched regex, the parameters failed further validation
+            res.statusCode = 400;
           }
         } else {
-          res.raw.setHeader("Allow", foundHandler.allowedMethods.join(","));
-          res.statusCode = 405;
-          // .header("Allow", foundHandler.allowedMethods.join(","))
-          // .code(405); // Method Not Allowed
+          // Context validation failed - set status code
+          await res
+            .code(contextValidation.customStatusCode ?? 500) // Internal server error
+            .send(contextValidation.customBody);
         }
       } else {
-        res.statusCode = 404; // Not Found
+        res.raw.setHeader("Allow", foundHandler.allowedMethods.join(","));
+        res.statusCode = 405;
+        // .header("Allow", foundHandler.allowedMethods.join(","))
+        // .code(405); // Method Not Allowed
       }
-    };
+    } else {
+      res.statusCode = 404; // Not Found
+    }
   };
+};
+
+export const registerToFastifyInstance = (
+  instance: fastify.FastifyInstance,
+  performFunctionality: FastifyRouteHandler,
+  options: Omit<fastify.RouteOptions, "method" | "url" | "handler">,
+) => {
+  // We must pass body completely raw to our route, since only in the route we will know the actual body validation.
+  // To achieve that, we remove the default content type parsers, and register universal parser, which simply passes the body as-is onwards to the route.
+  instance.removeAllContentTypeParsers();
+  instance.addContentTypeParser(/.*/, {}, (_, rawBody, done) => {
+    done(null, rawBody);
+  });
+  instance.route({
+    ...options,
+    // Capture all methods
+    method: ["GET", "POST", "PUT", "PATCH", "OPTIONS", "HEAD", "DELETE"],
+    // Capture all URLs
+    url: "*",
+    // Handle them with the handler
+    handler: performFunctionality,
+  });
+};
+
+export type FastifyRouteHandler = (
+  ...params: Parameters<fastify.preHandlerAsyncHookHandler>
+) => Promise<void>;

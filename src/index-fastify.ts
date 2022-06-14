@@ -20,7 +20,7 @@ import * as fastifyPlugin from "./api/server/fastify";
 const performFunctionality = fastifyPlugin.createMiddleware(
   endpoints.createEndpoints(
     spec
-      // Lock in to Koa and IO-TS
+      // Lock in to Fastify and IO-TS
       .bindNecessaryTypes<
         server.HKTContextKind<fastifyPlugin.HKTContext, endpoints.State>,
         endpoints.State,
@@ -86,31 +86,11 @@ const main = async () => {
     .default
     //{ logger: { level: "info" } }
     ();
-  server.removeAllContentTypeParsers();
-  server.addContentTypeParser<Buffer>(
-    /.*/,
-    { parseAs: "buffer" },
-    (_, rawBody, done) => {
-      done(null, rawBody);
-    },
-  );
-  // Make it able to handle middleware
-  // await server.register(middie.default);
+  // Register the functionality callback, and also remember the handler to set username from auth
+  fastifyPlugin.registerToFastifyInstance(server, performFunctionality, {
+    onRequest: middleWareToSetUsernameFromBasicAuth(),
+  });
   await server
-    // First do auth (will modify context's state)
-    // .use(middleWareToSetUsernameFromBasicAuth())
-    .route({
-      method: ["GET", "POST", "PUT", "PATCH", "OPTIONS", "HEAD", "DELETE"],
-      url: "*",
-      handler: performFunctionality, // console.log("TL HANDLER"),
-      onRequest: middleWareToSetUsernameFromBasicAuth(),
-    })
-    // .addHook("onRequest", (req) => console.log("ON REQ"))
-    // .addHook("preParsing", () => console.log("PRE PARSING"))
-    // .addHook("preSerialization", () => console.log("PRE SERIALIZATION"))
-    // .addHook("preValidation", () => console.log("PRE VALIDATION"))
-    // // Then perform the REST API functionality
-    // .addHook("preHandler", performFunctionality)
     // Start on given port
     .listen({ port: 3000, host: "0.0.0.0" });
   // Inform that requests can now be sent

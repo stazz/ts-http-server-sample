@@ -20,7 +20,7 @@ import * as expressPlugin from "./api/server/express";
 const performFunctionality = expressPlugin.createMiddleware(
   endpoints.createEndpoints(
     spec
-      // Lock in to Koa and IO-TS
+      // Lock in to ExpressJS and IO-TS
       .bindNecessaryTypes<
         server.HKTContextKind<expressPlugin.HKTContext, endpoints.State>,
         endpoints.State,

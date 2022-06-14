@@ -168,6 +168,7 @@ const parameterBooleanValue: StringParameterTransform<t.BooleanType> = {
 export const inputValidator = <T>(
   validation: Decoder<T>,
   strictContentType = false,
+  opts?: rawbody.Options,
 ): core.DataValidatorRequestInputSpec<T, ValidationError, ValidatorSpec> => {
   const jsonValidation = core.transitiveDataValidation(
     (inputString: string) => {
@@ -200,15 +201,11 @@ export const inputValidator = <T>(
         (!strictContentType && contentType.length === 0)
         ? // stream._decoder || (state && (state.encoding || state.decoder))
           jsonValidation(
-            // The raw-body is a bit silly, and will throw if readable has encoding, AND we specify our own encoding.
-            // Furthermore, it uses private members to check for encoding.
-            // So instead just read into Buffer and then create a string
-            Buffer.isBuffer(input)
-              ? input.toString("utf8")
-              : await rawbody.default(
-                  input,
-                  { encoding: "utf8" }, // TODO customize encoding
-                ),
+            await rawbody.default(input, {
+              ...(opts ?? {}),
+              // TODO get encoding from headers (or perhaps content type value? e.g. application/json;encoding=utf8)
+              encoding: opts?.encoding ?? "utf8",
+            }),
           )
         : {
             error: "unsupported-content-type",
