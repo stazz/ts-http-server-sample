@@ -15,4 +15,4 @@ export const plainValidator =
     validation: Decoder<TData, TInput>,
   ): core.DataValidator<TInput, TData, error.ValidationError> =>
   (input) =>
-    utils.transformIoTsResultToModelResult(validation.decode(input));
+    utils.transformLibraryResultToModelResult(validation.decode(input));

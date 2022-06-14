@@ -63,7 +63,7 @@ export const inputValidator = <T>(
 };
 
 export const outputValidator = <TOutput, TSerialized>(
-  validation: validate.Encoder<TOutput, TSerialized>,
+  encoder: validate.Encoder<TOutput, TSerialized>,
 ): core.DataValidatorResponseOutputSpec<
   TOutput,
   error.ValidationError,
@@ -71,13 +71,19 @@ export const outputValidator = <TOutput, TSerialized>(
 > => ({
   validator: (output) => {
     try {
-      return {
-        error: "none",
-        data: {
-          contentType: CONTENT_TYPE,
-          output: JSON.stringify(validation.encode(output)),
-        },
-      };
+      const result = encoder.validation.validate(output);
+      return result.success
+        ? {
+            error: "none",
+            data: {
+              contentType: CONTENT_TYPE,
+              output: JSON.stringify(encoder.transform(result.value)),
+            },
+          }
+        : {
+            error: "error",
+            errorInfo: [core.omit(result, "success")],
+          };
     } catch (e) {
       return {
         error: "error",
@@ -86,7 +92,7 @@ export const outputValidator = <TOutput, TSerialized>(
     }
   },
   validatorSpec: {
-    [CONTENT_TYPE]: validation,
+    [CONTENT_TYPE]: encoder,
   },
 });
 

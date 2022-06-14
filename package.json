@@ -27,7 +27,8 @@
     "koa": "2.13.4",
     "newtype-ts": "0.3.5",
     "monocle-ts": "2.3.13",
-    "raw-body": "2.5.1"
+    "raw-body": "2.5.1",
+    "runtypes": "6.5.1"
   },
   "devDependencies": {
     "@types/koa": "2.13.4",

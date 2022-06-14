@@ -1,27 +1,26 @@
-import type * as core from "../../core/core";
-import * as t from "io-ts";
+import * as core from "../../core/core";
+import * as t from "runtypes";
 import type * as error from "./error";
 
 export const transformLibraryResultToModelResult = <TData>(
-  validationResult: t.Validation<TData>,
+  validationResult: t.Result<TData>,
 ): core.DataValidatorResult<TData, error.ValidationError> =>
-  validationResult._tag === "Right"
+  validationResult.success
     ? {
         error: "none",
-        data: validationResult.right,
+        data: validationResult.value,
       }
     : {
         error: "error",
-        errorInfo: validationResult.left,
+        errorInfo: [core.omit(validationResult, "success")],
       };
 
 export const exceptionAsValidationError = (
-  input: unknown,
+  input: unknown, // TODO maybe make ValidationError include optional 'value' property?
   exception: unknown,
 ): error.ValidationError => [
   {
-    value: input,
+    code: t.Failcode.CONTENT_INCORRECT,
     message: `${exception}`,
-    context: [],
   },
 ];
