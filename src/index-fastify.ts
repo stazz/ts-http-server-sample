@@ -17,7 +17,7 @@ import * as fastifyPlugin from "./api/server/fastify";
 
 // Create middleware in such way that IDs are valid UUID strings (instead of any strings).
 // Any amount of endpoint informations can be passed to createKoaMiddleware - there always will be exactly one RegExp generated to perform endpoint match.
-const performFunctionality = fastifyPlugin.createMiddleware(
+const performFunctionality = fastifyPlugin.createRoute(
   endpoints.createEndpoints(
     spec
       // Lock in to Fastify and IO-TS
@@ -87,7 +87,7 @@ const main = async () => {
     //{ logger: { level: "info" } }
     ();
   // Register the functionality callback, and also remember the handler to set username from auth
-  fastifyPlugin.registerToFastifyInstance(server, performFunctionality, {
+  fastifyPlugin.registerRouteToFastifyInstance(server, performFunctionality, {
     onRequest: middleWareToSetUsernameFromBasicAuth(),
   });
   await server

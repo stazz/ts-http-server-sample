@@ -12,6 +12,7 @@ import * as tt from "io-ts-types";
 import * as tPlugin from "./api/data/io-ts";
 // Express as HTTP server
 import * as express from "express";
+import type * as expressCore from "express-serve-static-core";
 // Import plugin from generic REST-related things to Koa framework
 import * as expressPlugin from "./api/server/express";
 
@@ -39,10 +40,10 @@ const performFunctionality = expressPlugin.createMiddleware(
 );
 
 const middleWareToSetUsernameFromBasicAuth = (): express.RequestHandler<
-  Record<string, string>,
-  any,
-  any,
-  Record<string, string>,
+  expressCore.ParamsDictionary,
+  unknown,
+  unknown,
+  expressCore.Query,
   endpoints.State
 > => {
   return (req, res, next) => {
