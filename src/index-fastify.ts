@@ -2,35 +2,39 @@
 import * as spec from "./api/core/spec";
 import * as server from "./api/core/server";
 
-import * as endpoints from "./rest-endpoints";
+import * as endpoints from "./rest-endpoints-runtypes";
 import * as logging from "./logging";
 
 // Lock in our vendor choices:
-// IO-TS as data runtime validator
-import * as tt from "io-ts-types";
-// Import plugin for IO-TS
-import * as tPlugin from "./api/data/io-ts";
+// Runtypes as data runtime validator
+import * as t from "runtypes";
+// Import plugin for Runtypes
+import * as tPlugin from "./api/data/runtypes";
 // Express as HTTP server
 import * as fastify from "fastify";
 // Import plugin from generic REST-related things to Koa framework
 import * as fastifyPlugin from "./api/server/fastify";
 
+// This is RFC-adhering UUID regex. Relax if needed.
+// Taken from https://stackoverflow.com/questions/7905929/how-to-test-valid-uuid-guid
+const uuidRegex =
+  /[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}/i;
 // Create middleware in such way that IDs are valid UUID strings (instead of any strings).
 // Any amount of endpoint informations can be passed to createKoaMiddleware - there always will be exactly one RegExp generated to perform endpoint match.
 const performFunctionality = fastifyPlugin.createRoute(
   endpoints.createEndpoints(
     spec
-      // Lock in to Fastify and IO-TS
+      // Lock in to Fastify and Runtypes
       .bindNecessaryTypes<
         server.HKTContextKind<fastifyPlugin.HKTContext, endpoints.State>,
         endpoints.State,
         tPlugin.ValidationError
       >(fastifyPlugin.getStateFromContext),
     fastifyPlugin.validateContextState,
-    // This is RFC-adhering UUID regex. Relax if needed.
-    // Taken from https://stackoverflow.com/questions/7905929/how-to-test-valid-uuid-guid
-    /[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}/i,
-    tt.UUID, // Too bad that io-ts-types does not expose UUID regex it uses (t.string as unknown as t.BrandC<t.StringC, never>),
+    uuidRegex,
+    t.String.withConstraint(
+      (str) => uuidRegex.test(str) || "The IDs must be in valid UUID format.",
+    ).withBrand("UUID"),
   ),
   {},
   logging.logServerEvents(

@@ -7,27 +7,26 @@ import * as prefix from "./api/core/prefix";
 import * as functionality from "./lib";
 
 // Lock in our vendor choices:
-// IO-TS as data runtime validator
-import * as t from "io-ts";
-import * as tt from "io-ts-types";
-// Import plugin for IO-TS
-import * as tPlugin from "./api/data/io-ts";
+// Runtypes as data runtime validator
+import * as t from "runtypes";
+// Import plugin for Runtypes
+import * as tPlugin from "./api/data/runtypes";
 // Import plugin for OpenAPI metadata
 import * as openapi from "./api/metadata/openapi";
 
 // This is just a dummy for demonstration purposes
-export const stateValidation = t.type(
-  {
-    username: t.string,
-  },
-  "State", // Friendly name for error messages
-);
+export const stateValidation = t.Record({
+  username: t.String,
+});
 // This is common state for all endpoints.
 // It is "Partial" because not all endpoints need to have username.
-export type State = Partial<t.TypeOf<typeof stateValidation>>;
+export type State = Partial<t.Static<typeof stateValidation>>;
 
 // Function to create REST API specification, utilizing generic REST API things in ./api and our functionality in ./lib.
-export const createEndpoints = <TContextHKT extends server.HKTContext>(
+export const createEndpoints = <
+  TContextHKT extends server.HKTContext,
+  TStringValidation extends t.Runtype<string>,
+>(
   initial: spec.AppEndpointBuilderProvider<
     server.HKTContextKind<TContextHKT, State>,
     server.HKTContextKind<TContextHKT, State>,
@@ -38,7 +37,7 @@ export const createEndpoints = <TContextHKT extends server.HKTContext>(
   >,
   contextValidatorFactory: server.ContextValidatorFactory<TContextHKT>,
   idRegex: RegExp,
-  idInBody: t.BrandC<t.StringC, unknown>,
+  idInBody: t.Brand<string, TStringValidation>,
 ) => {
   const notAuthenticated = initial
     // All endpoints must specify enough metadata to be able to auto-generate OpenAPI specification
@@ -88,7 +87,7 @@ export const createEndpoints = <TContextHKT extends server.HKTContext>(
         ({ url: { id }, query: { includeDeleted } }) =>
           functionality.queryThing(id, includeDeleted === true),
         // Transform functionality output to REST output
-        tPlugin.outputValidator(t.string),
+        tPlugin.outputValidator(t.String),
         // Metadata about endpoint (as dictated by "withMetadataProvider" above)
         {
           openapi: {
@@ -126,23 +125,17 @@ export const createEndpoints = <TContextHKT extends server.HKTContext>(
       .withBody(
         // Body validator (will be called on JSON-parsed entity)
         tPlugin.inputValidator(
-          t.type(
-            {
-              property: idInBody,
-            },
-            "CreateThingBody", // Friendly name for error messages
-          ),
+          t.Record({
+            property: idInBody,
+          }),
         ),
         // Request handler
         ({ body: { property } }) => functionality.createThing(property),
         // Transform functionality output to REST output
         tPlugin.outputValidator(
-          t.type(
-            {
-              property: t.string,
-            },
-            "CreateThingOutput", // Friendly name for error messages
-          ),
+          t.Record({
+            property: t.String,
+          }),
         ),
         // Metadata about endpoint (as dictated by "withMetadataProvider" above)
         {
@@ -187,24 +180,18 @@ export const createEndpoints = <TContextHKT extends server.HKTContext>(
       .withBody(
         // Body validator (will be called on JSON-parsed entity)
         tPlugin.inputValidator(
-          t.type(
-            {
-              anotherThingId: idInBody,
-            },
-            "ConnectThingBody", // Friendly name for error messages
-          ),
+          t.Record({
+            anotherThingId: idInBody,
+          }),
         ),
         ({ url: { id }, body: { anotherThingId } }) =>
           functionality.connectToAnotherThing(id, anotherThingId),
         // Transform functionality output to REST output
         tPlugin.outputValidator(
-          t.type(
-            {
-              connected: t.boolean,
-              connectedAt: tt.DateFromISOString,
-            },
-            "ConnectThingOutput", // Friendly name for error messages
-          ),
+          t.Record({
+            connected: t.Boolean,
+            connectedAt: t.InstanceOf(Date),
+          }),
         ),
         // Metadata about endpoint (as dictated by "withMetadataProvider" above)
         {
@@ -251,7 +238,7 @@ export const createEndpoints = <TContextHKT extends server.HKTContext>(
     .withoutBody(
       ({ state: { username } }) =>
         functionality.doAuthenticatedAction(username),
-      tPlugin.outputValidator(t.void),
+      tPlugin.outputValidator(t.Void),
       {
         openapi: {
           urlParameters: undefined,
@@ -300,7 +287,7 @@ export const createEndpoints = <TContextHKT extends server.HKTContext>(
         return username ? authenticatedMetadata : notAuthenticatedMetadata;
       },
       // Proper validator for OpenAPI objects is out of scope of this sample
-      tPlugin.outputValidator(t.UnknownRecord),
+      tPlugin.outputValidator(t.Dictionary(t.Unknown)),
       // No metadata - as this is the metadata-returning endpoints itself
       {},
     )
@@ -310,9 +297,5 @@ export const createEndpoints = <TContextHKT extends server.HKTContext>(
 };
 
 const decodeOrThrow = <T>(validate: tPlugin.Decoder<T>, value: unknown) => {
-  const result = validate.decode(value);
-  if (result._tag === "Left") {
-    throw new Error("Fail");
-  }
-  return result.right;
+  return validate.check(value);
 };

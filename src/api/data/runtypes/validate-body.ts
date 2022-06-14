@@ -1,4 +1,5 @@
 import * as core from "../../core/core";
+import * as t from "runtypes";
 import type * as error from "./error";
 import * as validate from "./validate";
 import * as utils from "./utils";
@@ -62,39 +63,62 @@ export const inputValidator = <T>(
   };
 };
 
-export const outputValidator = <TOutput, TSerialized>(
+export function outputValidator<TOutput>(
+  encoder: t.Runtype<TOutput>,
+): core.DataValidatorResponseOutputSpec<
+  TOutput,
+  error.ValidationError,
+  OutputValidatorSpec
+>;
+export function outputValidator<TOutput, TSerialized>(
   encoder: validate.Encoder<TOutput, TSerialized>,
 ): core.DataValidatorResponseOutputSpec<
   TOutput,
   error.ValidationError,
   OutputValidatorSpec
-> => ({
-  validator: (output) => {
-    try {
-      const result = encoder.validation.validate(output);
-      return result.success
-        ? {
-            error: "none",
-            data: {
-              contentType: CONTENT_TYPE,
-              output: JSON.stringify(encoder.transform(result.value)),
-            },
-          }
-        : {
-            error: "error",
-            errorInfo: [core.omit(result, "success")],
-          };
-    } catch (e) {
-      return {
-        error: "error",
-        errorInfo: utils.exceptionAsValidationError(output, e),
-      };
-    }
-  },
-  validatorSpec: {
-    [CONTENT_TYPE]: encoder,
-  },
-});
+>;
+export function outputValidator<TOutput, TSerialized>(
+  encoderOrType: t.Runtype<TOutput> | validate.Encoder<TOutput, TSerialized>,
+): core.DataValidatorResponseOutputSpec<
+  TOutput,
+  error.ValidationError,
+  OutputValidatorSpec
+> {
+  const encoder =
+    "reflect" in encoderOrType
+      ? (validate.encoder(encoderOrType) as unknown as validate.Encoder<
+          TOutput,
+          TSerialized
+        >)
+      : encoderOrType;
+  return {
+    validator: (output) => {
+      try {
+        const result = encoder.validation.validate(output);
+        return result.success
+          ? {
+              error: "none",
+              data: {
+                contentType: CONTENT_TYPE,
+                output: JSON.stringify(encoder.transform(result.value)),
+              },
+            }
+          : {
+              error: "error",
+              errorInfo: [core.omit(result, "success")],
+            };
+      } catch (e) {
+        return {
+          error: "error",
+          errorInfo: utils.exceptionAsValidationError(output, e),
+        };
+      }
+    },
+    validatorSpec: {
+      [CONTENT_TYPE]: encoder,
+    },
+  };
+}
 
 export type InputValidatorSpec = {
   [CONTENT_TYPE]: validate.Decoder<unknown>;

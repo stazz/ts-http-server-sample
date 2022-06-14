@@ -7,7 +7,7 @@ export const getHumanReadableErrorMessage = (errors: ValidationError) =>
     .map(
       ({ code, message, details }) =>
         `${code}: ${message}.${
-          details === undefined ? "" : detailsToString(details)
+          details === undefined ? "" : `\n  ${detailsToString(details)}`
         }`,
     )
     .join(`\n`);
@@ -20,4 +20,4 @@ const detailsToString = (details: string | t.Details): string =>
         : Object.entries(details).map(
             ([key, detail]) => `${key}:${detailsToString(detail)}`,
           )
-      ).join("  \n");
+      ).join("\n  ");
