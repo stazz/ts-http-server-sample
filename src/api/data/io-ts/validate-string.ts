@@ -109,7 +109,7 @@ export const queryValidator = <
 
 export const stringParameterWithTransform = <
   TValidation extends t.Mixed,
-  TStringValidation extends validate.Decoder<string> & t.Mixed,
+  TStringValidation extends validate.Decoder<string | undefined> & t.Mixed,
 >(
   stringValidation: TStringValidation,
   validation: TValidation,
@@ -128,7 +128,7 @@ export interface StringParameterTransform<
 > {
   transform: (value: TString) => t.TypeOf<TValidation>;
   validation: TValidation;
-  stringValidation?: validate.Decoder<string>;
+  stringValidation?: validate.Decoder<TString>;
 }
 
 export interface QueryValidatorPropertySpec<

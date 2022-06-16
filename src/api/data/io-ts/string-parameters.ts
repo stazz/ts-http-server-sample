@@ -39,7 +39,7 @@ const parameterStringValue: validateString.StringParameterTransform<
 const TRUE = "true" as const;
 export const parameterBoolean = () =>
   validateString.stringParameterWithTransform(
-    t.keyof({ [TRUE]: "", false: "" }),
+    t.union([t.undefined, t.keyof({ [TRUE]: "", false: "" })]),
     t.boolean,
     (str) => str === TRUE,
   );

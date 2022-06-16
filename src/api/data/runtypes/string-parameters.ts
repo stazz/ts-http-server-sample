@@ -35,7 +35,7 @@ const parameterStringValue: validateString.StringParameterTransform<
 const TRUE = "true" as const;
 export const parameterBoolean = () =>
   validateString.stringParameterWithTransform(
-    t.Union(t.Literal(TRUE), t.Literal("false")),
+    t.Union(t.Undefined, t.Literal(TRUE), t.Literal("false")),
     t.Boolean,
     (str) => str === TRUE,
   );

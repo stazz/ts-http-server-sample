@@ -104,7 +104,7 @@ export const queryValidator = <
 
 export const stringParameterWithTransform = <
   TValidation extends t.ZodType,
-  TStringValidation extends validate.Decoder<string>,
+  TStringValidation extends validate.Decoder<string | undefined>,
 >(
   stringValidation: TStringValidation,
   validation: TValidation,
@@ -124,7 +124,7 @@ export interface StringParameterTransform<
   // Notice that transform will receive value which passed stringValidation, if stringValidation is supplied
   transform: (value: TString) => t.infer<TValidation>;
   validation: TValidation;
-  stringValidation?: validate.Decoder<string>;
+  stringValidation?: validate.Decoder<TString>;
 }
 
 export interface QueryValidatorPropertySpec<
