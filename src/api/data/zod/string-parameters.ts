@@ -1,9 +1,9 @@
-import * as t from "runtypes";
+import * as t from "zod";
 import * as validate from "./validate";
 import * as validateString from "./validate-string";
 
 export function parameterString(): validateString.StringParameterTransform<
-  t.String,
+  t.ZodString,
   string
 >;
 export function parameterString<TDecoder extends validate.Decoder<string>>(
@@ -11,7 +11,7 @@ export function parameterString<TDecoder extends validate.Decoder<string>>(
 ): validateString.StringParameterTransform<TDecoder, string>;
 export function parameterString<TDecoder extends validate.Decoder<string>>(
   customString?: TDecoder,
-): validateString.StringParameterTransform<TDecoder | t.String, string> {
+): validateString.StringParameterTransform<TDecoder | t.ZodString, string> {
   return customString
     ? {
         transform: (str) => str,
@@ -24,17 +24,20 @@ export function parameterString<TDecoder extends validate.Decoder<string>>(
 }
 
 const parameterStringValue: validateString.StringParameterTransform<
-  t.String,
+  t.ZodString,
   string
 > = {
   transform: (str) => str,
-  validation: t.String,
+  validation: t.string(),
 };
 
-const TRUE = "true" as const;
 export const parameterBoolean = () =>
-  validateString.stringParameterWithTransform(
-    t.Union(t.Literal(TRUE), t.Literal("false")),
-    t.Boolean,
-    (str) => str === TRUE,
-  );
+  // Copy to prevent modifications by caller
+  ({ ...parameterBooleanValue });
+
+const TRUE = "true" as const;
+const parameterBooleanValue = validateString.stringParameterWithTransform(
+  t.union([t.literal(TRUE), t.literal("false")]),
+  t.boolean(),
+  (str) => str === TRUE,
+);

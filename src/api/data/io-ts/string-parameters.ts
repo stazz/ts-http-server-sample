@@ -28,14 +28,10 @@ const parameterStringValue: validateString.StringParameterTransform<t.StringType
     validation: t.string,
   };
 
-export const parameterBoolean = () =>
-  // Copy to prevent modifications by caller
-  ({ ...parameterBooleanValue });
-
 const TRUE = "true" as const;
-const parameterBooleanValue: validateString.StringParameterTransform<t.BooleanType> =
-  {
-    validation: t.boolean,
-    stringValidation: t.keyof({ [TRUE]: "", false: "" }),
-    transform: (str) => str === TRUE,
-  };
+export const parameterBoolean = () =>
+  validateString.stringParameterWithTransform(
+    t.keyof({ [TRUE]: "", false: "" }),
+    t.boolean,
+    (str) => str === TRUE,
+  );

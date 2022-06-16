@@ -13,6 +13,8 @@ export const urlParameter = <T extends validate.Decoder<unknown> & t.Mixed>(
   validator: createValidatorForStringParameter(validation),
 });
 
+// TODO test whether t.partial({a: t.string}) will validate on object { a: undefined }.
+// That will decide how to proceed in regards to string | undefined validation as is in runtypes and zod libs.
 export const queryValidator = <
   TRequired extends string,
   TOptional extends string,
@@ -93,6 +95,20 @@ export const queryValidator = <
     ),
   };
 };
+
+export const stringParameterWithTransform = <
+  TValidation extends t.Mixed,
+  TStringValidation extends validate.Decoder<string> & t.Mixed,
+>(
+  stringValidation: TStringValidation,
+  validation: TValidation,
+  transform: (val: t.TypeOf<TStringValidation>) => t.TypeOf<TValidation>,
+): StringParameterTransform<TValidation> =>
+  ({
+    stringValidation,
+    validation,
+    transform,
+  } as StringParameterTransform<TValidation>);
 
 export interface StringParameterTransform<
   TValidation extends t.Mixed,

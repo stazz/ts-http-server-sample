@@ -34,8 +34,10 @@ export type ContextValidatorFactory<TContext extends HKTContext> = <
 >;
 
 export type DataValidatorOutput<T> = T extends core.DataValidator<
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   infer _,
   infer TData,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   infer _1
 >
   ? TData

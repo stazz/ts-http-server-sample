@@ -1,6 +1,5 @@
 import * as core from "../../core/core";
-import * as t from "runtypes";
-import * as tHelper from "runtypes/lib/runtype";
+import * as t from "zod";
 import type * as error from "./error";
 import * as validate from "./validate";
 import * as utils from "./utils";
@@ -65,7 +64,7 @@ export const inputValidator = <T>(
 };
 
 export function outputValidator<TOutput>(
-  encoder: t.Runtype<TOutput>,
+  encoder: t.ZodType<TOutput>,
 ): core.DataValidatorResponseOutputSpec<
   TOutput,
   error.ValidationError,
@@ -79,33 +78,34 @@ export function outputValidator<TOutput, TSerialized>(
   OutputValidatorSpec
 >;
 export function outputValidator<TOutput, TSerialized>(
-  encoderOrType: t.Runtype<TOutput> | validate.Encoder<TOutput, TSerialized>,
+  encoderOrType: t.ZodType<TOutput> | validate.Encoder<TOutput, TSerialized>,
 ): core.DataValidatorResponseOutputSpec<
   TOutput,
   error.ValidationError,
   OutputValidatorSpec
 > {
-  const encoder = tHelper.isRuntype(encoderOrType)
-    ? (validate.encoder(encoderOrType) as unknown as validate.Encoder<
-        TOutput,
-        TSerialized
-      >)
-    : encoderOrType;
+  const encoder =
+    encoderOrType instanceof t.ZodType
+      ? (validate.encoder(encoderOrType) as unknown as validate.Encoder<
+          TOutput,
+          TSerialized
+        >)
+      : encoderOrType;
   return {
     validator: (output) => {
       try {
-        const result = encoder.validation.validate(output);
+        const result = encoder.validation.safeParse(output);
         return result.success
           ? {
               error: "none",
               data: {
                 contentType: CONTENT_TYPE,
-                output: JSON.stringify(encoder.transform(result.value)),
+                output: JSON.stringify(encoder.transform(result.data)),
               },
             }
           : {
               error: "error",
-              errorInfo: [core.omit(result, "success")],
+              errorInfo: [result.error],
             };
       } catch (e) {
         return {

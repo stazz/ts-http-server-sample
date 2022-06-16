@@ -1,5 +1,5 @@
 import * as core from "../../core/core";
-import * as t from "runtypes";
+import * as t from "zod";
 import * as validate from "./validate";
 import type * as error from "./error";
 import * as utils from "./utils";
@@ -8,7 +8,7 @@ import type * as q from "querystring";
 export const urlParameter = <T extends validate.Decoder<unknown>>(
   validation: StringParameterTransform<T, string>,
   regExp?: RegExp,
-): core.URLDataParameterValidatorSpec<t.Static<T>, error.ValidationError> => ({
+): core.URLDataParameterValidatorSpec<t.infer<T>, error.ValidationError> => ({
   regExp: regExp ?? core.defaultParameterRegExp(),
   validator: createValidatorForStringParameter(validation, true),
 });
@@ -17,9 +17,9 @@ export const queryValidator = <
   TRequired extends string,
   TOptional extends string,
   TValidation extends {
-    [P in TRequired]: StringParameterTransform<t.Runtype, string>;
+    [P in TRequired]: StringParameterTransform<t.ZodType, string>;
   } & {
-    [P in TOptional]: StringParameterTransform<t.Runtype, string | undefined>;
+    [P in TOptional]: StringParameterTransform<t.ZodType, string | undefined>;
   },
 >({
   required,
@@ -30,24 +30,24 @@ export const queryValidator = <
   TOptional,
   TValidation
 >): core.QueryValidatorSpec<
-  { [P in TRequired]: t.Static<TValidation[P]["validation"]> } & {
-    [P in TOptional]?: t.Static<TValidation[P]["validation"]>;
+  { [P in TRequired]: t.infer<TValidation[P]["validation"]> } & {
+    [P in TOptional]?: t.infer<TValidation[P]["validation"]>;
   },
   error.ValidationError
 > => {
   // Unfortunately, Runtypes does not have "exact", and the following PR is still open:
   // https://github.com/pelotom/runtypes/pull/162
   const initialValidator = validate.plainValidator(
-    t.Record({
-      ...Object.fromEntries(required.map((r) => [r, t.String])),
-      ...Object.fromEntries(optional.map((o) => [o, t.String.optional()])),
+    t.object({
+      ...Object.fromEntries(required.map((r) => [r, t.string()])),
+      ...Object.fromEntries(optional.map((o) => [o, t.string().optional()])),
     }),
   );
   const paramValidators = Object.fromEntries(
     Object.entries(
       validation as Record<
         string,
-        StringParameterTransform<t.Runtype, string | undefined>
+        StringParameterTransform<t.ZodType, string | undefined>
       >,
     ).map(([key, paramValidation]) => [
       key,
@@ -88,8 +88,8 @@ export const queryValidator = <
       query: "object",
       validator: finalValidator as core.DataValidator<
         q.ParsedUrlQuery,
-        { [P in TRequired]: t.Static<TValidation[P]["validation"]> } & {
-          [P in TOptional]?: t.Static<TValidation[P]["validation"]>;
+        { [P in TRequired]: t.infer<TValidation[P]["validation"]> } & {
+          [P in TOptional]?: t.infer<TValidation[P]["validation"]>;
         },
         error.ValidationError
       >,
@@ -103,12 +103,12 @@ export const queryValidator = <
 };
 
 export const stringParameterWithTransform = <
-  TValidation extends t.Runtype,
+  TValidation extends t.ZodType,
   TStringValidation extends validate.Decoder<string>,
 >(
   stringValidation: TStringValidation,
   validation: TValidation,
-  transform: (val: t.Static<TStringValidation>) => t.Static<TValidation>,
+  transform: (val: t.infer<TStringValidation>) => t.infer<TValidation>,
 ): StringParameterTransform<TValidation, string | undefined> =>
   ({
     stringValidation,
@@ -117,11 +117,12 @@ export const stringParameterWithTransform = <
   } as StringParameterTransform<TValidation, string | undefined>);
 
 export interface StringParameterTransform<
-  TValidation extends t.Runtype,
+  TValidation extends t.ZodType,
   TString,
   // TStringValidation extends Decoder<string> & t.Mixed = t.StringType,
 > {
-  transform: (value: TString) => t.Static<TValidation>;
+  // Notice that transform will receive value which passed stringValidation, if stringValidation is supplied
+  transform: (value: TString) => t.infer<TValidation>;
   validation: TValidation;
   stringValidation?: validate.Decoder<string>;
 }
@@ -131,7 +132,7 @@ export interface QueryValidatorPropertySpec<
   TOptional extends string,
   TValidation extends {
     [P in TRequired | TOptional]: StringParameterTransform<
-      t.Runtype,
+      t.ZodType,
       string | undefined
     >;
   },
@@ -141,15 +142,15 @@ export interface QueryValidatorPropertySpec<
   validation: TValidation;
 }
 
-function createValidatorForStringParameter<TValidation extends t.Runtype>(
+function createValidatorForStringParameter<TValidation extends t.ZodType>(
   {
     transform,
     validation,
     stringValidation,
   }: StringParameterTransform<TValidation, string>,
   isRequired: true,
-): core.DataValidator<string, t.Static<TValidation>, error.ValidationError>;
-function createValidatorForStringParameter<TValidation extends t.Runtype>(
+): core.DataValidator<string, t.infer<TValidation>, error.ValidationError>;
+function createValidatorForStringParameter<TValidation extends t.ZodType>(
   {
     transform,
     validation,
@@ -158,10 +159,10 @@ function createValidatorForStringParameter<TValidation extends t.Runtype>(
   isRequired: false,
 ): core.DataValidator<
   string | undefined,
-  t.Static<TValidation>,
+  t.infer<TValidation>,
   error.ValidationError
 >;
-function createValidatorForStringParameter<TValidation extends t.Runtype>(
+function createValidatorForStringParameter<TValidation extends t.ZodType>(
   {
     transform,
     validation,
@@ -170,10 +171,10 @@ function createValidatorForStringParameter<TValidation extends t.Runtype>(
   isRequired: boolean,
 ): core.DataValidator<
   string | undefined,
-  t.Static<TValidation>,
+  t.infer<TValidation>,
   error.ValidationError
 >;
-function createValidatorForStringParameter<TValidation extends t.Runtype>(
+function createValidatorForStringParameter<TValidation extends t.ZodType>(
   {
     transform,
     validation,
@@ -184,7 +185,7 @@ function createValidatorForStringParameter<TValidation extends t.Runtype>(
   isRequired: boolean,
 ): core.DataValidator<
   string | undefined,
-  t.Static<TValidation>,
+  t.infer<TValidation>,
   error.ValidationError
 > {
   return (str: string | undefined) => {
@@ -201,7 +202,7 @@ function createValidatorForStringParameter<TValidation extends t.Runtype>(
       if (stringValidation) {
         const stringValidationResult =
           utils.transformLibraryResultToModelResult(
-            stringValidation.validate(str),
+            stringValidation.safeParse(str),
           );
         switch (stringValidationResult.error) {
           case "none":
@@ -213,7 +214,7 @@ function createValidatorForStringParameter<TValidation extends t.Runtype>(
       }
       return utils.transformLibraryResultToModelResult(
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        validation.validate(transform(str!)),
+        validation.safeParse(transform(str!)),
       );
     } catch (e) {
       return {
