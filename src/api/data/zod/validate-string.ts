@@ -38,7 +38,7 @@ export const queryValidator = <
   // Unfortunately, Runtypes does not have "exact", and the following PR is still open:
   // https://github.com/pelotom/runtypes/pull/162
   const initialValidator = validate.plainValidator(
-    t.object({
+    t.strictObject({
       ...Object.fromEntries(required.map((r) => [r, t.string()])),
       ...Object.fromEntries(optional.map((o) => [o, t.string().optional()])),
     }),

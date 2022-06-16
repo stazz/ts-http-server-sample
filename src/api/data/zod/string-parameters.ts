@@ -2,6 +2,7 @@ import * as t from "zod";
 import * as validate from "./validate";
 import * as validateString from "./validate-string";
 
+// TODO we might need overloads for optional string parameters
 export function parameterString(): validateString.StringParameterTransform<
   t.ZodString,
   string

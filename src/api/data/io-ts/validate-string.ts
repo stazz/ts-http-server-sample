@@ -6,11 +6,11 @@ import * as utils from "./utils";
 import type * as q from "querystring";
 
 export const urlParameter = <T extends validate.Decoder<unknown> & t.Mixed>(
-  validation: StringParameterTransform<T>,
+  validation: StringParameterTransform<T, string>,
   regExp?: RegExp,
 ): core.URLDataParameterValidatorSpec<t.TypeOf<T>, error.ValidationError> => ({
   regExp: regExp ?? core.defaultParameterRegExp(),
-  validator: createValidatorForStringParameter(validation),
+  validator: createValidatorForStringParameter(validation, true),
 });
 
 // TODO test whether t.partial({a: t.string}) will validate on object { a: undefined }.
@@ -19,7 +19,9 @@ export const queryValidator = <
   TRequired extends string,
   TOptional extends string,
   TValidation extends {
-    [P in TRequired | TOptional]: StringParameterTransform<t.Mixed>;
+    [P in TRequired]: StringParameterTransform<t.Mixed, string>;
+  } & {
+    [P in TOptional]: StringParameterTransform<t.Mixed, string | undefined>;
   },
 >({
   required,
@@ -35,20 +37,29 @@ export const queryValidator = <
   },
   error.ValidationError
 > => {
+  const requiredValidation = t.type(
+    Object.fromEntries(required.map((r) => [r, t.string])),
+  );
   const initialValidator = validate.plainValidator(
     t.exact(
       t.intersection([
-        t.type(Object.fromEntries(required.map((r) => [r, t.string]))),
+        requiredValidation,
         t.partial(Object.fromEntries(optional.map((o) => [o, t.string]))),
       ]),
     ),
   );
   const paramValidators = Object.fromEntries(
     Object.entries(
-      validation as Record<string, StringParameterTransform<t.Mixed>>,
+      validation as Record<
+        string,
+        StringParameterTransform<t.Mixed, string | undefined>
+      >,
     ).map(([key, paramValidation]) => [
       key,
-      createValidatorForStringParameter(paramValidation),
+      createValidatorForStringParameter(
+        paramValidation,
+        key in requiredValidation.props,
+      ),
     ]),
   );
   const finalValidator = core.transitiveDataValidation(
@@ -103,18 +114,19 @@ export const stringParameterWithTransform = <
   stringValidation: TStringValidation,
   validation: TValidation,
   transform: (val: t.TypeOf<TStringValidation>) => t.TypeOf<TValidation>,
-): StringParameterTransform<TValidation> =>
+): StringParameterTransform<TValidation, string | undefined> =>
   ({
     stringValidation,
     validation,
     transform,
-  } as StringParameterTransform<TValidation>);
+  } as StringParameterTransform<TValidation, string | undefined>);
 
 export interface StringParameterTransform<
   TValidation extends t.Mixed,
+  TString,
   // TStringValidation extends Decoder<string> & t.Mixed = t.StringType,
 > {
-  transform: (value: string) => t.TypeOf<TValidation>;
+  transform: (value: TString) => t.TypeOf<TValidation>;
   validation: TValidation;
   stringValidation?: validate.Decoder<string>;
 }
@@ -123,7 +135,10 @@ export interface QueryValidatorPropertySpec<
   TRequired extends string,
   TOptional extends string,
   TValidation extends {
-    [P in TRequired | TOptional]: StringParameterTransform<t.Mixed>;
+    [P in TRequired | TOptional]: StringParameterTransform<
+      t.Mixed,
+      string | undefined
+    >;
   },
 > {
   required: ReadonlyArray<TRequired>;
@@ -131,18 +146,63 @@ export interface QueryValidatorPropertySpec<
   validation: TValidation;
 }
 
-const createValidatorForStringParameter =
-  <TValidation extends t.Mixed>({
+function createValidatorForStringParameter<TValidation extends t.Mixed>(
+  {
     transform,
     validation,
     stringValidation,
-  }: StringParameterTransform<TValidation>): core.DataValidator<
-    string,
-    t.TypeOf<TValidation>,
-    error.ValidationError
-  > =>
-  (str) => {
+  }: StringParameterTransform<TValidation, string>,
+  isRequired: true,
+): core.DataValidator<string, t.TypeOf<TValidation>, error.ValidationError>;
+function createValidatorForStringParameter<TValidation extends t.Mixed>(
+  {
+    transform,
+    validation,
+    stringValidation,
+  }: StringParameterTransform<TValidation, string | undefined>,
+  isRequired: false,
+): core.DataValidator<
+  string | undefined,
+  t.TypeOf<TValidation>,
+  error.ValidationError
+>;
+function createValidatorForStringParameter<TValidation extends t.Mixed>(
+  {
+    transform,
+    validation,
+    stringValidation,
+  }: StringParameterTransform<TValidation, string | undefined>,
+  isRequired: boolean,
+): core.DataValidator<
+  string | undefined,
+  t.TypeOf<TValidation>,
+  error.ValidationError
+>;
+function createValidatorForStringParameter<TValidation extends t.Mixed>(
+  {
+    transform,
+    validation,
+    stringValidation,
+  }:
+    | StringParameterTransform<TValidation, string | undefined>
+    | StringParameterTransform<TValidation, string>,
+  isRequired: boolean,
+): core.DataValidator<
+  string | undefined,
+  t.TypeOf<TValidation>,
+  error.ValidationError
+> {
+  return (str: string | undefined) => {
     try {
+      if (str === undefined && isRequired) {
+        return {
+          error: "error",
+          errorInfo: utils.exceptionAsValidationError(
+            str,
+            new Error("String parameter is required, but no value provided"),
+          ),
+        };
+      }
       if (stringValidation) {
         const stringValidationResult =
           utils.transformLibraryResultToModelResult(
@@ -157,7 +217,8 @@ const createValidatorForStringParameter =
         }
       }
       return utils.transformLibraryResultToModelResult(
-        validation.decode(transform(str)),
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        validation.decode(transform(str!)),
       );
     } catch (e) {
       return {
@@ -166,3 +227,4 @@ const createValidatorForStringParameter =
       };
     }
   };
+}

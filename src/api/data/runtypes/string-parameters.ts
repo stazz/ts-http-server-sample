@@ -2,6 +2,7 @@ import * as t from "runtypes";
 import * as validate from "./validate";
 import * as validateString from "./validate-string";
 
+// TODO we might need overloads for optional string parameters
 export function parameterString(): validateString.StringParameterTransform<
   t.String,
   string
