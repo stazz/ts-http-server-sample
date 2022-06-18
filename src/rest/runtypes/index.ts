@@ -20,17 +20,6 @@ import * as t from "runtypes";
 // Import plugin for Runtypes
 import * as tPlugin from "../../api/data/runtypes";
 
-// export interface EventArguments<TContextHKT extends server.HKTContext> {
-//   getMethodAndUrl: logging.GetMethodAndURL<TContextHKT>;
-//   builder?: evtEmit.EventEmitterBuilder<
-//     server.VirtualRequestProcessingEvents<
-//       server.HKTContextKind<TContextHKT, State>,
-//       State,
-//       tPlugin.ValidationError
-//     >
-//   >;
-// }
-
 const restModule: moduleApi.RESTAPISpecificationModule = {
   createEndpoints: (
     getStateFromContext,

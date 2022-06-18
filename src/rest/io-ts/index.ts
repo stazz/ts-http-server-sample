@@ -21,15 +21,6 @@ import * as tt from "io-ts-types";
 // Import plugin for IO-TS
 import * as tPlugin from "../../api/data/io-ts";
 
-// We reduce problem of authenticating to problem of state being of certain shape.
-// In this simple example, that shape is simply username (extracted by previous middleware e.g. from JWT token or by other means).
-export const stateValidation = t.type(
-  {
-    username: t.string,
-  },
-  "State", // Friendly name for error messages
-);
-
 const restModule: moduleApi.RESTAPISpecificationModule = {
   createEndpoints: (
     getStateFromContext,
@@ -52,7 +43,17 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
     // Add validation that some previous middleware has set the username to Koa state.
     // Instruct validation to return error code 403 if no username has been set (= no auth).
     const authenticated = notAuthenticated.refineContext(
-      contextValidatorFactory(tPlugin.plainValidator(stateValidation), 403),
+      contextValidatorFactory(
+        tPlugin.plainValidator(
+          t.type(
+            {
+              [moduleApi.USERNAME]: t.string,
+            },
+            "AuthenticatedState", // Friendly name for error messages
+          ),
+        ),
+        403,
+      ),
       {
         openapi: {
           securitySchemes: [

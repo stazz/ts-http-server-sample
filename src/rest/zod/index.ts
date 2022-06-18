@@ -20,14 +20,6 @@ import * as t from "zod";
 // Import plugin for Runtypes
 import * as tPlugin from "../../api/data/zod";
 
-// We reduce problem of authenticating to problem of state being of certain shape.
-// In this simple example, that shape is simply username (extracted by previous middleware e.g. from JWT token or by other means).
-export const stateValidation = t
-  .object({
-    username: t.string(),
-  })
-  .describe("AuthenticatedState");
-
 // Function to create REST API specification, utilizing generic REST API things in ./api and our functionality in ./lib.
 const restModule: moduleApi.RESTAPISpecificationModule = {
   createEndpoints: (
@@ -51,7 +43,16 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
     // Add validation that some previous middleware has set the username to Koa state.
     // Instruct validation to return error code 403 if no username has been set (= no auth).
     const authenticated = notAuthenticated.refineContext(
-      contextValidatorFactory(tPlugin.plainValidator(stateValidation), 403),
+      contextValidatorFactory(
+        tPlugin.plainValidator(
+          t
+            .object({
+              [moduleApi.USERNAME]: t.string(),
+            })
+            .describe("AuthenticatedState"),
+        ),
+        403,
+      ),
       {
         openapi: {
           securitySchemes: [
