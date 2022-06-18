@@ -7,7 +7,7 @@ import * as prefix from "../../api/core/prefix";
 import * as openapi from "../../api/metadata/openapi";
 
 // This module will be dynamically loaded - agree on the shape of the module.
-import * as moduleApi from "../../module-rest-api";
+import * as moduleApi from "../../module-api/rest";
 
 // Import logging related common code
 import * as logging from "../../logging";

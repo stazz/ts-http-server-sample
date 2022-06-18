@@ -4,7 +4,7 @@ import * as server from "fastify";
 import * as serverPlugin from "../../api/server/fastify";
 
 // This module will be dynamically loaded - agree on the shape of the module.
-import type * as moduleApi from "../../module-server";
+import type * as moduleApi from "../../module-api/server";
 
 // Import auth middleware
 import * as auth from "./auth";

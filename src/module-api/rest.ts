@@ -1,10 +1,10 @@
-import type * as core from "./api/core/core";
-import type * as server from "./api/core/server";
-import type * as logging from "./logging";
-import type * as common from "./module-common";
+import type * as core from "../api/core/core";
+import type * as server from "../api/core/server";
+import type * as logging from "../logging";
+import type * as common from "./common";
 import type * as evts from "@data-heaving/common";
 
-export * from "./module-common";
+export * from "./common";
 
 // Specify API for server and REST spec modules
 export interface RESTAPISpecificationModule {

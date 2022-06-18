@@ -1,6 +1,6 @@
 import type * as server from "express";
 import type * as serverCore from "express-serve-static-core";
-import type * as moduleApi from "../../module-server";
+import type * as moduleApi from "../../module-api/server";
 import * as serverPlugin from "../../api/server/express";
 
 export const setUsernameFromBasicAuth = (): server.RequestHandler<

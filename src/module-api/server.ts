@@ -1,6 +1,6 @@
-import type * as restApi from "./module-rest-api";
+import type * as restApi from "./rest";
 
-export { State } from "./module-rest-api";
+export { State } from "./rest";
 
 export interface ServerModule {
   startServer: (

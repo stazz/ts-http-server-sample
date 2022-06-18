@@ -22,13 +22,7 @@ export const logServerEvents = <
       TValidationError
     >
   >,
-): evt.EventEmitterBuilder<
-  server.VirtualRequestProcessingEvents<
-    server.HKTContextKind<TContext, TState>,
-    TState,
-    TValidationError
-  >
-> => {
+) => {
   if (!builder) {
     builder = new evt.EventEmitterBuilder();
   }
@@ -105,18 +99,18 @@ export const logServerEvents = <
           : "Protocol-related error"
       }`,
     );
-  }),
-    builder.addEventListener(
-      "onInvalidResponse",
-      ({ state, ctx, validationError }) => {
-        const { method, url } = getMethodAndUrl(ctx);
-        // eslint-disable-next-line no-console
-        console.error(
-          `Invalid response: ${method} ${url} ${getStateString(
-            state,
-          )}, validation error:\n${getValidationErrorMessage(validationError)}`,
-        );
-      },
-    );
+  });
+  builder.addEventListener(
+    "onInvalidResponse",
+    ({ state, ctx, validationError }) => {
+      const { method, url } = getMethodAndUrl(ctx);
+      // eslint-disable-next-line no-console
+      console.error(
+        `Invalid response: ${method} ${url} ${getStateString(
+          state,
+        )}, validation error:\n${getValidationErrorMessage(validationError)}`,
+      );
+    },
+  );
   return builder;
 };

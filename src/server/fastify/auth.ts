@@ -1,6 +1,6 @@
 // Lock in Express as HTTP server
 import type * as server from "fastify";
-import type * as moduleApi from "../../module-server";
+import type * as moduleApi from "../../module-api/server";
 import * as serverPlugin from "../../api/server/fastify";
 
 export const setUsernameFromBasicAuth = (): server.onRequestHookHandler => {

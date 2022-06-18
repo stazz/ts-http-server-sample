@@ -1,5 +1,5 @@
 import type * as server from "koa";
-import type * as moduleApi from "../../module-server";
+import type * as moduleApi from "../../module-api/server";
 import * as serverPlugin from "../../api/server/koa";
 
 export const setUsernameFromBasicAuth =

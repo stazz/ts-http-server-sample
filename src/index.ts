@@ -1,6 +1,6 @@
 import * as process from "process";
-import type * as serverModuleApi from "./module-server";
-import type * as restModuleApi from "./module-rest-api";
+import type * as serverModuleApi from "./module-api/server";
+import type * as restModuleApi from "./module-api/rest";
 
 const main = async (
   host: string,
