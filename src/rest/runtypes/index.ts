@@ -1,23 +1,24 @@
 // Import generic REST-related things
-import * as core from "./api/core/core";
-import * as spec from "./api/core/spec";
-import * as server from "./api/core/server";
-import * as prefix from "./api/core/prefix";
+import * as core from "../../api/core/core";
+import * as spec from "../../api/core/spec";
+import * as server from "../../api/core/server";
+import * as prefix from "../../api/core/prefix";
+// Import plugin for OpenAPI metadata
+import * as openapi from "../../api/metadata/openapi";
+
+// This module will be dynamically loaded - agree on the shape of the module.
+import * as moduleApi from "../../module-rest-api";
+
+// Import logging related common code
+import * as logging from "../../logging";
 
 // Import our REST-agnostic functionality
-import * as functionality from "./lib";
-
-import * as logging from "./logging";
+import * as functionality from "../../lib";
 
 // Runtypes as data runtime validator
 import * as t from "runtypes";
 // Import plugin for Runtypes
-import * as tPlugin from "./api/data/runtypes";
-// Import plugin for OpenAPI metadata
-import * as openapi from "./api/metadata/openapi";
-
-// This module will be dynamically loaded - agree on the shape of the module.
-import * as moduleApi from "./module-rest-api";
+import * as tPlugin from "../../api/data/runtypes";
 
 // export interface EventArguments<TContextHKT extends server.HKTContext> {
 //   getMethodAndUrl: logging.GetMethodAndURL<TContextHKT>;
@@ -30,15 +31,18 @@ import * as moduleApi from "./module-rest-api";
 //   >;
 // }
 
-const module: moduleApi.RESTAPISpecificationModule = {
-  createEndpoints: <TContextHKT extends server.HKTContext>(
-    getStateFromContext: server.GetStateFromContext<TContextHKT>,
-    contextValidatorFactory: server.ContextValidatorFactory<TContextHKT>,
-    idRegexParam: RegExp | undefined,
-    getMethodAndUrl: logging.GetMethodAndURL<TContextHKT>,
+const restModule: moduleApi.RESTAPISpecificationModule = {
+  createEndpoints: (
+    getStateFromContext,
+    contextValidatorFactory,
+    idRegexParam,
+    getMethodAndUrl,
   ) => {
     const initial = spec.bindNecessaryTypes<
-      server.HKTContextKind<TContextHKT, moduleApi.State>,
+      server.HKTContextKind<
+        moduleApi.GetContextHKT<typeof contextValidatorFactory>,
+        moduleApi.State
+      >,
       moduleApi.State,
       tPlugin.ValidationError
     >(getStateFromContext);
@@ -313,7 +317,7 @@ const module: moduleApi.RESTAPISpecificationModule = {
     return {
       api: [notAuthenticatedAPI, authenticatedAPI, docs],
       events: logging.logServerEvents<
-        TContextHKT,
+        moduleApi.GetContextHKT<typeof contextValidatorFactory>,
         moduleApi.State,
         tPlugin.ValidationError
       >(
@@ -329,4 +333,4 @@ const decodeOrThrow = <T>(validate: tPlugin.Decoder<T>, value: unknown) => {
   return validate.check(value);
 };
 
-export default module;
+export default restModule;

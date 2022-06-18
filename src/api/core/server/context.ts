@@ -42,3 +42,7 @@ export type DataValidatorOutput<T> = T extends core.DataValidator<
 >
   ? TData
   : never;
+
+export type GetStateFromContext<TContext extends HKTContext> = <TState>(
+  context: HKTContextKind<TContext, TState>,
+) => TState;

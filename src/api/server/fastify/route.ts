@@ -18,11 +18,7 @@ export const createRoute = <TState, TValidationError>(
   >,
   initialState: TState,
   events:
-    | server.RequestProcessingEvents<
-        ctx.Context<TState>,
-        TState,
-        TValidationError
-      >
+    | server.ServerEventEmitter<ctx.Context<TState>, TState, TValidationError>
     | undefined = undefined,
 ): FastifyRouteHandler => {
   // Combine given endpoints into top-level entrypoint

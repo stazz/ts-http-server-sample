@@ -1,44 +1,46 @@
 // Import generic REST-related things
-import * as core from "./api/core/core";
-import * as spec from "./api/core/spec";
-import * as server from "./api/core/server";
-import * as prefix from "./api/core/prefix";
-
-// Import our REST-agnostic functionality
-import * as functionality from "./lib";
-
-import * as logging from "./logging";
-
-// Runtypes as data runtime validator
-import * as t from "runtypes";
-// Import plugin for Runtypes
-import * as tPlugin from "./api/data/runtypes";
+import * as core from "../../api/core/core";
+import * as spec from "../../api/core/spec";
+import * as server from "../../api/core/server";
+import * as prefix from "../../api/core/prefix";
 // Import plugin for OpenAPI metadata
-import * as openapi from "./api/metadata/openapi";
+import * as openapi from "../../api/metadata/openapi";
 
 // This module will be dynamically loaded - agree on the shape of the module.
-import * as moduleApi from "./module-rest-api";
+import * as moduleApi from "../../module-rest-api";
 
-// export interface EventArguments<TContextHKT extends server.HKTContext> {
-//   getMethodAndUrl: logging.GetMethodAndURL<TContextHKT>;
-//   builder?: evtEmit.EventEmitterBuilder<
-//     server.VirtualRequestProcessingEvents<
-//       server.HKTContextKind<TContextHKT, State>,
-//       State,
-//       tPlugin.ValidationError
-//     >
-//   >;
-// }
+// Import logging related common code
+import * as logging from "../../logging";
 
-const module: moduleApi.RESTAPISpecificationModule = {
-  createEndpoints: <TContextHKT extends server.HKTContext>(
-    getStateFromContext: server.GetStateFromContext<TContextHKT>,
-    contextValidatorFactory: server.ContextValidatorFactory<TContextHKT>,
-    idRegexParam: RegExp | undefined,
-    getMethodAndUrl: logging.GetMethodAndURL<TContextHKT>,
+// Import our REST-agnostic functionality
+import * as functionality from "../../lib";
+
+// Zod as data runtime validator
+import * as t from "zod";
+// Import plugin for Runtypes
+import * as tPlugin from "../../api/data/zod";
+
+// We reduce problem of authenticating to problem of state being of certain shape.
+// In this simple example, that shape is simply username (extracted by previous middleware e.g. from JWT token or by other means).
+export const stateValidation = t
+  .object({
+    username: t.string(),
+  })
+  .describe("AuthenticatedState");
+
+// Function to create REST API specification, utilizing generic REST API things in ./api and our functionality in ./lib.
+const restModule: moduleApi.RESTAPISpecificationModule = {
+  createEndpoints: (
+    getStateFromContext,
+    contextValidatorFactory,
+    idRegexParam,
+    getMethodAndUrl,
   ) => {
     const initial = spec.bindNecessaryTypes<
-      server.HKTContextKind<TContextHKT, moduleApi.State>,
+      server.HKTContextKind<
+        moduleApi.GetContextHKT<typeof contextValidatorFactory>,
+        moduleApi.State
+      >,
       moduleApi.State,
       tPlugin.ValidationError
     >(getStateFromContext);
@@ -49,14 +51,7 @@ const module: moduleApi.RESTAPISpecificationModule = {
     // Add validation that some previous middleware has set the username to Koa state.
     // Instruct validation to return error code 403 if no username has been set (= no auth).
     const authenticated = notAuthenticated.refineContext(
-      contextValidatorFactory(
-        tPlugin.plainValidator(
-          t.Record({
-            [moduleApi.USERNAME]: t.String,
-          }),
-        ),
-        403,
-      ),
+      contextValidatorFactory(tPlugin.plainValidator(stateValidation), 403),
       {
         openapi: {
           securitySchemes: [
@@ -75,9 +70,10 @@ const module: moduleApi.RESTAPISpecificationModule = {
     // We must make this const, as we have to use it inside lambda
     const idRegex = idRegexParam ?? core.defaultParameterRegExp();
 
-    const idInBody = t.String.withConstraint(
-      (str) => idRegex.test(str) || "The IDs must be in valid format.", // TODO check that the match is same as whole string, since original string misses begin & end marks (as they would confuse URL regexp)
-    ).withBrand("ID");
+    const idInBody = t.string().refine(
+      (str) => idRegex.test(str), // TODO check that the match is same as whole string, since original string misses begin & end marks (as they would confuse URL regexp)
+      "The IDs must be in valid UUID format.",
+    );
 
     // Prefixes can be combined to any depth.
     // Note that it is technically possible and desireable to define prefixes in separate files, but for this sample, let's just define everything here.
@@ -95,7 +91,7 @@ const module: moduleApi.RESTAPISpecificationModule = {
             required: [],
             optional: ["includeDeleted"],
             validation: {
-              includeDeleted: tPlugin.parameterBoolean(),
+              includeDeleted: tPlugin.parameterBoolean("includeDeleted"),
             },
           }),
         )
@@ -104,7 +100,7 @@ const module: moduleApi.RESTAPISpecificationModule = {
           ({ url: { id }, query: { includeDeleted } }) =>
             functionality.queryThing(id, includeDeleted === true),
           // Transform functionality output to REST output
-          tPlugin.outputValidator(t.String),
+          tPlugin.outputValidator(t.string()),
           // Metadata about endpoint (as dictated by "withMetadataProvider" above)
           {
             openapi: {
@@ -142,7 +138,7 @@ const module: moduleApi.RESTAPISpecificationModule = {
         .withBody(
           // Body validator (will be called on JSON-parsed entity)
           tPlugin.inputValidator(
-            t.Record({
+            t.object({
               property: idInBody,
             }),
           ),
@@ -150,8 +146,8 @@ const module: moduleApi.RESTAPISpecificationModule = {
           ({ body: { property } }) => functionality.createThing(property),
           // Transform functionality output to REST output
           tPlugin.outputValidator(
-            t.Record({
-              property: t.String,
+            t.object({
+              property: t.string(),
             }),
           ),
           // Metadata about endpoint (as dictated by "withMetadataProvider" above)
@@ -197,7 +193,7 @@ const module: moduleApi.RESTAPISpecificationModule = {
         .withBody(
           // Body validator (will be called on JSON-parsed entity)
           tPlugin.inputValidator(
-            t.Record({
+            t.object({
               anotherThingId: idInBody,
             }),
           ),
@@ -205,9 +201,9 @@ const module: moduleApi.RESTAPISpecificationModule = {
             functionality.connectToAnotherThing(id, anotherThingId),
           // Transform functionality output to REST output
           tPlugin.outputValidator(
-            t.Record({
-              connected: t.Boolean,
-              connectedAt: t.InstanceOf(Date),
+            t.object({
+              connected: t.boolean(),
+              connectedAt: t.instanceof(Date),
             }),
           ),
           // Metadata about endpoint (as dictated by "withMetadataProvider" above)
@@ -255,7 +251,7 @@ const module: moduleApi.RESTAPISpecificationModule = {
       .withoutBody(
         ({ state: { username } }) =>
           functionality.doAuthenticatedAction(username),
-        tPlugin.outputValidator(t.Void),
+        tPlugin.outputValidator(t.void()),
         {
           openapi: {
             urlParameters: undefined,
@@ -304,7 +300,7 @@ const module: moduleApi.RESTAPISpecificationModule = {
           return username ? authenticatedMetadata : notAuthenticatedMetadata;
         },
         // Proper validator for OpenAPI objects is out of scope of this sample
-        tPlugin.outputValidator(t.Dictionary(t.Unknown)),
+        tPlugin.outputValidator(t.record(t.unknown())),
         // No metadata - as this is the metadata-returning endpoints itself
         {},
       )
@@ -313,7 +309,7 @@ const module: moduleApi.RESTAPISpecificationModule = {
     return {
       api: [notAuthenticatedAPI, authenticatedAPI, docs],
       events: logging.logServerEvents<
-        TContextHKT,
+        moduleApi.GetContextHKT<typeof contextValidatorFactory>,
         moduleApi.State,
         tPlugin.ValidationError
       >(
@@ -326,7 +322,7 @@ const module: moduleApi.RESTAPISpecificationModule = {
 };
 
 const decodeOrThrow = <T>(validate: tPlugin.Decoder<T>, value: unknown) => {
-  return validate.check(value);
+  return validate.parse(value);
 };
 
-export default module;
+export default restModule;

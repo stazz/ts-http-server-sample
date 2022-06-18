@@ -1,7 +1,7 @@
 import * as core from "../../core/core";
 import * as prefix from "../../core/prefix";
 import * as server from "../../core/server";
-import type * as koa from "koa";
+import * as koa from "koa";
 
 // Using given various endpoints, create Koa middlewares.
 export const createMiddleware = <TState, TValidationError>(
@@ -13,7 +13,7 @@ export const createMiddleware = <TState, TValidationError>(
     >
   >,
   events:
-    | server.RequestProcessingEvents<
+    | server.ServerEventEmitter<
         koa.ParameterizedContext<TState>,
         TState,
         TValidationError
@@ -121,6 +121,7 @@ export const createMiddleware = <TState, TValidationError>(
               } else {
                 // Body failed validation
                 ctx.status = 422;
+                ctx.body = "";
               }
             } else {
               // Query parameters failed validation

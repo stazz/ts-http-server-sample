@@ -1,7 +1,7 @@
 import * as core from "../../core/core";
 import * as prefix from "../../core/prefix";
 import * as server from "../../core/server";
-import * as ctx from "./context";
+import * as ctx from "./context-types";
 import { URL } from "url";
 import type * as express from "express";
 
@@ -15,11 +15,7 @@ export const createMiddleware = <TState, TValidationError>(
     >
   >,
   events:
-    | server.RequestProcessingEvents<
-        ctx.Context<TState>,
-        TState,
-        TValidationError
-      >
+    | server.ServerEventEmitter<ctx.Context<TState>, TState, TValidationError>
     | undefined = undefined,
 ): // Notice that we must use this explicit form
 // If we use express.RequestHandler, we will get an error because of asyncness.

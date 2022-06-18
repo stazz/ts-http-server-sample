@@ -1,25 +1,21 @@
 import * as server from "../../core/server";
-import type * as express from "express";
+import * as state from "./state-internal";
+import type * as ctx from "./context-types";
 
 export interface HKTContext extends server.HKTContext {
-  readonly type: Context<this["_TState"]>;
+  readonly type: ctx.Context<this["_TState"]>;
 }
-
-export type Context<T> = {
-  req: express.Request;
-  res: express.Response<unknown, T>;
-};
 
 export const validateContextState: server.ContextValidatorFactory<
   HKTContext
 > = (validator, protocolErrorInfo) => ({
   validator: (ctx) => {
-    const transformed = validator(ctx.res.locals);
+    const transformed = validator(state.doGetStateFromContext(ctx));
     switch (transformed.error) {
       case "none":
         return {
           error: "none" as const,
-          data: ctx as unknown as Context<
+          data: ctx as unknown as ctx.Context<
             server.DataValidatorOutput<typeof validator>
           >,
         };
@@ -42,5 +38,5 @@ export const validateContextState: server.ContextValidatorFactory<
             };
     }
   },
-  getState: (ctx) => ctx.res.locals,
+  getState: state.doGetStateFromContext,
 });

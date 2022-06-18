@@ -39,3 +39,15 @@ export const validateContextState: server.ContextValidatorFactory<
   },
   getState: (ctx) => ctx.state,
 });
+
+export const getStateFromContext: server.GetStateFromContext<HKTContext> = (
+  ctx,
+) => ctx.state;
+
+// This is meant to be used by middleware occurring before the actual REST API.
+export const modifyState = <TState>(
+  ctx: koa.ParameterizedContext<TState>,
+  modify: (state: TState) => void,
+) => {
+  modify(getStateFromContext(ctx));
+};

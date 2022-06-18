@@ -1,34 +1,27 @@
-export interface RequestProcessingEvents<TContext, TState, TValidationError> {
+// This is 'virtual interface' -> instances of this interface are never meant to be created!
+// It is only used for typing purposes
+export interface VirtualRequestProcessingEvents<
+  TContext,
+  TState,
+  TValidationError,
+> {
   // URL did not match combined regex
-  onInvalidUrl?: (
-    args: Omit<EventArguments<TContext, TState>, "groups">,
-  ) => unknown;
-  onInvalidMethod?: (args: EventArguments<TContext, TState>) => unknown;
-  onInvalidContext?: (
-    args: EventArguments<TContext, TState> & {
-      validationError: TValidationError | undefined;
-    },
-  ) => unknown;
+  onInvalidUrl: Omit<EventArguments<TContext, TState>, "groups">;
+  onInvalidMethod: EventArguments<TContext, TState>;
+  onInvalidContext: EventArguments<TContext, TState> &
+    ValidationErrorArgs<TValidationError | undefined>;
   // URL matched combined regex, but parameter validation failed
-  onInvalidUrlParameters?: (
-    args: EventArguments<TContext, TState> &
-      ValidationErrorArgs<Array<TValidationError>>,
-  ) => unknown;
-  onInvalidQuery?: (
-    args: EventArguments<TContext, TState> &
-      ValidationErrorArgs<TValidationError>,
-  ) => unknown;
-  onInvalidContentType?: (
-    args: EventArguments<TContext, TState> & { contentType: string },
-  ) => unknown;
-  onInvalidBody?: (
-    args: EventArguments<TContext, TState> &
-      ValidationErrorArgs<TValidationError>,
-  ) => unknown;
-  onInvalidResponse?: (
-    args: EventArguments<TContext, TState> &
-      ValidationErrorArgs<TValidationError>,
-  ) => unknown;
+  onInvalidUrlParameters: EventArguments<TContext, TState> &
+    ValidationErrorArgs<Array<TValidationError>>;
+  onInvalidQuery: EventArguments<TContext, TState> &
+    ValidationErrorArgs<TValidationError>;
+  onInvalidContentType: EventArguments<TContext, TState> & {
+    contentType: string;
+  };
+  onInvalidBody: EventArguments<TContext, TState> &
+    ValidationErrorArgs<TValidationError>;
+  onInvalidResponse: EventArguments<TContext, TState> &
+    ValidationErrorArgs<TValidationError>;
 }
 
 export interface EventArguments<TContext, TState> {
