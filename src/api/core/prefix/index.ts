@@ -35,14 +35,14 @@ export function atPrefix<
       : [endpointOrGroupNamePrefix, ...endpoints];
   return {
     getRegExpAndHandler: (groupNamePrefix) => {
-      const { builtEndpoints, regExp } = buildEndpoints(
+      const { builtEndpoints, regExpSource } = buildEndpoints(
         allEndpoints,
         groupNamePrefix.length > 0
           ? `${groupNamePrefix}${prefix.replaceAll("/", "")}_`
           : undefined,
       );
       return {
-        url: new RegExp(`${core.escapeRegExp(prefix)}(${regExp.source})`),
+        url: new RegExp(`${core.escapeRegExp(prefix)}(${regExpSource})`),
         handler: (method, groups) => {
           const matchingHandler = findFirstMatching(
             builtEndpoints,
@@ -80,9 +80,6 @@ export function atPrefix<
   };
 }
 
-const makeEndpointRegExpGroupName = (prefix: string, idx: number) =>
-  `${prefix}${idx}`;
-
 const buildEndpoints = <
   TContext,
   TValidationError,
@@ -95,8 +92,14 @@ const buildEndpoints = <
 ) => {
   const isTopLevel = !regExpGroupNamePrefix;
   const groupNamePrefix = isTopLevel ? "e_" : regExpGroupNamePrefix;
+  // TODO maybe throw if multiple endpoints have same regex?
+  // Since currently, that is not supported.
+  // To properly detect this situation, instead of returning RegExp in buildURLRegExp in api/core/spec/stage3.ts,
+  // One would need to return finalGroupName + regExpSource, which would also help in performance (unnecessary building of regexp objects).
+  // In addition, all the HTTP methods would be needed to be returned as well.
+  // Perhaps then also supporting multiple endpoints at same regex would become possible too.
   const builtEndpointInfo = endpoints.map(({ getRegExpAndHandler }, idx) => {
-    const regExpGroupName = makeEndpointRegExpGroupName(groupNamePrefix, idx);
+    const regExpGroupName = `${groupNamePrefix}${idx}`;
     return {
       regExpGroupName,
       builtEndpoint: getRegExpAndHandler(`${regExpGroupName}_`),
@@ -114,17 +117,15 @@ const buildEndpoints = <
         handler: builtEndpoint.handler,
       }),
     ),
-    regExp: new RegExp(
-      builtEndpointInfo
-        .map(
-          ({ regExpGroupName, builtEndpoint: { url } }) =>
-            // Notice that we don't know for certain whether our regexp should match from start to end.
-            // However, we do know, that it must match to the end.
-            // Otherwise, we will get false matches for parents paths.
-            `(?<${regExpGroupName}>${getNewRegExpSource(url.source)}$)`,
-        )
-        .join("|"),
-    ),
+    regExpSource: builtEndpointInfo
+      .map(
+        ({ regExpGroupName, builtEndpoint: { url } }) =>
+          // Notice that we don't know for certain whether our regexp should match from start to end.
+          // However, we do know, that it must match to the end.
+          // Otherwise, we will get false matches for parents paths.
+          `(?<${regExpGroupName}>${getNewRegExpSource(url.source)}$)`,
+      )
+      .join("|"),
   };
 };
 

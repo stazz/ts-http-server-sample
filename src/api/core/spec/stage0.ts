@@ -29,7 +29,9 @@ export class AppEndpointBuilderProvider<
   TValidationError,
   TMetadataProviders extends Record<
     string,
-    md.MetadataProvider<md.HKTArg, unknown, unknown, unknown, unknown, unknown>
+    // We must use 'any' as 2nd parameter, otherwise we won't be able to use AppEndpointBuilderProvider with specific TMetadataProviders type as parameter to functions.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    md.MetadataProvider<md.HKTArg, any, unknown, unknown, unknown, unknown>
   >,
 > {
   public constructor(

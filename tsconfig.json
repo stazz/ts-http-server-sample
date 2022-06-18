@@ -13,6 +13,7 @@
     "moduleResolution": "node",
     "outDir": "./dist",
     "rootDir": "./src",
+    "noErrorTruncation": true
   },
   "include": [
     "src/**/*"

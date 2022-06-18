@@ -12,14 +12,13 @@ import * as moduleApi from "../../module-api/rest";
 // Import logging related common code
 import * as logging from "../../logging";
 
-// Import our REST-agnostic functionality
-import * as functionality from "../../lib";
-
 // IO-TS as data runtime validator
 import * as t from "io-ts";
-import * as tt from "io-ts-types";
 // Import plugin for IO-TS
 import * as tPlugin from "../../api/data/io-ts";
+
+import * as things from "./things";
+import * as secret from "./secret";
 
 const restModule: moduleApi.RESTAPISpecificationModule = {
   createEndpoints: (
@@ -79,182 +78,50 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
       "ID",
     );
 
+    const endpointArgs = {
+      idRegex,
+      idInBody,
+    };
+
     // Prefixes can be combined to any depth.
     // Note that it is technically possible and desireable to define prefixes in separate files, but for this sample, let's just define everything here.
-    const things = prefix.atPrefix(
+    const thingsApi = prefix.atPrefix(
       "/thing",
-      // Endpoint: query thing by ID.
-      notAuthenticated.atURL`/${"id"}`
-        .validateURLData({
-          // All parameters present in URL template string must be mentioned here, otherwise there will be compile-time error.
-          id: tPlugin.urlParameter(tPlugin.parameterString(idInBody), idRegex),
-        })
-        .forMethod(
-          "GET",
-          tPlugin.queryValidator({
-            required: [],
-            optional: ["includeDeleted"],
-            validation: {
-              includeDeleted: tPlugin.parameterBoolean(),
-            },
-          }),
-        )
-        .withoutBody(
-          // Invoke functionality
-          ({ url: { id }, query: { includeDeleted } }) =>
-            functionality.queryThing(id, includeDeleted === true),
-          // Transform functionality output to REST output
-          tPlugin.outputValidator(t.string),
-          // Metadata about endpoint (as dictated by "withMetadataProvider" above)
-          {
-            openapi: {
-              operation: { summary: "Query a thing" },
-              urlParameters: {
-                id: {
-                  description: "ID description",
-                },
-              },
-              queryParameters: {
-                includeDeleted: {
-                  description: "Include deleted description",
-                },
-              },
-              body: undefined,
-              output: {
-                description: "Output description",
-                mediaTypes: {
-                  "application/json": {
-                    example: "Example",
-                  },
-                },
-              },
-            },
+      things
+        .getThingsOrCreateThing(notAuthenticated.atURL``, endpointArgs)
+        .createEndpoint({
+          openapi: {
+            summary: "Query things, or create thing",
           },
+        }),
+      // Endpoint: query thing by ID.
+      things
+        .getThing(
+          notAuthenticated.atURL`/${"id"}`.validateURLData({
+            // All parameters present in URL template string must be mentioned here, otherwise there will be compile-time error.
+            id: tPlugin.urlParameter(
+              tPlugin.parameterString(idInBody),
+              idRegex,
+            ),
+          }),
+          endpointArgs,
         )
         .createEndpoint({
           openapi: {
             summary: "Read things",
           },
         }),
-      // Endpoint: create thing with some property set.
-      notAuthenticated.atURL``
-        .forMethod("PUT")
-        .withBody(
-          // Body validator (will be called on JSON-parsed entity)
-          tPlugin.inputValidator(
-            t.type(
-              {
-                property: idInBody,
-              },
-              "CreateThingBody", // Friendly name for error messages
-            ),
-          ),
-          // Request handler
-          ({ body: { property } }) => functionality.createThing(property),
-          // Transform functionality output to REST output
-          tPlugin.outputValidator(
-            t.type(
-              {
-                property: t.string,
-              },
-              "CreateThingOutput", // Friendly name for error messages
-            ),
-          ),
-          // Metadata about endpoint (as dictated by "withMetadataProvider" above)
-          {
-            openapi: {
-              operation: { summary: "Create a thing" },
-              urlParameters: undefined,
-              body: {
-                "application/json": {
-                  example: {
-                    property: decodeOrThrow(
-                      idInBody,
-                      "00000000-0000-0000-0000-000000000000",
-                    ),
-                  },
-                },
-              },
-              queryParameters: undefined,
-              output: {
-                description: "Output description",
-                mediaTypes: {
-                  "application/json": {
-                    example: {
-                      property: "00000000-0000-0000-0000-000000000000",
-                    },
-                  },
-                },
-              },
+      things
+        .connectThings(
+          notAuthenticated.atURL`/${"id"}/connectToAnotherThing`.validateURLData(
+            {
+              id: tPlugin.urlParameter(
+                tPlugin.parameterString(idInBody),
+                idRegex,
+              ),
             },
-          },
-        )
-        .createEndpoint({
-          openapi: {
-            summary: "Manipulate a thing",
-          },
-        }),
-      // Endpoint: connect thing to another thing.
-      notAuthenticated.atURL`/${"id"}/connectToAnotherThing`
-        .validateURLData({
-          id: tPlugin.urlParameter(tPlugin.parameterString(idInBody), idRegex),
-        })
-        .forMethod("POST")
-        .withBody(
-          // Body validator (will be called on JSON-parsed entity)
-          tPlugin.inputValidator(
-            t.type(
-              {
-                anotherThingId: idInBody,
-              },
-              "ConnectThingBody", // Friendly name for error messages
-            ),
           ),
-          ({ url: { id }, body: { anotherThingId } }) =>
-            functionality.connectToAnotherThing(id, anotherThingId),
-          // Transform functionality output to REST output
-          tPlugin.outputValidator(
-            t.type(
-              {
-                connected: t.boolean,
-                connectedAt: tt.DateFromISOString,
-              },
-              "ConnectThingOutput", // Friendly name for error messages
-            ),
-          ),
-          // Metadata about endpoint (as dictated by "withMetadataProvider" above)
-          {
-            openapi: {
-              operation: { summary: "Connect one thing to another" },
-              urlParameters: {
-                id: {
-                  description: "ID description",
-                },
-              },
-              queryParameters: undefined,
-              body: {
-                "application/json": {
-                  example: {
-                    anotherThingId: decodeOrThrow(
-                      idInBody,
-                      "00000000-0000-0000-0000-000000000000",
-                    ),
-                  },
-                },
-              },
-              output: {
-                description: "Output description",
-                mediaTypes: {
-                  "application/json": {
-                    example: {
-                      connected: true,
-                      connectedAt: new Date(0),
-                    },
-                  },
-                },
-              },
-            },
-          },
+          endpointArgs,
         )
         .createEndpoint({
           openapi: {
@@ -262,33 +129,14 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
           },
         }),
     );
-    const secret = authenticated.atURL`/secret`
-      .forMethod("GET")
-      .withoutBody(
-        ({ state: { username } }) =>
-          functionality.doAuthenticatedAction(username),
-        tPlugin.outputValidator(t.void),
-        {
-          openapi: {
-            urlParameters: undefined,
-            queryParameters: undefined,
-            body: undefined,
-            operation: {},
-            output: {
-              description: "No data in output",
-              mediaTypes: {
-                "application/json": {},
-              },
-            },
-          },
-        },
-      )
+    const secretApi = secret
+      .accessSecret(authenticated.atURL`/secret`, endpointArgs)
       .createEndpoint({
         openapi: {},
       });
 
-    const notAuthenticatedAPI = prefix.atPrefix("/api", things);
-    const authenticatedAPI = prefix.atPrefix("/api", secret);
+    const notAuthenticatedAPI = prefix.atPrefix("/api", thingsApi);
+    const authenticatedAPI = prefix.atPrefix("/api", secretApi);
     const notAuthenticatedMetadata = notAuthenticated.getMetadataFinalResult(
       {
         openapi: {
@@ -335,14 +183,6 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
       ),
     };
   },
-};
-
-const decodeOrThrow = <T>(validate: tPlugin.Decoder<T>, value: unknown) => {
-  const result = validate.decode(value);
-  if (result._tag === "Left") {
-    throw new Error("Fail");
-  }
-  return result.right;
 };
 
 export default restModule;

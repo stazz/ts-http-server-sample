@@ -12,7 +12,9 @@ export class AppEndpointBuilder<
   TAllowedMethods extends core.HttpMethod,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown, unknown>
+    // We must use 'any' as 2nd parameter, otherwise we won't be able to use AppEndpointBuilder with specific TMetadataProviders type as parameter to functions.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    md.MetadataBuilder<md.HKTArg, any, unknown>
   >,
 > extends AppEndpointBuilderInitial<
   TContext,
