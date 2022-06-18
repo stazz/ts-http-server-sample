@@ -2,7 +2,7 @@
 import * as spec from "./api/core/spec";
 import * as server from "./api/core/server";
 
-import * as endpoints from "./rest-endpoints";
+import * as endpoints from "./rest-endpoints-io-ts";
 import * as logging from "./logging";
 
 // Lock in our vendor choices:
@@ -34,6 +34,7 @@ const performFunctionality = koa.createMiddleware(
   ),
   logging.logServerEvents(
     (ctx) => ({ method: ctx.method, url: ctx.url }),
+    ({ username }) => `(user: ${username})`,
     tPlugin.getHumanReadableErrorMessage,
   ),
 );

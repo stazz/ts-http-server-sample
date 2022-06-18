@@ -2,14 +2,13 @@
 import * as spec from "./api/core/spec";
 import * as server from "./api/core/server";
 
-import * as endpoints from "./rest-endpoints";
+import * as endpoints from "./rest-endpoints-zod";
 import * as logging from "./logging";
 
 // Lock in our vendor choices:
-// IO-TS as data runtime validator
-import * as tt from "io-ts-types";
-// Import plugin for IO-TS
-import * as tPlugin from "./api/data/io-ts";
+// Zod as data runtime validator
+import * as t from "zod";
+import * as tPlugin from "./api/data/zod";
 // Express as HTTP server
 import * as express from "express";
 import type * as expressCore from "express-serve-static-core";
@@ -18,6 +17,8 @@ import * as expressPlugin from "./api/server/express";
 
 // Create middleware in such way that IDs are valid UUID strings (instead of any strings).
 // Any amount of endpoint informations can be passed to createKoaMiddleware - there always will be exactly one RegExp generated to perform endpoint match.
+const uuidRegex =
+  /[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}/i;
 const performFunctionality = expressPlugin.createMiddleware(
   endpoints.createEndpoints(
     spec
@@ -31,10 +32,14 @@ const performFunctionality = expressPlugin.createMiddleware(
     // This is RFC-adhering UUID regex. Relax if needed.
     // Taken from https://stackoverflow.com/questions/7905929/how-to-test-valid-uuid-guid
     /[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}/i,
-    tt.UUID, // Too bad that io-ts-types does not expose UUID regex it uses (t.string as unknown as t.BrandC<t.StringC, never>),
+    t.string().refine(
+      (str) => uuidRegex.test(str), // TODO check that the match is same as whole string, since original string misses begin & end marks (as they would confuse URL regexp)
+      "The IDs must be in valid UUID format.",
+    ),
   ),
   logging.logServerEvents(
     ({ req }) => ({ method: req.method, url: req.originalUrl }),
+    ({ username }) => `(user: ${username})`,
     tPlugin.getHumanReadableErrorMessage,
   ),
 );

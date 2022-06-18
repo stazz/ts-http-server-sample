@@ -1,4 +1,5 @@
 import * as t from "zod";
+import * as utils from "./utils";
 import * as validate from "./validate";
 import * as validateString from "./validate-string";
 
@@ -32,13 +33,10 @@ const parameterStringValue: validateString.StringParameterTransform<
   validation: t.string(),
 };
 
-export const parameterBoolean = () =>
-  // Copy to prevent modifications by caller
-  ({ ...parameterBooleanValue });
-
 const TRUE = "true" as const;
-const parameterBooleanValue = validateString.stringParameterWithTransform(
-  t.union([t.undefined(), t.literal(TRUE), t.literal("false")]),
-  t.boolean(),
-  (str) => str === TRUE,
-);
+export const parameterBoolean = (description?: string) =>
+  validateString.stringParameterWithTransform(
+    t.union([t.undefined(), t.literal(TRUE), t.literal("false")]),
+    utils.maybeDescribe(t.boolean(), description),
+    (str) => str === TRUE,
+  );

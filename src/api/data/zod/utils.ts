@@ -27,3 +27,9 @@ export const exceptionAsValidationError = (
     },
   ]),
 ];
+
+export const maybeDescribe = <TType extends t.ZodType>(
+  validation: TType,
+  description: string | undefined,
+) =>
+  description === undefined ? validation : validation.describe(description);

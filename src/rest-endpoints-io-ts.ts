@@ -6,7 +6,6 @@ import * as prefix from "./api/core/prefix";
 // Import our REST-agnostic functionality
 import * as functionality from "./lib";
 
-// Lock in our vendor choices:
 // IO-TS as data runtime validator
 import * as t from "io-ts";
 import * as tt from "io-ts-types";
@@ -15,7 +14,8 @@ import * as tPlugin from "./api/data/io-ts";
 // Import plugin for OpenAPI metadata
 import * as openapi from "./api/metadata/openapi";
 
-// This is just a dummy for demonstration purposes
+// We reduce problem of authenticating to problem of state being of certain shape.
+// In this simple example, that shape is simply username (extracted by previous middleware e.g. from JWT token or by other means).
 export const stateValidation = t.type(
   {
     username: t.string,

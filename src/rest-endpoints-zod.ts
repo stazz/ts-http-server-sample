@@ -6,27 +6,26 @@ import * as prefix from "./api/core/prefix";
 // Import our REST-agnostic functionality
 import * as functionality from "./lib";
 
-// Runtypes as data runtime validator
-import * as t from "runtypes";
+// Zod as data runtime validator
+import * as t from "zod";
 // Import plugin for Runtypes
-import * as tPlugin from "./api/data/runtypes";
+import * as tPlugin from "./api/data/zod";
 // Import plugin for OpenAPI metadata
 import * as openapi from "./api/metadata/openapi";
 
 // We reduce problem of authenticating to problem of state being of certain shape.
 // In this simple example, that shape is simply username (extracted by previous middleware e.g. from JWT token or by other means).
-export const stateValidation = t.Record({
-  username: t.String,
-});
+export const stateValidation = t
+  .object({
+    username: t.string(),
+  })
+  .describe("AuthenticatedState");
 // This is common state for all endpoints.
 // It is "Partial" because not all endpoints need to have username.
-export type State = Partial<t.Static<typeof stateValidation>>;
+export type State = Partial<t.infer<typeof stateValidation>>;
 
 // Function to create REST API specification, utilizing generic REST API things in ./api and our functionality in ./lib.
-export const createEndpoints = <
-  TContextHKT extends server.HKTContext,
-  TStringValidation extends t.Runtype<string>,
->(
+export const createEndpoints = <TContextHKT extends server.HKTContext>(
   initial: spec.AppEndpointBuilderProvider<
     server.HKTContextKind<TContextHKT, State>,
     server.HKTContextKind<TContextHKT, State>,
@@ -37,7 +36,7 @@ export const createEndpoints = <
   >,
   contextValidatorFactory: server.ContextValidatorFactory<TContextHKT>,
   idRegex: RegExp,
-  idInBody: t.Brand<string, TStringValidation>,
+  idInBody: t.ZodType<string>,
 ) => {
   const notAuthenticated = initial
     // All endpoints must specify enough metadata to be able to auto-generate OpenAPI specification
@@ -78,7 +77,7 @@ export const createEndpoints = <
           required: [],
           optional: ["includeDeleted"],
           validation: {
-            includeDeleted: tPlugin.parameterBoolean(),
+            includeDeleted: tPlugin.parameterBoolean("includeDeleted"),
           },
         }),
       )
@@ -87,7 +86,7 @@ export const createEndpoints = <
         ({ url: { id }, query: { includeDeleted } }) =>
           functionality.queryThing(id, includeDeleted === true),
         // Transform functionality output to REST output
-        tPlugin.outputValidator(t.String),
+        tPlugin.outputValidator(t.string()),
         // Metadata about endpoint (as dictated by "withMetadataProvider" above)
         {
           openapi: {
@@ -125,7 +124,7 @@ export const createEndpoints = <
       .withBody(
         // Body validator (will be called on JSON-parsed entity)
         tPlugin.inputValidator(
-          t.Record({
+          t.object({
             property: idInBody,
           }),
         ),
@@ -133,8 +132,8 @@ export const createEndpoints = <
         ({ body: { property } }) => functionality.createThing(property),
         // Transform functionality output to REST output
         tPlugin.outputValidator(
-          t.Record({
-            property: t.String,
+          t.object({
+            property: t.string(),
           }),
         ),
         // Metadata about endpoint (as dictated by "withMetadataProvider" above)
@@ -180,7 +179,7 @@ export const createEndpoints = <
       .withBody(
         // Body validator (will be called on JSON-parsed entity)
         tPlugin.inputValidator(
-          t.Record({
+          t.object({
             anotherThingId: idInBody,
           }),
         ),
@@ -188,9 +187,9 @@ export const createEndpoints = <
           functionality.connectToAnotherThing(id, anotherThingId),
         // Transform functionality output to REST output
         tPlugin.outputValidator(
-          t.Record({
-            connected: t.Boolean,
-            connectedAt: t.InstanceOf(Date),
+          t.object({
+            connected: t.boolean(),
+            connectedAt: t.instanceof(Date),
           }),
         ),
         // Metadata about endpoint (as dictated by "withMetadataProvider" above)
@@ -238,7 +237,7 @@ export const createEndpoints = <
     .withoutBody(
       ({ state: { username } }) =>
         functionality.doAuthenticatedAction(username),
-      tPlugin.outputValidator(t.Void),
+      tPlugin.outputValidator(t.void()),
       {
         openapi: {
           urlParameters: undefined,
@@ -287,7 +286,7 @@ export const createEndpoints = <
         return username ? authenticatedMetadata : notAuthenticatedMetadata;
       },
       // Proper validator for OpenAPI objects is out of scope of this sample
-      tPlugin.outputValidator(t.Dictionary(t.Unknown)),
+      tPlugin.outputValidator(t.record(t.unknown())),
       // No metadata - as this is the metadata-returning endpoints itself
       {},
     )
@@ -297,5 +296,5 @@ export const createEndpoints = <
 };
 
 const decodeOrThrow = <T>(validate: tPlugin.Decoder<T>, value: unknown) => {
-  return validate.check(value);
+  return validate.parse(value);
 };

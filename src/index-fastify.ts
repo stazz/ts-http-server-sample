@@ -33,7 +33,7 @@ const performFunctionality = fastifyPlugin.createRoute(
     fastifyPlugin.validateContextState,
     uuidRegex,
     t.String.withConstraint(
-      (str) => uuidRegex.test(str) || "The IDs must be in valid UUID format.",
+      (str) => uuidRegex.test(str) || "The IDs must be in valid UUID format.", // TODO check that the match is same as whole string, since original string misses begin & end marks (as they would confuse URL regexp)
     ).withBrand("UUID"),
   ),
   {},
@@ -42,6 +42,7 @@ const performFunctionality = fastifyPlugin.createRoute(
       method: req.method ?? "<no method>",
       url: req.originalUrl ?? req.url ?? "<no url>",
     }),
+    ({ username }) => `(user: ${username})`,
     tPlugin.getHumanReadableErrorMessage,
   ),
 );
