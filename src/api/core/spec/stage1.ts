@@ -5,6 +5,7 @@ import * as state from "./state";
 import {
   AppEndpointBuilderForMethods,
   AppEndpointBuilderForMethodsAndBody,
+  AppEndpointBuilder,
 } from ".";
 
 export class AppEndpointBuilderInitial<
@@ -148,4 +149,293 @@ export class AppEndpointBuilderInitial<
           queryInfo,
         );
   }
+
+  public batchSpec<
+    TMethod extends TAllowedMethods & core.HttpMethodWithoutBody,
+    TOutput,
+    TOutputContentTypes extends Record<string, unknown>,
+  >(
+    spec: BatchSpecificationWithoutQueryWithoutBody<
+      TRefinedContext,
+      TState,
+      TValidationError,
+      TArgsURL,
+      TMetadataProviders,
+      TMethod,
+      TOutput,
+      TOutputContentTypes
+    >,
+  ): AppEndpointBuilder<
+    TContext,
+    TRefinedContext,
+    TState,
+    TValidationError,
+    TArgsURL,
+    Omit<TAllowedMethods, TMethod> & core.HttpMethod,
+    TMetadataProviders
+  >;
+  public batchSpec<
+    TMethod extends TAllowedMethods & core.HttpMethodWithoutBody,
+    TQuery,
+    TOutput,
+    TOutputContentTypes extends Record<string, unknown>,
+  >(
+    spec: BatchSpecificationWithQueryWithoutBody<
+      TRefinedContext,
+      TState,
+      TValidationError,
+      TArgsURL,
+      TQuery,
+      TMetadataProviders,
+      TMethod,
+      TOutput,
+      TOutputContentTypes
+    >,
+  ): AppEndpointBuilder<
+    TContext,
+    TRefinedContext,
+    TState,
+    TValidationError,
+    TArgsURL,
+    Omit<TAllowedMethods, TMethod> & core.HttpMethod,
+    TMetadataProviders
+  >;
+  public batchSpec<
+    TMethod extends TAllowedMethods & core.HttpMethodWithBody,
+    TInput,
+    TInputContentTypes extends Record<string, unknown>,
+    TOutput,
+    TOutputContentTypes extends Record<string, unknown>,
+  >(
+    spec: BatchSpecificationWithoutQueryWithBody<
+      TRefinedContext,
+      TState,
+      TValidationError,
+      TArgsURL,
+      TMetadataProviders,
+      TMethod,
+      TOutput,
+      TOutputContentTypes,
+      TInput,
+      TInputContentTypes
+    >,
+  ): AppEndpointBuilder<
+    TContext,
+    TRefinedContext,
+    TState,
+    TValidationError,
+    TArgsURL,
+    Omit<TAllowedMethods, TMethod> & core.HttpMethod,
+    TMetadataProviders
+  >;
+  public batchSpec<
+    TMethod extends TAllowedMethods & core.HttpMethodWithBody,
+    TQuery,
+    TInput,
+    TInputContentTypes extends Record<string, unknown>,
+    TOutput,
+    TOutputContentTypes extends Record<string, unknown>,
+  >(
+    spec: BatchSpecificationWithQueryWithBody<
+      TRefinedContext,
+      TState,
+      TValidationError,
+      TArgsURL,
+      TQuery,
+      TMetadataProviders,
+      TMethod,
+      TOutput,
+      TOutputContentTypes,
+      TInput,
+      TInputContentTypes
+    >,
+  ): AppEndpointBuilder<
+    TContext,
+    TRefinedContext,
+    TState,
+    TValidationError,
+    TArgsURL,
+    Omit<TAllowedMethods, TMethod> & core.HttpMethod,
+    TMetadataProviders
+  >;
+  public batchSpec<
+    TMethod extends TAllowedMethods,
+    TQuery,
+    TInput,
+    TInputContentTypes extends Record<string, unknown>,
+    TOutput,
+    TOutputContentTypes extends Record<string, unknown>,
+  >(
+    spec:
+      | BatchSpecificationWithoutQueryWithoutBody<
+          TRefinedContext,
+          TState,
+          TValidationError,
+          TArgsURL,
+          TMetadataProviders,
+          TMethod & core.HttpMethodWithoutBody,
+          TOutput,
+          TOutputContentTypes
+        >
+      | BatchSpecificationWithQueryWithoutBody<
+          TRefinedContext,
+          TState,
+          TValidationError,
+          TArgsURL,
+          TQuery,
+          TMetadataProviders,
+          TMethod & core.HttpMethodWithoutBody,
+          TOutput,
+          TOutputContentTypes
+        >
+      | BatchSpecificationWithoutQueryWithBody<
+          TRefinedContext,
+          TState,
+          TValidationError,
+          TArgsURL,
+          TMetadataProviders,
+          TMethod & core.HttpMethodWithBody,
+          TOutput,
+          TOutputContentTypes,
+          TInput,
+          TInputContentTypes
+        >
+      | BatchSpecificationWithQueryWithBody<
+          TRefinedContext,
+          TState,
+          TValidationError,
+          TArgsURL,
+          TQuery,
+          TMetadataProviders,
+          TMethod & core.HttpMethodWithBody,
+          TOutput,
+          TOutputContentTypes,
+          TInput,
+          TInputContentTypes
+        >,
+  ): AppEndpointBuilder<
+    TContext,
+    TRefinedContext,
+    TState,
+    TValidationError,
+    TArgsURL,
+    Omit<TAllowedMethods, TMethod> & core.HttpMethod,
+    TMetadataProviders
+  > {
+    throw new Error(`Moi ${spec}`);
+  }
 }
+
+export type BatchSpecificationWithoutQueryWithoutBody<
+  TRefinedContext,
+  TState,
+  TValidationError,
+  TArgsURL,
+  TMetadataProviders extends Record<
+    string,
+    md.MetadataBuilder<md.HKTArg, any, unknown>
+  >,
+  TMethod,
+  TOutput,
+  TOutputContentTypes extends Record<string, unknown>,
+> = {
+  method: TMethod;
+} & common.EndpointSpecArgsWithoutBody<
+  TRefinedContext,
+  TState,
+  TValidationError,
+  TArgsURL,
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  {},
+  TMetadataProviders,
+  TOutput,
+  TOutputContentTypes
+>;
+
+export type BatchSpecificationWithQueryWithoutBody<
+  TRefinedContext,
+  TState,
+  TValidationError,
+  TArgsURL,
+  TQueryData,
+  TMetadataProviders extends Record<
+    string,
+    md.MetadataBuilder<md.HKTArg, any, unknown>
+  >,
+  TMethod,
+  TOutput,
+  TOutputContentTypes extends Record<string, unknown>,
+> = {
+  method: TMethod;
+  query: core.QueryValidatorSpec<TQueryData, TValidationError>;
+} & common.EndpointSpecArgsWithoutBody<
+  TRefinedContext,
+  TState,
+  TValidationError,
+  TArgsURL,
+  common.EndpointHandlerArgsWithQuery<TQueryData>,
+  TMetadataProviders,
+  TOutput,
+  TOutputContentTypes
+>;
+
+export type BatchSpecificationWithoutQueryWithBody<
+  TRefinedContext,
+  TState,
+  TValidationError,
+  TArgsURL,
+  TMetadataProviders extends Record<
+    string,
+    md.MetadataBuilder<md.HKTArg, any, unknown>
+  >,
+  TMethod,
+  TOutput,
+  TOutputContentTypes extends Record<string, unknown>,
+  TInput,
+  TInputContentTypes extends Record<string, unknown>,
+> = {
+  method: TMethod;
+} & common.EndpointSpecArgsWithBody<
+  TRefinedContext,
+  TState,
+  TValidationError,
+  TArgsURL,
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  {},
+  TMetadataProviders,
+  TOutput,
+  TOutputContentTypes,
+  TInput,
+  TInputContentTypes
+>;
+
+export type BatchSpecificationWithQueryWithBody<
+  TRefinedContext,
+  TState,
+  TValidationError,
+  TArgsURL,
+  TQueryData,
+  TMetadataProviders extends Record<
+    string,
+    md.MetadataBuilder<md.HKTArg, any, unknown>
+  >,
+  TMethod,
+  TOutput,
+  TOutputContentTypes extends Record<string, unknown>,
+  TInput,
+  TInputContentTypes extends Record<string, unknown>,
+> = {
+  method: TMethod;
+  query: core.QueryValidatorSpec<TQueryData, TValidationError>;
+} & common.EndpointSpecArgsWithBody<
+  TRefinedContext,
+  TState,
+  TValidationError,
+  TArgsURL,
+  common.EndpointHandlerArgsWithQuery<TQueryData>,
+  TMetadataProviders,
+  TOutput,
+  TOutputContentTypes,
+  TInput,
+  TInputContentTypes
+>;

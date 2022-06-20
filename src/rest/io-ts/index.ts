@@ -81,51 +81,42 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
     const endpointArgs = {
       idRegex,
       idInBody,
+      data: {
+        thing: t.type({ property: idInBody }),
+      },
     };
 
     // Prefixes can be combined to any depth.
     // Note that it is technically possible and desireable to define prefixes in separate files, but for this sample, let's just define everything here.
     const thingsApi = prefix.atPrefix(
       "/thing",
-      things
-        .getThingsOrCreateThing(notAuthenticated.atURL``, endpointArgs)
+      notAuthenticated.atURL``
+        .batchSpec(things.getThings(endpointArgs))
+        .batchSpec(things.createThing(endpointArgs))
         .createEndpoint({
           openapi: {
             summary: "Query things, or create thing",
           },
         }),
-      // Endpoint: query thing by ID.
-      things
-        .getThing(
-          notAuthenticated.atURL`/${"id"}`.validateURLData({
-            // All parameters present in URL template string must be mentioned here, otherwise there will be compile-time error.
-            id: tPlugin.urlParameter(
-              tPlugin.parameterString(idInBody),
-              idRegex,
-            ),
-          }),
-          endpointArgs,
-        )
+      notAuthenticated.atURL`/${"id"}`
+        .validateURLData({
+          // All parameters present in URL template string must be mentioned here, otherwise there will be compile-time error.
+          id: tPlugin.urlParameter(tPlugin.parameterString(idInBody), idRegex),
+        })
+        .batchSpec(things.getThing(endpointArgs))
         .createEndpoint({
           openapi: {
-            summary: "Read things",
+            summary: "Get thing",
           },
         }),
-      things
-        .connectThings(
-          notAuthenticated.atURL`/${"id"}/connectToAnotherThing`.validateURLData(
-            {
-              id: tPlugin.urlParameter(
-                tPlugin.parameterString(idInBody),
-                idRegex,
-              ),
-            },
-          ),
-          endpointArgs,
-        )
+      notAuthenticated.atURL`/${"id"}/connectToAnotherThing`
+        .validateURLData({
+          id: tPlugin.urlParameter(tPlugin.parameterString(idInBody), idRegex),
+        })
+        .batchSpec(things.connectThing(endpointArgs))
         .createEndpoint({
           openapi: {
-            summary: "Manipulate many things",
+            summary: "Connect two things",
           },
         }),
     );

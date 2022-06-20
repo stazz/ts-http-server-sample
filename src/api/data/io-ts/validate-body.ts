@@ -5,7 +5,7 @@ import * as utils from "./utils";
 import * as rawbody from "raw-body";
 
 // We only support json things for io-ts validation.
-const CONTENT_TYPE = "application/json" as const;
+export const CONTENT_TYPE = "application/json" as const;
 
 export const inputValidator = <T>(
   validation: validate.Decoder<T>,
@@ -14,7 +14,7 @@ export const inputValidator = <T>(
 ): core.DataValidatorRequestInputSpec<
   T,
   error.ValidationError,
-  InputValidatorSpec
+  InputValidatorSpec<T>
 > => {
   const jsonValidation = core.transitiveDataValidation(
     (inputString: string) => {
@@ -67,7 +67,7 @@ export const outputValidator = <TOutput, TSerialized>(
 ): core.DataValidatorResponseOutputSpec<
   TOutput,
   error.ValidationError,
-  OutputValidatorSpec
+  OutputValidatorSpec<TOutput, TSerialized>
 > => ({
   validator: (output) => {
     try {
@@ -90,11 +90,10 @@ export const outputValidator = <TOutput, TSerialized>(
   },
 });
 
-export type InputValidatorSpec = {
-  [CONTENT_TYPE]: validate.Decoder<unknown>;
+export type InputValidatorSpec<TData> = {
+  [CONTENT_TYPE]: validate.Decoder<TData>;
 };
 
-export type OutputValidatorSpec = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [CONTENT_TYPE]: validate.Encoder<any, unknown>;
+export type OutputValidatorSpec<TOutput, TSerialized> = {
+  [CONTENT_TYPE]: validate.Encoder<TOutput, TSerialized>;
 };

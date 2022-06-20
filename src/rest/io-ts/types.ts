@@ -19,6 +19,9 @@ export interface AuthenticatedState {
 export type EndpointArgs = {
   idRegex: RegExp;
   idInBody: t.BrandC<t.StringC, unknown>;
+  data: {
+    thing: t.TypeC<{ property: t.BrandC<t.StringC, unknown> }>;
+  };
 };
 
 export type EndpointWithStateNoURL<
@@ -72,3 +75,98 @@ export type EndpointFull<TState, TArgsURL, TMethod extends core.HttpMethod> = <
   Omit<core.HttpMethod, TMethod> & core.HttpMethod,
   TMetadataProviders
 >;
+
+export interface ProtocolSpecCore<TMethod extends string, TInput, TOutput> {
+  method: TMethod;
+  requestBody?: TInput;
+  responseBody: TOutput;
+}
+
+export interface ProtocolSpecURL<TURLData extends Record<string, unknown>> {
+  url: TURLData;
+}
+
+export interface ProtocolSpecQuery<TQueryData extends Record<string, unknown>> {
+  query: TQueryData;
+}
+
+export type EndpointSpec<
+  TProtocolSpec extends ProtocolSpecCore<string, unknown, unknown>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TFunctionality extends (...args: any) => any,
+  TState extends Record<string, unknown> = Partial<AuthenticatedState>,
+> = (
+  args: EndpointArgs,
+) => TProtocolSpec["method"] extends core.HttpMethodWithoutBody
+  ? TProtocolSpec extends ProtocolSpecQuery<infer TQuery>
+    ? spec.BatchSpecificationWithQueryWithoutBody<
+        unknown,
+        TState,
+        tPlugin.ValidationError,
+        TProtocolSpec extends ProtocolSpecURL<infer TURLData>
+          ? spec.EndpointHandlerArgsWithURL<TURLData>
+          : // eslint-disable-next-line @typescript-eslint/ban-types
+            {},
+        TQuery,
+        TMetadataProviders,
+        TProtocolSpec["method"],
+        ReturnType<TFunctionality>,
+        tPlugin.OutputValidatorSpec<
+          ReturnType<TFunctionality>,
+          TProtocolSpec["responseBody"]
+        >
+      >
+    : spec.BatchSpecificationWithoutQueryWithoutBody<
+        unknown,
+        TState,
+        tPlugin.ValidationError,
+        TProtocolSpec extends ProtocolSpecURL<infer TURLData>
+          ? spec.EndpointHandlerArgsWithURL<TURLData>
+          : // eslint-disable-next-line @typescript-eslint/ban-types
+            {},
+        TMetadataProviders,
+        TProtocolSpec["method"],
+        ReturnType<TFunctionality>,
+        tPlugin.OutputValidatorSpec<
+          ReturnType<TFunctionality>,
+          TProtocolSpec["responseBody"]
+        >
+      >
+  : TProtocolSpec extends ProtocolSpecQuery<infer TQuery>
+  ? spec.BatchSpecificationWithQueryWithBody<
+      unknown,
+      TState,
+      tPlugin.ValidationError,
+      TProtocolSpec extends ProtocolSpecURL<infer TURLData>
+        ? spec.EndpointHandlerArgsWithURL<TURLData>
+        : // eslint-disable-next-line @typescript-eslint/ban-types
+          {},
+      TQuery,
+      TMetadataProviders,
+      TProtocolSpec["method"],
+      ReturnType<TFunctionality>,
+      tPlugin.OutputValidatorSpec<
+        ReturnType<TFunctionality>,
+        TProtocolSpec["responseBody"]
+      >,
+      TProtocolSpec["requestBody"],
+      tPlugin.InputValidatorSpec<TProtocolSpec["requestBody"]>
+    >
+  : spec.BatchSpecificationWithoutQueryWithBody<
+      unknown,
+      TState,
+      tPlugin.ValidationError,
+      TProtocolSpec extends ProtocolSpecURL<infer TURLData>
+        ? spec.EndpointHandlerArgsWithURL<TURLData>
+        : // eslint-disable-next-line @typescript-eslint/ban-types
+          {},
+      TMetadataProviders,
+      TProtocolSpec["method"],
+      ReturnType<TFunctionality>,
+      tPlugin.OutputValidatorSpec<
+        ReturnType<TFunctionality>,
+        TProtocolSpec["responseBody"]
+      >,
+      TProtocolSpec["requestBody"],
+      tPlugin.InputValidatorSpec<TProtocolSpec["requestBody"]>
+    >;

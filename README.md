@@ -1,3 +1,8 @@
+# Notes for issue #1
+- Compile-time safety
+- DRY (protocol.ts) = code sharing between BE and BE consumers
+- Server-agnostic REST API spec (as side effect)
+- 
 # Sample Project on Unopinionated and Typesafe HTTP Server
 This Git repository contains a sample TypeScript project to demonstrate one way of writing HTTP server exposing a set of configurable REST API endpoints.
 Since this is a sample, it is by no means a complete product, or final representation of such.

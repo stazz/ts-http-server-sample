@@ -36,7 +36,7 @@ export class AppEndpointBuilderForMethods<
     TOutput,
     TOutputValidatorSpec extends Record<string, unknown>,
   >(
-    endpointHandler: EndpointHandler<
+    endpointHandler: common.EndpointHandler<
       TArgsURL &
         TArgsQuery &
         common.EndpointHandlerArgs<TRefinedContext, TState>,
@@ -188,7 +188,7 @@ export class AppEndpointBuilderForMethodsAndBody<
       TValidationError,
       TInputContentTypes
     >,
-    endpointHandler: EndpointHandler<
+    endpointHandler: common.EndpointHandler<
       TArgsURL &
         TArgsQuery &
         common.EndpointHandlerArgs<TRefinedContext, TState> &
@@ -305,7 +305,3 @@ export class AppEndpointBuilderForMethodsAndBody<
     });
   }
 }
-
-export type EndpointHandler<TArgs, THandlerResult> = (
-  args: TArgs,
-) => THandlerResult;
