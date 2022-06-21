@@ -15,7 +15,7 @@ export const inputValidator = <T>(
 ): core.DataValidatorRequestInputSpec<
   T,
   error.ValidationError,
-  InputValidatorSpec
+  InputValidatorSpec<T>
 > => {
   const jsonValidation = core.transitiveDataValidation(
     (inputString: string) => {
@@ -64,33 +64,34 @@ export const inputValidator = <T>(
 };
 
 export function outputValidator<TOutput>(
-  encoder: t.ZodType<TOutput>,
+  validation: t.ZodType<TOutput>,
 ): core.DataValidatorResponseOutputSpec<
   TOutput,
   error.ValidationError,
-  OutputValidatorSpec
+  OutputValidatorSpec<TOutput, TOutput>
 >;
 export function outputValidator<TOutput, TSerialized>(
-  encoder: validate.Encoder<TOutput, TSerialized>,
+  validation: t.ZodType<TOutput>,
+  transform: (output: TOutput) => TSerialized,
 ): core.DataValidatorResponseOutputSpec<
   TOutput,
   error.ValidationError,
-  OutputValidatorSpec
+  OutputValidatorSpec<TOutput, TSerialized>
 >;
 export function outputValidator<TOutput, TSerialized>(
-  encoderOrType: t.ZodType<TOutput> | validate.Encoder<TOutput, TSerialized>,
+  validation: t.ZodType<TOutput>,
+  transform?: (output: TOutput) => TSerialized,
 ): core.DataValidatorResponseOutputSpec<
   TOutput,
   error.ValidationError,
-  OutputValidatorSpec
+  OutputValidatorSpec<TOutput, TSerialized>
 > {
-  const encoder =
-    encoderOrType instanceof t.ZodType
-      ? (validate.encoder(encoderOrType) as unknown as validate.Encoder<
-          TOutput,
-          TSerialized
-        >)
-      : encoderOrType;
+  const encoder: validate.Encoder<TOutput, TSerialized> = transform
+    ? validate.encoder(validation, transform)
+    : (validate.encoder(validation) as unknown as validate.Encoder<
+        TOutput,
+        TSerialized
+      >);
   return {
     validator: (output) => {
       try {
@@ -120,11 +121,10 @@ export function outputValidator<TOutput, TSerialized>(
   };
 }
 
-export type InputValidatorSpec = {
-  [CONTENT_TYPE]: validate.Decoder<unknown>;
+export type InputValidatorSpec<TData> = {
+  [CONTENT_TYPE]: validate.Decoder<TData>;
 };
 
-export type OutputValidatorSpec = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [CONTENT_TYPE]: validate.Encoder<any, unknown>;
+export type OutputValidatorSpec<TOutput, TSerialized> = {
+  [CONTENT_TYPE]: validate.Encoder<TOutput, TSerialized>;
 };

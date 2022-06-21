@@ -1,4 +1,4 @@
-export const queryThings = (includeDeleted: boolean) => {
+export const queryThings = (includeDeleted: boolean): Array<unknown> => {
   // eslint-disable-next-line no-console
   console.log(`QUERY ALL ${includeDeleted}`);
   // Get the things from DB, maybe with pagination in the future

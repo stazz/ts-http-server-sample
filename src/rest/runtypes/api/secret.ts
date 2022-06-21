@@ -1,7 +1,7 @@
-// IO-TS as data runtime validator
-import * as t from "io-ts";
-// Import plugin for IO-TS
-import * as tPlugin from "../../../api/data/io-ts";
+// Runtypes as data runtime validator
+import * as t from "runtypes";
+// Import plugin for Runtypes
+import * as tPlugin from "../../../api/data/runtypes";
 
 // Import our REST-agnostic functionality
 import * as functionality from "../../../lib";
@@ -17,7 +17,7 @@ export const accessSecret: types.EndpointSpec<
   method: "GET",
   endpointHandler: ({ state: { username } }) =>
     functionality.doAuthenticatedAction(username),
-  output: tPlugin.outputValidator(t.undefined),
+  output: tPlugin.outputValidator(t.Undefined),
   mdArgs: {
     openapi: {
       urlParameters: undefined,

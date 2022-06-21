@@ -43,7 +43,7 @@ export interface APIConnectThings {
 
 export interface APIAuthenticated {
   method: "GET";
-  responseBody: void;
+  responseBody: undefined;
 }
 
 export interface DataThing {

@@ -17,8 +17,7 @@ import * as t from "io-ts";
 // Import plugin for IO-TS
 import * as tPlugin from "../../api/data/io-ts";
 
-import * as things from "./api/things";
-import * as secret from "./api/secret";
+import * as api from "./api";
 
 const restModule: moduleApi.RESTAPISpecificationModule = {
   createEndpoints: (
@@ -86,11 +85,11 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
       },
     };
 
-    const thingsApi = prefix.atPrefix(
+    const things = prefix.atPrefix(
       "/thing",
       notAuthenticated.atURL``
-        .batchSpec(things.getThings(endpointArgs))
-        .batchSpec(things.createThing(endpointArgs))
+        .batchSpec(api.getThings(endpointArgs))
+        .batchSpec(api.createThing(endpointArgs))
         .createEndpoint({
           openapi: {
             summary: "Query things, or create thing",
@@ -101,7 +100,7 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
           // All parameters present in URL template string must be mentioned here, otherwise there will be compile-time error.
           id: tPlugin.urlParameter(tPlugin.parameterString(idInBody), idRegex),
         })
-        .batchSpec(things.getThing(endpointArgs))
+        .batchSpec(api.getThing(endpointArgs))
         .createEndpoint({
           openapi: {
             summary: "Get thing",
@@ -111,7 +110,7 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
         .validateURLData({
           id: tPlugin.urlParameter(tPlugin.parameterString(idInBody), idRegex),
         })
-        .batchSpec(things.connectThing(endpointArgs))
+        .batchSpec(api.connectThing(endpointArgs))
         .createEndpoint({
           openapi: {
             summary: "Connect two things",
@@ -119,13 +118,13 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
         }),
     );
 
-    const secretApi = authenticated.atURL`/secret`
-      .batchSpec(secret.accessSecret(endpointArgs))
+    const secret = authenticated.atURL`/secret`
+      .batchSpec(api.accessSecret(endpointArgs))
       .createEndpoint({ openapi: {} });
 
     // Prefixes can be combined to any depth.
-    const notAuthenticatedAPI = prefix.atPrefix("/api", thingsApi);
-    const authenticatedAPI = prefix.atPrefix("/api", secretApi);
+    const notAuthenticatedAPI = prefix.atPrefix("/api", things);
+    const authenticatedAPI = prefix.atPrefix("/api", secret);
     const notAuthenticatedMetadata = notAuthenticated.getMetadataFinalResult(
       {
         openapi: {
