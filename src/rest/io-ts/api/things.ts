@@ -2,19 +2,13 @@
 import * as t from "io-ts";
 import * as tt from "io-ts-types";
 // Import plugin for IO-TS
-import * as tPlugin from "../../api/data/io-ts";
+import * as tPlugin from "../../../api/data/io-ts";
 
 // Import our REST-agnostic functionality
-import * as functionality from "../../lib";
+import * as functionality from "../../../lib";
 
-import type * as types from "./types";
-import type * as protocol from "../../protocol";
-
-// // There are two endpoints at same URL -> make that invocation easier in index.ts by exposing this method
-// export const getThingsOrCreateThing: types.EndpointNoURL<"GET" | "POST"> = (
-//   provider,
-//   args,
-// ) => createThing(getThings(provider, args), args);
+import type * as types from "../types";
+import type * as protocol from "../../../protocol";
 
 export const getThings: types.EndpointSpec<
   protocol.APIGetThings,

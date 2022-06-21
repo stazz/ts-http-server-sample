@@ -17,8 +17,8 @@ import * as t from "io-ts";
 // Import plugin for IO-TS
 import * as tPlugin from "../../api/data/io-ts";
 
-import * as things from "./things";
-import * as secret from "./secret";
+import * as things from "./api/things";
+import * as secret from "./api/secret";
 
 const restModule: moduleApi.RESTAPISpecificationModule = {
   createEndpoints: (
@@ -86,8 +86,6 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
       },
     };
 
-    // Prefixes can be combined to any depth.
-    // Note that it is technically possible and desireable to define prefixes in separate files, but for this sample, let's just define everything here.
     const thingsApi = prefix.atPrefix(
       "/thing",
       notAuthenticated.atURL``
@@ -120,12 +118,12 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
           },
         }),
     );
-    const secretApi = secret
-      .accessSecret(authenticated.atURL`/secret`, endpointArgs)
-      .createEndpoint({
-        openapi: {},
-      });
 
+    const secretApi = authenticated.atURL`/secret`
+      .batchSpec(secret.accessSecret(endpointArgs))
+      .createEndpoint({ openapi: {} });
+
+    // Prefixes can be combined to any depth.
     const notAuthenticatedAPI = prefix.atPrefix("/api", thingsApi);
     const authenticatedAPI = prefix.atPrefix("/api", secretApi);
     const notAuthenticatedMetadata = notAuthenticated.getMetadataFinalResult(

@@ -110,6 +110,35 @@ export class AppEndpointBuilderInitial<
         | common.EndpointHandlerArgsWithQuery<TQuery>,
         TMetadataProviders
       > {
+    return this._forMethod(method, query);
+  }
+
+  private _forMethod<TMethods extends TAllowedMethods, TQuery>(
+    method: TMethods,
+    query?: core.QueryValidatorSpec<TQuery, TValidationError> | undefined,
+  ):
+    | AppEndpointBuilderForMethods<
+        TContext,
+        TRefinedContext,
+        TState,
+        TValidationError,
+        TArgsURL,
+        TMethods,
+        | common.EndpointHandlerArgs<TRefinedContext, TState>
+        | common.EndpointHandlerArgsWithQuery<TQuery>,
+        TMetadataProviders
+      >
+    | AppEndpointBuilderForMethodsAndBody<
+        TContext,
+        TRefinedContext,
+        TState,
+        TValidationError,
+        TArgsURL,
+        TMethods,
+        | common.EndpointHandlerArgs<TRefinedContext, TState>
+        | common.EndpointHandlerArgsWithQuery<TQuery>,
+        TMetadataProviders
+      > {
     const overlappingMehods = new Set(
       Object.keys(this._state.methods).filter(
         (existingMethod) => existingMethod === method,
@@ -322,7 +351,25 @@ export class AppEndpointBuilderInitial<
     Omit<TAllowedMethods, TMethod> & core.HttpMethod,
     TMetadataProviders
   > {
-    throw new Error(`Moi ${spec}`);
+    const builder = this._forMethod(
+      spec.method,
+      "query" in spec ? spec.query : undefined,
+    );
+    return builder instanceof AppEndpointBuilderForMethodsAndBody &&
+      "input" in spec
+      ? builder.withBody(
+          spec.input,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          spec.endpointHandler as any,
+          spec.output,
+          spec.mdArgs,
+        )
+      : builder.withoutBody(
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+          spec.endpointHandler as any,
+          spec.output,
+          spec.mdArgs,
+        );
   }
 }
 

@@ -9,3 +9,7 @@ export type State = Partial<{
   // If username is not present -> authentication was not successful.
   [USERNAME]: string;
 }>;
+
+export type MakeRequired<T, TProperties extends keyof T = keyof T> = T & {
+  [P in TProperties]-?: T[P];
+};
