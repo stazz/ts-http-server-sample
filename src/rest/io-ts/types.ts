@@ -9,6 +9,7 @@ import type * as openapi from "../../api/metadata/openapi";
 import type * as t from "io-ts";
 // Import plugin for IO-TS
 import type * as tPlugin from "../../api/data/io-ts";
+import type * as protocol from "../../protocol";
 import type * as common from "../../module-api/common";
 
 export type TMetadataProviders = { openapi: openapi.OpenAPIMetadataBuilder };
@@ -23,25 +24,8 @@ export type EndpointArgs = {
   };
 };
 
-export interface ProtocolSpecCore<TMethod extends string, TOutput> {
-  method: TMethod;
-  responseBody: TOutput;
-}
-
-export interface ProtocolSpecURL<TURLData extends Record<string, unknown>> {
-  url: TURLData;
-}
-
-export interface ProtocolSpecQuery<TQueryData extends Record<string, unknown>> {
-  query: TQueryData;
-}
-
-export interface ProtocolSpecRequestBody<TInput> {
-  requestBody: TInput;
-}
-
 export type EndpointSpec<
-  TProtocolSpec extends ProtocolSpecCore<string, unknown>,
+  TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TFunctionality extends (...args: any) => any,
   // eslint-disable-next-line @typescript-eslint/ban-types
@@ -50,21 +34,21 @@ export type EndpointSpec<
   args: EndpointArgs,
 ) => TProtocolSpec["method"] extends core.HttpMethodWithoutBody
   ? MakeSpecWithoutBody<TProtocolSpec, TFunctionality, TState>
-  : TProtocolSpec extends ProtocolSpecRequestBody<unknown>
+  : TProtocolSpec extends protocol.ProtocolSpecRequestBody<unknown>
   ? MakeSpecWithBody<TProtocolSpec, TFunctionality, TState>
   : MakeSpecWithoutBody<TProtocolSpec, TFunctionality, TState>;
 
 export type MakeSpecWithoutBody<
-  TProtocolSpec extends ProtocolSpecCore<string, unknown>,
+  TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TFunctionality extends (...args: any) => any,
   TState extends Record<string, unknown> = Partial<AuthenticatedState>,
-> = TProtocolSpec extends ProtocolSpecQuery<infer TQuery>
+> = TProtocolSpec extends protocol.ProtocolSpecQuery<infer TQuery>
   ? spec.BatchSpecificationWithQueryWithoutBody<
       unknown,
       TState,
       tPlugin.ValidationError,
-      TProtocolSpec extends ProtocolSpecURL<infer TURLData>
+      TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>
         ? spec.EndpointHandlerArgsWithURL<TURLData>
         : // eslint-disable-next-line @typescript-eslint/ban-types
           {},
@@ -81,7 +65,7 @@ export type MakeSpecWithoutBody<
       unknown,
       TState,
       tPlugin.ValidationError,
-      TProtocolSpec extends ProtocolSpecURL<infer TURLData>
+      TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>
         ? spec.EndpointHandlerArgsWithURL<TURLData>
         : // eslint-disable-next-line @typescript-eslint/ban-types
           {},
@@ -95,17 +79,17 @@ export type MakeSpecWithoutBody<
     >;
 
 export type MakeSpecWithBody<
-  TProtocolSpec extends ProtocolSpecCore<string, unknown> &
-    ProtocolSpecRequestBody<unknown>,
+  TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
+    protocol.ProtocolSpecRequestBody<unknown>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TFunctionality extends (...args: any) => any,
   TState extends Record<string, unknown> = Partial<AuthenticatedState>,
-> = TProtocolSpec extends ProtocolSpecQuery<infer TQuery>
+> = TProtocolSpec extends protocol.ProtocolSpecQuery<infer TQuery>
   ? spec.BatchSpecificationWithQueryWithBody<
       unknown,
       TState,
       tPlugin.ValidationError,
-      TProtocolSpec extends ProtocolSpecURL<infer TURLData>
+      TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>
         ? spec.EndpointHandlerArgsWithURL<TURLData>
         : // eslint-disable-next-line @typescript-eslint/ban-types
           {},
@@ -124,7 +108,7 @@ export type MakeSpecWithBody<
       unknown,
       TState,
       tPlugin.ValidationError,
-      TProtocolSpec extends ProtocolSpecURL<infer TURLData>
+      TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>
         ? spec.EndpointHandlerArgsWithURL<TURLData>
         : // eslint-disable-next-line @typescript-eslint/ban-types
           {},
