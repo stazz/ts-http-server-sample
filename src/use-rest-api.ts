@@ -4,8 +4,6 @@
 // Also notice that URL building is now a bit duplicated. This is not optimal, and will be refactored to be DRY later.
 import * as protocol from "./protocol";
 
-export type APICall<TArgs, TReturnType> = (args: TArgs) => Promise<TReturnType>;
-
 // Example of how to use types in protocol.ts to define API callbacks and invoke them.
 const useAPI = async () => {
   // Define callbacks in compile-time safe way
@@ -155,6 +153,8 @@ function makeAPICall<
       body: args && "body" in args ? args.body : undefined,
     });
 }
+
+export type APICall<TArgs, TReturnType> = (args: TArgs) => Promise<TReturnType>;
 
 const someMethodToInvokeHTTPEndpoint = (args: {
   method: string;
