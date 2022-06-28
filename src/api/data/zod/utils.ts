@@ -1,4 +1,4 @@
-import type * as data from "../../core/data";
+import type * as data from "../../core/data-server";
 import * as t from "zod";
 import type * as error from "./error";
 

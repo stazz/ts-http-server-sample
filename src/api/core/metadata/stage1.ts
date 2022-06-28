@@ -1,4 +1,4 @@
-import * as data from "../data";
+import * as data from "../data-server";
 import * as common from "./common";
 
 export interface MetadataBuilder<

@@ -1,6 +1,6 @@
 import type * as evt from "./events";
 import type * as ep from "../endpoint";
-import type * as data from "../data";
+import type * as data from "../data-server";
 
 import type * as evtEmit from "@data-heaving/common";
 

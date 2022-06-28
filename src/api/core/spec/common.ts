@@ -1,4 +1,4 @@
-import type * as data from "../data";
+import type * as data from "../data-server";
 import type * as md from "../metadata";
 
 export interface EndpointHandlerArgs<TContext, TState> {

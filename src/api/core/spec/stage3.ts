@@ -1,5 +1,5 @@
 import * as ep from "../endpoint";
-import type * as data from "../data";
+import type * as data from "../data-server";
 import type * as md from "../metadata";
 import type * as state from "./state";
 import { AppEndpointBuilderInitial } from ".";

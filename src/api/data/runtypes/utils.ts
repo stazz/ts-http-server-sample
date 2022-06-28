@@ -1,4 +1,4 @@
-import * as data from "../../core/data";
+import * as data from "../../core/data-server";
 import * as t from "runtypes";
 import type * as error from "./error";
 

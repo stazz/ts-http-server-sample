@@ -1,5 +1,5 @@
 import * as ep from "../endpoint";
-import * as data from "../data";
+import * as data from "../data-server";
 import * as md from "../metadata";
 
 export interface AppEndpointBuilderState<

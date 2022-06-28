@@ -1,5 +1,5 @@
-import type * as data from "../../core/data";
 import * as t from "io-ts";
+import type * as data from "../../core/data-server";
 import type * as error from "./error";
 
 export const transformLibraryResultToModelResult = <TData>(

@@ -1,4 +1,4 @@
-import type * as data from "../data";
+import type * as data from "../data-server";
 
 // Higher-kinded-type trick from: https://www.matechs.com/blog/encoding-hkts-in-typescript-once-again
 export interface HKTContext {

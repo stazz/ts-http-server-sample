@@ -23,9 +23,9 @@ const main = async (
       string,
       { default: restModuleApi.RESTAPISpecificationModule }
     > = {
-      ["io-ts"]: await import("./rest/io-ts"),
-      runtypes: await import("./rest/runtypes"),
-      zod: await import("./rest/zod"),
+      ["io-ts"]: await import("./backend/io-ts"),
+      runtypes: await import("./backend/runtypes"),
+      zod: await import("./backend/zod"),
     };
 
     await doThrow(
