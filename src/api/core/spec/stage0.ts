@@ -1,6 +1,7 @@
-import * as core from "../core";
-import * as md from "../metadata";
-import * as common from "./common";
+import * as ep from "../endpoint";
+import type * as data from "../data";
+import type * as md from "../metadata";
+import type * as common from "./common";
 import { AppEndpointBuilderInitial } from ".";
 
 export const bindNecessaryTypes = <TContext, TState, TValidationError>(
@@ -35,7 +36,7 @@ export class AppEndpointBuilderProvider<
   >,
 > {
   public constructor(
-    private readonly _contextTransform: core.ContextValidatorSpec<
+    private readonly _contextTransform: data.ContextValidatorSpec<
       TContext,
       TRefinedContext,
       TState,
@@ -50,7 +51,7 @@ export class AppEndpointBuilderProvider<
     TState,
     TValidationError,
     {}, // eslint-disable-line @typescript-eslint/ban-types
-    core.HttpMethod,
+    ep.HttpMethod,
     {
       [P in keyof TMetadataProviders]: ReturnType<
         TMetadataProviders[P]["getBuilder"]
@@ -82,7 +83,7 @@ export class AppEndpointBuilderProvider<
         TState,
         TValidationError,
         {}, // eslint-disable-line @typescript-eslint/ban-types
-        core.HttpMethod,
+        ep.HttpMethod,
         {
           [P in keyof TMetadataProviders]: ReturnType<
             TMetadataProviders[P]["getBuilder"]
@@ -111,7 +112,7 @@ export class AppEndpointBuilderProvider<
             methods: {},
             // TODO fix this typing (may require extracting this method into class, as anonymous methods with method generic arguments don't behave well)
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            metadata: core.transformEntries(this._mdProviders, (md) =>
+            metadata: ep.transformEntries(this._mdProviders, (md) =>
               md.getBuilder(),
             ) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
             urlValidation: {
@@ -129,7 +130,7 @@ export class AppEndpointBuilderProvider<
         fragments,
         methods: {},
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        metadata: core.transformEntries(this._mdProviders, (md) =>
+        metadata: ep.transformEntries(this._mdProviders, (md) =>
           md.getBuilder(),
         ) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
         urlValidation: undefined,
@@ -138,7 +139,7 @@ export class AppEndpointBuilderProvider<
   }
 
   public refineContext<TNewContext, TNewState>(
-    transform: core.ContextValidatorSpec<
+    transform: data.ContextValidatorSpec<
       TRefinedContext,
       TNewContext,
       TNewState,
@@ -169,7 +170,7 @@ export class AppEndpointBuilderProvider<
           }
         },
       },
-      core.transformEntries(this._mdProviders, (provider, key) =>
+      ep.transformEntries(this._mdProviders, (provider, key) =>
         provider.withRefinedContext(mdArgs[key]),
       ) as TMetadataProviders,
     );
@@ -232,7 +233,7 @@ export class AppEndpointBuilderProvider<
       ? TResult
       : never;
   } {
-    return core.transformEntries(this._mdProviders, (md, key) =>
+    return ep.transformEntries(this._mdProviders, (md, key) =>
       md.createFinalMetadata(
         mdArgs[key],
         endpoints.flatMap((ep) => ep[key]),
@@ -265,7 +266,7 @@ export interface URLDataNames<
 > {
   validateURLData: <
     TValidation extends {
-      [P in TNames]: core.URLDataParameterValidatorSpec<
+      [P in TNames]: data.URLDataParameterValidatorSpec<
         unknown,
         TValidationError
       >;
@@ -278,9 +279,9 @@ export interface URLDataNames<
     TState,
     TValidationError,
     common.EndpointHandlerArgsWithURL<{
-      [P in TNames]: core.URLParameterDataType<TValidation[P]["validator"]>;
+      [P in TNames]: data.URLParameterDataType<TValidation[P]["validator"]>;
     }>,
-    core.HttpMethod,
+    ep.HttpMethod,
     TMetadataProviders
   >;
 }

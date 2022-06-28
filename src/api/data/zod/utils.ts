@@ -1,10 +1,10 @@
-import * as core from "../../core/core";
+import type * as data from "../../core/data";
 import * as t from "zod";
 import type * as error from "./error";
 
 export const transformLibraryResultToModelResult = <TData>(
   validationResult: t.SafeParseReturnType<unknown, TData>,
-): core.DataValidatorResult<TData, error.ValidationError> =>
+): data.DataValidatorResult<TData, error.ValidationError> =>
   validationResult.success
     ? {
         error: "none",

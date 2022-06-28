@@ -1,4 +1,4 @@
-import * as core from "../../core/core";
+import * as ep from "../../core/endpoint";
 import * as prefix from "../../core/prefix";
 import * as server from "../../core/server";
 import * as ctx from "./context-types";
@@ -8,7 +8,7 @@ import type * as express from "express";
 // Using given various endpoints, create ExpressJS middlewares.
 export const createMiddleware = <TState, TValidationError>(
   endpoints: Array<
-    core.AppEndpoint<
+    ep.AppEndpoint<
       ctx.Context<TState>,
       TValidationError,
       Record<string, unknown>
@@ -44,7 +44,7 @@ export const createMiddleware = <TState, TValidationError>(
       const foundHandler = server.checkMethodForHandler(
         maybeEventArgs,
         events,
-        req.method as core.HttpMethod,
+        req.method as ep.HttpMethod,
         handler,
       );
 

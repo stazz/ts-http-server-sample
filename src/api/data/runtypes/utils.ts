@@ -1,10 +1,10 @@
-import * as core from "../../core/core";
+import * as data from "../../core/data";
 import * as t from "runtypes";
 import type * as error from "./error";
 
 export const transformLibraryResultToModelResult = <TData>(
   validationResult: t.Result<TData>,
-): core.DataValidatorResult<TData, error.ValidationError> =>
+): data.DataValidatorResult<TData, error.ValidationError> =>
   validationResult.success
     ? {
         error: "none",
@@ -12,7 +12,7 @@ export const transformLibraryResultToModelResult = <TData>(
       }
     : {
         error: "error",
-        errorInfo: [core.omit(validationResult, "success")],
+        errorInfo: [data.omit(validationResult, "success")],
       };
 
 export const exceptionAsValidationError = (

@@ -1,4 +1,4 @@
-import * as core from "../../core/core";
+import * as data from "../../core/data";
 import * as t from "runtypes";
 import type * as error from "./error";
 import * as validate from "./validate";
@@ -12,12 +12,12 @@ export const inputValidator = <T>(
   validation: validate.Decoder<T>,
   strictContentType = false,
   opts?: rawbody.Options,
-): core.DataValidatorRequestInputSpec<
+): data.DataValidatorRequestInputSpec<
   T,
   error.ValidationError,
   InputValidatorSpec<T>
 > => {
-  const jsonValidation = core.transitiveDataValidation(
+  const jsonValidation = data.transitiveDataValidation(
     (inputString: string) => {
       if (inputString.length > 0) {
         try {
@@ -65,7 +65,7 @@ export const inputValidator = <T>(
 
 export function outputValidator<TOutput>(
   validation: t.Runtype<TOutput>,
-): core.DataValidatorResponseOutputSpec<
+): data.DataValidatorResponseOutputSpec<
   TOutput,
   error.ValidationError,
   OutputValidatorSpec<TOutput, TOutput>
@@ -73,7 +73,7 @@ export function outputValidator<TOutput>(
 export function outputValidator<TOutput, TSerialized>(
   validation: t.Runtype<TOutput>,
   transform: (output: TOutput) => TSerialized,
-): core.DataValidatorResponseOutputSpec<
+): data.DataValidatorResponseOutputSpec<
   TOutput,
   error.ValidationError,
   OutputValidatorSpec<TOutput, TSerialized>
@@ -81,7 +81,7 @@ export function outputValidator<TOutput, TSerialized>(
 export function outputValidator<TOutput, TSerialized>(
   validation: t.Runtype<TOutput>,
   transform?: (output: TOutput) => TSerialized,
-): core.DataValidatorResponseOutputSpec<
+): data.DataValidatorResponseOutputSpec<
   TOutput,
   error.ValidationError,
   OutputValidatorSpec<TOutput, TSerialized>
@@ -106,7 +106,7 @@ export function outputValidator<TOutput, TSerialized>(
             }
           : {
               error: "error",
-              errorInfo: [core.omit(result, "success")],
+              errorInfo: [data.omit(result, "success")],
             };
       } catch (e) {
         return {

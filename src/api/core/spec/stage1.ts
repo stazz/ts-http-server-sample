@@ -1,7 +1,8 @@
-import * as core from "../core";
-import * as md from "../metadata";
-import * as common from "./common";
-import * as state from "./state";
+import * as ep from "../endpoint";
+import type * as data from "../data";
+import type * as md from "../metadata";
+import type * as common from "./common";
+import type * as state from "./state";
 import {
   AppEndpointBuilderForMethods,
   AppEndpointBuilderForMethodsAndBody,
@@ -14,7 +15,7 @@ export class AppEndpointBuilderInitial<
   TState,
   TValidationError,
   TArgsURL,
-  TAllowedMethods extends core.HttpMethod,
+  TAllowedMethods extends ep.HttpMethod,
   TMetadataProviders extends Record<
     string,
     // We must use 'any' as 2nd parameter, otherwise we won't be able to use AppEndpointBuilderInitial with specific TMetadataProviders type as parameter to functions.
@@ -33,7 +34,7 @@ export class AppEndpointBuilderInitial<
   ) {}
 
   public forMethod<TMethods extends TAllowedMethods>(
-    method: TMethods & core.HttpMethodWithoutBody,
+    method: TMethods & ep.HttpMethodWithoutBody,
   ): AppEndpointBuilderForMethods<
     TContext,
     TRefinedContext,
@@ -45,7 +46,7 @@ export class AppEndpointBuilderInitial<
     TMetadataProviders
   >;
   public forMethod<TMethods extends TAllowedMethods>(
-    method: TMethods & core.HttpMethodWithBody,
+    method: TMethods & ep.HttpMethodWithBody,
   ): AppEndpointBuilderForMethodsAndBody<
     TContext,
     TRefinedContext,
@@ -57,8 +58,8 @@ export class AppEndpointBuilderInitial<
     TMetadataProviders
   >;
   public forMethod<TMethods extends TAllowedMethods, TQuery>(
-    method: TMethods & core.HttpMethodWithoutBody,
-    query: core.QueryValidatorSpec<TQuery, TValidationError>,
+    method: TMethods & ep.HttpMethodWithoutBody,
+    query: data.QueryValidatorSpec<TQuery, TValidationError>,
   ): AppEndpointBuilderForMethods<
     TContext,
     TRefinedContext,
@@ -71,8 +72,8 @@ export class AppEndpointBuilderInitial<
     TMetadataProviders
   >;
   public forMethod<TMethods extends TAllowedMethods, TQuery>(
-    method: TMethods & core.HttpMethodWithBody,
-    query: core.QueryValidatorSpec<TQuery, TValidationError>,
+    method: TMethods & ep.HttpMethodWithBody,
+    query: data.QueryValidatorSpec<TQuery, TValidationError>,
   ): AppEndpointBuilderForMethodsAndBody<
     TContext,
     TRefinedContext,
@@ -86,7 +87,7 @@ export class AppEndpointBuilderInitial<
   >;
   forMethod<TMethods extends TAllowedMethods, TQuery>(
     method: TMethods,
-    query?: core.QueryValidatorSpec<TQuery, TValidationError> | undefined,
+    query?: data.QueryValidatorSpec<TQuery, TValidationError> | undefined,
   ):
     | AppEndpointBuilderForMethods<
         TContext,
@@ -115,7 +116,7 @@ export class AppEndpointBuilderInitial<
 
   private _forMethod<TMethods extends TAllowedMethods, TQuery>(
     method: TMethods,
-    query?: core.QueryValidatorSpec<TQuery, TValidationError> | undefined,
+    query?: data.QueryValidatorSpec<TQuery, TValidationError> | undefined,
   ):
     | AppEndpointBuilderForMethods<
         TContext,
@@ -166,7 +167,7 @@ export class AppEndpointBuilderInitial<
       queryInfo.query = query;
     }
 
-    return core.isMethodWithoutBody(method)
+    return ep.isMethodWithoutBody(method)
       ? new AppEndpointBuilderForMethods(
           this._state,
           new Set([method]),
@@ -180,7 +181,7 @@ export class AppEndpointBuilderInitial<
   }
 
   public batchSpec<
-    TMethod extends TAllowedMethods & core.HttpMethodWithoutBody,
+    TMethod extends TAllowedMethods & ep.HttpMethodWithoutBody,
     TOutput,
     TOutputContentTypes extends Record<string, unknown>,
   >(
@@ -200,11 +201,11 @@ export class AppEndpointBuilderInitial<
     TState,
     TValidationError,
     TArgsURL,
-    Omit<TAllowedMethods, TMethod> & core.HttpMethod,
+    Omit<TAllowedMethods, TMethod> & ep.HttpMethod,
     TMetadataProviders
   >;
   public batchSpec<
-    TMethod extends TAllowedMethods & core.HttpMethodWithoutBody,
+    TMethod extends TAllowedMethods & ep.HttpMethodWithoutBody,
     TQuery,
     TOutput,
     TOutputContentTypes extends Record<string, unknown>,
@@ -226,11 +227,11 @@ export class AppEndpointBuilderInitial<
     TState,
     TValidationError,
     TArgsURL,
-    Omit<TAllowedMethods, TMethod> & core.HttpMethod,
+    Omit<TAllowedMethods, TMethod> & ep.HttpMethod,
     TMetadataProviders
   >;
   public batchSpec<
-    TMethod extends TAllowedMethods & core.HttpMethodWithBody,
+    TMethod extends TAllowedMethods & ep.HttpMethodWithBody,
     TInput,
     TInputContentTypes extends Record<string, unknown>,
     TOutput,
@@ -254,11 +255,11 @@ export class AppEndpointBuilderInitial<
     TState,
     TValidationError,
     TArgsURL,
-    Omit<TAllowedMethods, TMethod> & core.HttpMethod,
+    Omit<TAllowedMethods, TMethod> & ep.HttpMethod,
     TMetadataProviders
   >;
   public batchSpec<
-    TMethod extends TAllowedMethods & core.HttpMethodWithBody,
+    TMethod extends TAllowedMethods & ep.HttpMethodWithBody,
     TQuery,
     TInput,
     TInputContentTypes extends Record<string, unknown>,
@@ -284,7 +285,7 @@ export class AppEndpointBuilderInitial<
     TState,
     TValidationError,
     TArgsURL,
-    Omit<TAllowedMethods, TMethod> & core.HttpMethod,
+    Omit<TAllowedMethods, TMethod> & ep.HttpMethod,
     TMetadataProviders
   >;
   public batchSpec<
@@ -302,7 +303,7 @@ export class AppEndpointBuilderInitial<
           TValidationError,
           TArgsURL,
           TMetadataProviders,
-          TMethod & core.HttpMethodWithoutBody,
+          TMethod & ep.HttpMethodWithoutBody,
           TOutput,
           TOutputContentTypes
         >
@@ -313,7 +314,7 @@ export class AppEndpointBuilderInitial<
           TArgsURL,
           TQuery,
           TMetadataProviders,
-          TMethod & core.HttpMethodWithoutBody,
+          TMethod & ep.HttpMethodWithoutBody,
           TOutput,
           TOutputContentTypes
         >
@@ -323,7 +324,7 @@ export class AppEndpointBuilderInitial<
           TValidationError,
           TArgsURL,
           TMetadataProviders,
-          TMethod & core.HttpMethodWithBody,
+          TMethod & ep.HttpMethodWithBody,
           TOutput,
           TOutputContentTypes,
           TInput,
@@ -336,7 +337,7 @@ export class AppEndpointBuilderInitial<
           TArgsURL,
           TQuery,
           TMetadataProviders,
-          TMethod & core.HttpMethodWithBody,
+          TMethod & ep.HttpMethodWithBody,
           TOutput,
           TOutputContentTypes,
           TInput,
@@ -348,7 +349,7 @@ export class AppEndpointBuilderInitial<
     TState,
     TValidationError,
     TArgsURL,
-    Omit<TAllowedMethods, TMethod> & core.HttpMethod,
+    Omit<TAllowedMethods, TMethod> & ep.HttpMethod,
     TMetadataProviders
   > {
     const builder = this._forMethod(
@@ -414,7 +415,7 @@ export type BatchSpecificationWithQueryWithoutBody<
   TOutputContentTypes extends Record<string, unknown>,
 > = {
   method: TMethod;
-  query: core.QueryValidatorSpec<TQueryData, TValidationError>;
+  query: data.QueryValidatorSpec<TQueryData, TValidationError>;
 } & common.EndpointSpecArgsWithoutBody<
   TRefinedContext,
   TState,
@@ -473,7 +474,7 @@ export type BatchSpecificationWithQueryWithBody<
   TInputContentTypes extends Record<string, unknown>,
 > = {
   method: TMethod;
-  query: core.QueryValidatorSpec<TQueryData, TValidationError>;
+  query: data.QueryValidatorSpec<TQueryData, TValidationError>;
 } & common.EndpointSpecArgsWithBody<
   TRefinedContext,
   TState,

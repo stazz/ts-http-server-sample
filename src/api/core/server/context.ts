@@ -1,4 +1,4 @@
-import * as core from "../core";
+import type * as data from "../data";
 
 // Higher-kinded-type trick from: https://www.matechs.com/blog/encoding-hkts-in-typescript-once-again
 export interface HKTContext {
@@ -19,21 +19,21 @@ export type ContextValidatorFactory<TContext extends HKTContext> = <
   TData,
   TError,
 >(
-  validator: core.DataValidator<TInput, TData, TError>,
+  validator: data.DataValidator<TInput, TData, TError>,
   protocolErrorInfo?:
     | number
     | {
         statusCode: number;
         body: string | undefined;
       },
-) => core.ContextValidatorSpec<
+) => data.ContextValidatorSpec<
   HKTContextKind<TContext, TInput>,
   HKTContextKind<TContext, TData>,
   TData,
   TError
 >;
 
-export type DataValidatorOutput<T> = T extends core.DataValidator<
+export type DataValidatorOutput<T> = T extends data.DataValidator<
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   infer _,
   infer TData,

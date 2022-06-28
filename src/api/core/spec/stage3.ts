@@ -1,6 +1,7 @@
-import * as core from "../core";
-import * as md from "../metadata";
-import * as state from "./state";
+import * as ep from "../endpoint";
+import type * as data from "../data";
+import type * as md from "../metadata";
+import type * as state from "./state";
 import { AppEndpointBuilderInitial } from ".";
 
 export class AppEndpointBuilder<
@@ -9,7 +10,7 @@ export class AppEndpointBuilder<
   TState,
   TValidationError,
   TArgsURL,
-  TAllowedMethods extends core.HttpMethod,
+  TAllowedMethods extends ep.HttpMethod,
   TMetadataProviders extends Record<
     string,
     // We must use 'any' as 2nd parameter, otherwise we won't be able to use AppEndpointBuilder with specific TMetadataProviders type as parameter to functions.
@@ -33,7 +34,7 @@ export class AppEndpointBuilder<
     >
       ? TArg
       : never;
-  }): core.AppEndpoint<
+  }): ep.AppEndpoint<
     TContext,
     TValidationError,
     {
@@ -58,7 +59,7 @@ export class AppEndpointBuilder<
                 urlValidation.validation,
                 groupNamePrefix,
               )
-            : new RegExp(core.escapeRegExp(this._state.fragments.join(""))),
+            : new RegExp(ep.escapeRegExp(this._state.fragments.join(""))),
           handler: (method) =>
             checkMethodsForHandler(
               this._state.methods,
@@ -68,7 +69,7 @@ export class AppEndpointBuilder<
         }),
         getMetadata: (urlPrefix) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-          return core.transformEntries(metadata, (md) => [
+          return ep.transformEntries(metadata, (md) => [
             md(urlPrefix) as typeof md extends md.SingleEndpointResult<
               infer TEndpointMD
             >
@@ -100,9 +101,9 @@ const checkMethodsForHandler = <
       TMetadataProviders
     >;
   },
-  method: core.HttpMethod,
+  method: ep.HttpMethod,
   groupNamePrefix: string,
-): core.DynamicHandlerResponse<TContext, TValidationError> =>
+): ep.DynamicHandlerResponse<TContext, TValidationError> =>
   method in state
     ? {
         found: "handler" as const,
@@ -110,7 +111,7 @@ const checkMethodsForHandler = <
       }
     : {
         found: "invalid-method" as const,
-        allowedMethods: Object.keys(state) as Array<core.HttpMethod>,
+        allowedMethods: Object.keys(state) as Array<ep.HttpMethod>,
       };
 
 function* getURLItemsInOrder(
@@ -118,7 +119,7 @@ function* getURLItemsInOrder(
   names: ReadonlyArray<string>,
   validation: Record<
     string,
-    core.URLDataParameterValidatorSpec<unknown, unknown>
+    data.URLDataParameterValidatorSpec<unknown, unknown>
   >,
 ) {
   for (const [idx, fragment] of fragments.entries()) {
@@ -141,7 +142,7 @@ const buildURLRegExp = (
   names: ReadonlyArray<string>,
   validation: Record<
     string,
-    core.URLDataParameterValidatorSpec<unknown, unknown>
+    data.URLDataParameterValidatorSpec<unknown, unknown>
   >,
   groupNamePrefix: string,
 ) => {
@@ -150,7 +151,7 @@ const buildURLRegExp = (
       (currentRegExp, fragmentOrValidation) => {
         return `${currentRegExp}${
           typeof fragmentOrValidation === "string"
-            ? core.escapeRegExp(fragmentOrValidation)
+            ? ep.escapeRegExp(fragmentOrValidation)
             : `(?<${groupNamePrefix}${fragmentOrValidation.name}>${fragmentOrValidation.validation.regExp.source})`
         }`;
       },
@@ -200,13 +201,13 @@ const constructMDResults = <
         typeof fragmentOrValidation === "string"
           ? fragmentOrValidation
           : {
-              ...core.omit(fragmentOrValidation.validation, "validator"),
+              ...ep.omit(fragmentOrValidation.validation, "validator"),
               name: fragmentOrValidation.name,
             },
       )
     : [...state.fragments];
 
-  return core.transformEntries(state.metadata, (md, mdKey) =>
+  return ep.transformEntries(state.metadata, (md, mdKey) =>
     md.getEndpointsMetadata(
       mdArgs[mdKey],
       urlSpec,

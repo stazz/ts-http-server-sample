@@ -1,4 +1,4 @@
-import * as core from "../../core/core";
+import * as ep from "../../core/endpoint";
 import * as prefix from "../../core/prefix";
 import * as server from "../../core/server";
 import type * as fastify from "fastify";
@@ -10,7 +10,7 @@ import { Readable } from "stream";
 // Using given various endpoints, create object which is able to handle the requests as Fastify route.
 export const createRoute = <TState, TValidationError>(
   endpoints: Array<
-    core.AppEndpoint<
+    ep.AppEndpoint<
       ctx.Context<TState>,
       TValidationError,
       Record<string, unknown>
@@ -44,7 +44,7 @@ export const createRoute = <TState, TValidationError>(
       const foundHandler = server.checkMethodForHandler(
         maybeEventArgs,
         events,
-        req.method as core.HttpMethod,
+        req.method as ep.HttpMethod,
         handler,
       );
 

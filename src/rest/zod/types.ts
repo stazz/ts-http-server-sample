@@ -1,5 +1,5 @@
 // Import generic REST-related things
-import type * as core from "../../api/core/core";
+import type * as ep from "../../api/core/endpoint";
 import type * as spec from "../../api/core/spec";
 
 // Import plugin for OpenAPI metadata
@@ -34,7 +34,7 @@ export type EndpointSpec<
   TState extends {} = Partial<AuthenticatedState>,
 > = (
   args: EndpointArgs,
-) => TProtocolSpec["method"] extends core.HttpMethodWithoutBody
+) => TProtocolSpec["method"] extends ep.HttpMethodWithoutBody
   ? MakeSpecWithoutBody<TProtocolSpec, TFunctionality, TState>
   : TProtocolSpec extends protocol.ProtocolSpecRequestBody<unknown>
   ? MakeSpecWithBody<TProtocolSpec, TFunctionality, TState>

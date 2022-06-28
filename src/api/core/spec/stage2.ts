@@ -1,7 +1,8 @@
-import * as core from "../core";
-import * as md from "../metadata";
-import * as common from "./common";
-import * as state from "./state";
+import * as ep from "../endpoint";
+import type * as data from "../data";
+import type * as md from "../metadata";
+import type * as common from "./common";
+import type * as state from "./state";
 import { AppEndpointBuilder } from ".";
 
 export class AppEndpointBuilderForMethods<
@@ -10,7 +11,7 @@ export class AppEndpointBuilderForMethods<
   TState,
   TValidationError,
   TArgsURL,
-  TAllowedMethods extends core.HttpMethod,
+  TAllowedMethods extends ep.HttpMethod,
   TArgsQuery,
   TMetadataProviders extends Record<
     string,
@@ -45,7 +46,7 @@ export class AppEndpointBuilderForMethods<
     {
       validator,
       ...outputSpec
-    }: core.DataValidatorResponseOutputSpec<
+    }: data.DataValidatorResponseOutputSpec<
       TOutput,
       TValidationError,
       TOutputValidatorSpec
@@ -75,7 +76,7 @@ export class AppEndpointBuilderForMethods<
     TState,
     TValidationError,
     TArgsURL,
-    Exclude<core.HttpMethod, TAllowedMethods>,
+    Exclude<ep.HttpMethod, TAllowedMethods>,
     TMetadataProviders
   > {
     const { query, getEndpointArgs } = this._queryInfo;
@@ -87,49 +88,49 @@ export class AppEndpointBuilderForMethods<
     > = {
       outputValidation: outputSpec,
       builder: (groupNamePrefix) => {
-        const retVal: core.StaticAppEndpointHandler<
-          TContext,
-          TValidationError
-        > = {
-          // TODO use runtime pick props for contextValidator!
-          contextValidator: contextTransform as core.StaticAppEndpointHandler<
-            TContext,
-            TValidationError
-          >["contextValidator"],
-          urlValidator: urlValidation
-            ? Object.fromEntries(
-                Object.entries(urlValidation.validation).map(
-                  ([parameterName, { validator }]) => [
-                    // Final group name
-                    `${groupNamePrefix}${parameterName}`,
-                    // URL parameter validation
-                    {
-                      parameterName,
-                      validator,
-                    },
-                  ],
+        const retVal: ep.StaticAppEndpointHandler<TContext, TValidationError> =
+          {
+            // TODO use runtime pick props for contextValidator!
+            contextValidator: contextTransform as ep.StaticAppEndpointHandler<
+              TContext,
+              TValidationError
+            >["contextValidator"],
+            urlValidator: urlValidation
+              ? Object.fromEntries(
+                  Object.entries(urlValidation.validation).map(
+                    ([parameterName, { validator }]) => [
+                      // Final group name
+                      `${groupNamePrefix}${parameterName}`,
+                      // URL parameter validation
+                      {
+                        parameterName,
+                        validator,
+                      },
+                    ],
+                  ),
+                )
+              : undefined,
+            queryValidator: query?.validator,
+            handler: ({ context, state, url, query }) => {
+              const handlerArgs = {
+                ...getEndpointArgs(query),
+                context,
+                state,
+              };
+              if (urlValidation) {
+                (
+                  handlerArgs as unknown as common.EndpointHandlerArgsWithURL<unknown>
+                ).url = url;
+              }
+              return validator(
+                endpointHandler(
+                  handlerArgs as unknown as Parameters<
+                    typeof endpointHandler
+                  >[0],
                 ),
-              )
-            : undefined,
-          queryValidator: query?.validator,
-          handler: ({ context, state, url, query }) => {
-            const handlerArgs = {
-              ...getEndpointArgs(query),
-              context,
-              state,
-            };
-            if (urlValidation) {
-              (
-                handlerArgs as unknown as common.EndpointHandlerArgsWithURL<unknown>
-              ).url = url;
-            }
-            return validator(
-              endpointHandler(
-                handlerArgs as unknown as Parameters<typeof endpointHandler>[0],
-              ),
-            );
-          },
-        };
+              );
+            },
+          };
 
         return retVal;
       },
@@ -137,7 +138,7 @@ export class AppEndpointBuilderForMethods<
       mdArgs: mdArgs as any,
     };
     if (query) {
-      handler.queryValidation = core.omit(query, "validator");
+      handler.queryValidation = ep.omit(query, "validator");
     }
     return new AppEndpointBuilder({
       ...this._state,
@@ -158,7 +159,7 @@ export class AppEndpointBuilderForMethodsAndBody<
   TState,
   TValidationError,
   TArgsURL,
-  TAllowedMethods extends core.HttpMethod,
+  TAllowedMethods extends ep.HttpMethod,
   TArgsQuery,
   TMetadataProviders extends Record<
     string,
@@ -183,7 +184,7 @@ export class AppEndpointBuilderForMethodsAndBody<
     {
       validator: inputValidator,
       ...inputSpec
-    }: core.DataValidatorRequestInputSpec<
+    }: data.DataValidatorRequestInputSpec<
       TBody,
       TValidationError,
       TInputContentTypes
@@ -198,7 +199,7 @@ export class AppEndpointBuilderForMethodsAndBody<
     {
       validator: outputValidator,
       ...outputSpec
-    }: core.DataValidatorResponseOutputSpec<
+    }: data.DataValidatorResponseOutputSpec<
       THandlerResult,
       TValidationError,
       TOutputValidatorSpec
@@ -228,7 +229,7 @@ export class AppEndpointBuilderForMethodsAndBody<
     TState,
     TValidationError,
     TArgsURL,
-    Exclude<core.HttpMethod, TAllowedMethods>,
+    Exclude<ep.HttpMethod, TAllowedMethods>,
     TMetadataProviders
   > {
     const { query, getEndpointArgs } = this._queryInfo;
@@ -241,57 +242,57 @@ export class AppEndpointBuilderForMethodsAndBody<
       inputValidation: inputSpec,
       outputValidation: outputSpec,
       builder: (groupNamePrefix) => {
-        const retVal: core.StaticAppEndpointHandler<
-          TContext,
-          TValidationError
-        > = {
-          contextValidator: contextTransform as core.StaticAppEndpointHandler<
-            TContext,
-            TValidationError
-          >["contextValidator"],
-          urlValidator: urlValidation
-            ? Object.fromEntries(
-                Object.entries(urlValidation.validation).map(
-                  ([parameterName, { validator }]) => [
-                    // Final group name
-                    `${groupNamePrefix}${parameterName}`,
-                    // URL parameter validation
-                    {
-                      parameterName,
-                      validator,
-                    },
-                  ],
+        const retVal: ep.StaticAppEndpointHandler<TContext, TValidationError> =
+          {
+            contextValidator: contextTransform as ep.StaticAppEndpointHandler<
+              TContext,
+              TValidationError
+            >["contextValidator"],
+            urlValidator: urlValidation
+              ? Object.fromEntries(
+                  Object.entries(urlValidation.validation).map(
+                    ([parameterName, { validator }]) => [
+                      // Final group name
+                      `${groupNamePrefix}${parameterName}`,
+                      // URL parameter validation
+                      {
+                        parameterName,
+                        validator,
+                      },
+                    ],
+                  ),
+                )
+              : undefined,
+            queryValidator: query?.validator,
+            bodyValidator: inputValidator,
+            handler: ({ context, state, url, body, query }) => {
+              const handlerArgs = {
+                ...getEndpointArgs(query),
+                context,
+                state,
+                body: body as TBody,
+              };
+              if (urlValidation) {
+                (
+                  handlerArgs as unknown as common.EndpointHandlerArgsWithURL<unknown>
+                ).url = url;
+              }
+              return outputValidator(
+                endpointHandler(
+                  handlerArgs as unknown as Parameters<
+                    typeof endpointHandler
+                  >[0],
                 ),
-              )
-            : undefined,
-          queryValidator: query?.validator,
-          bodyValidator: inputValidator,
-          handler: ({ context, state, url, body, query }) => {
-            const handlerArgs = {
-              ...getEndpointArgs(query),
-              context,
-              state,
-              body: body as TBody,
-            };
-            if (urlValidation) {
-              (
-                handlerArgs as unknown as common.EndpointHandlerArgsWithURL<unknown>
-              ).url = url;
-            }
-            return outputValidator(
-              endpointHandler(
-                handlerArgs as unknown as Parameters<typeof endpointHandler>[0],
-              ),
-            );
-          },
-        };
+              );
+            },
+          };
         return retVal;
       },
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
       mdArgs: mdArgs as any,
     };
     if (query) {
-      handler.queryValidation = core.omit(query, "validator");
+      handler.queryValidation = ep.omit(query, "validator");
     }
     return new AppEndpointBuilder({
       ...this._state,

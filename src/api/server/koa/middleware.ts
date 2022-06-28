@@ -1,4 +1,4 @@
-import * as core from "../../core/core";
+import * as ep from "../../core/endpoint";
 import * as prefix from "../../core/prefix";
 import * as server from "../../core/server";
 import * as koa from "koa";
@@ -6,7 +6,7 @@ import * as koa from "koa";
 // Using given various endpoints, create Koa middlewares.
 export const createMiddleware = <TState, TValidationError>(
   endpoints: Array<
-    core.AppEndpoint<
+    ep.AppEndpoint<
       koa.ParameterizedContext<TState>,
       TValidationError,
       Record<string, unknown>
@@ -38,7 +38,7 @@ export const createMiddleware = <TState, TValidationError>(
       const foundHandler = server.checkMethodForHandler(
         maybeEventArgs,
         events,
-        ctx.method as core.HttpMethod,
+        ctx.method as ep.HttpMethod,
         handler,
       );
 

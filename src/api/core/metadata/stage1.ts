@@ -1,4 +1,4 @@
-import * as core from "../core";
+import * as data from "../data";
 import * as common from "./common";
 
 export interface MetadataBuilder<
@@ -14,11 +14,11 @@ export interface MetadataBuilder<
         string,
         {
           querySpec:
-            | Omit<core.QueryValidatorSpec<unknown, unknown>, "validator">
+            | Omit<data.QueryValidatorSpec<unknown, unknown>, "validator">
             | undefined;
           inputSpec:
             | Omit<
-                core.DataValidatorRequestInputSpec<
+                data.DataValidatorRequestInputSpec<
                   unknown,
                   unknown,
                   Record<string, unknown>
@@ -27,7 +27,7 @@ export interface MetadataBuilder<
               >
             | undefined;
           outputSpec: Omit<
-            core.DataValidatorResponseOutputSpec<
+            data.DataValidatorResponseOutputSpec<
               unknown,
               unknown,
               Record<string, unknown>
@@ -52,6 +52,6 @@ export type SingleEndpointResult<TEndpointMD> = (
 ) => TEndpointMD;
 
 export type URLParameterSpec = Omit<
-  core.URLDataParameterValidatorSpec<unknown, unknown>,
+  data.URLDataParameterValidatorSpec<unknown, unknown>,
   "validator"
 > & { name: string };

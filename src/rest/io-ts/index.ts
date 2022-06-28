@@ -1,5 +1,5 @@
 // Import generic REST-related things
-import * as core from "../../api/core/core";
+import * as data from "../../api/core/data";
 import * as spec from "../../api/core/spec";
 import * as server from "../../api/core/server";
 import * as prefix from "../../api/core/prefix";
@@ -68,7 +68,7 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
     );
 
     // We must make this const, as we have to use it inside lambda
-    const idRegex = idRegexParam ?? core.defaultParameterRegExp();
+    const idRegex = idRegexParam ?? data.defaultParameterRegExp();
 
     const idInBody = t.brand(
       t.string,

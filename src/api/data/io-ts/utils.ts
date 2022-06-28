@@ -1,10 +1,10 @@
-import type * as core from "../../core/core";
+import type * as data from "../../core/data";
 import * as t from "io-ts";
 import type * as error from "./error";
 
 export const transformLibraryResultToModelResult = <TData>(
   validationResult: t.Validation<TData>,
-): core.DataValidatorResult<TData, error.ValidationError> =>
+): data.DataValidatorResult<TData, error.ValidationError> =>
   validationResult._tag === "Right"
     ? {
         error: "none",

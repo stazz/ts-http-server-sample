@@ -1,4 +1,4 @@
-import type * as core from "../core";
+import type * as data from "../data";
 import type * as md from "../metadata";
 
 export interface EndpointHandlerArgs<TContext, TState> {
@@ -19,7 +19,7 @@ export interface EndpointHandlerArgsWithBody<TBody> {
 }
 
 export interface QueryInfo<TValidationError, TArgs> {
-  query?: core.QueryValidatorSpec<unknown, TValidationError>;
+  query?: data.QueryValidatorSpec<unknown, TValidationError>;
   getEndpointArgs: (query: unknown) => TArgs;
 }
 
@@ -40,7 +40,7 @@ export interface EndpointSpecArgsWithoutBody<
     TArgsURL & TArgsQuery & EndpointHandlerArgs<TRefinedContext, TState>,
     TOutput
   >;
-  output: core.DataValidatorResponseOutputSpec<
+  output: data.DataValidatorResponseOutputSpec<
     TOutput,
     TValidationError,
     TOutputContentTypes
@@ -88,12 +88,12 @@ export interface EndpointSpecArgsWithBody<
       EndpointHandlerArgsWithBody<TInput>,
     TOutput
   >;
-  input: core.DataValidatorRequestInputSpec<
+  input: data.DataValidatorRequestInputSpec<
     TInput,
     TValidationError,
     TInputContentTypes
   >;
-  output: core.DataValidatorResponseOutputSpec<
+  output: data.DataValidatorResponseOutputSpec<
     TOutput,
     TValidationError,
     TOutputContentTypes

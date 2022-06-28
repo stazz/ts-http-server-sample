@@ -1,4 +1,4 @@
-import * as core from "../../core/core";
+import * as data from "../../core/data";
 import * as t from "io-ts";
 import * as validate from "./validate";
 import type * as error from "./error";
@@ -8,8 +8,8 @@ import type * as q from "querystring";
 export const urlParameter = <T extends validate.Decoder<unknown> & t.Mixed>(
   validation: StringParameterTransform<T, string>,
   regExp?: RegExp,
-): core.URLDataParameterValidatorSpec<t.TypeOf<T>, error.ValidationError> => ({
-  regExp: regExp ?? core.defaultParameterRegExp(),
+): data.URLDataParameterValidatorSpec<t.TypeOf<T>, error.ValidationError> => ({
+  regExp: regExp ?? data.defaultParameterRegExp(),
   validator: createValidatorForStringParameter(validation, true),
 });
 
@@ -29,7 +29,7 @@ export const queryValidator = <
   TRequired,
   TOptional,
   TValidation
->): core.QueryValidatorSpec<
+>): data.QueryValidatorSpec<
   { [P in TRequired]: t.TypeOf<TValidation[P]["validation"]> } & {
     [P in TOptional]?: t.TypeOf<TValidation[P]["validation"]>;
   },
@@ -60,7 +60,7 @@ export const queryValidator = <
       ),
     ]),
   );
-  const finalValidator = core.transitiveDataValidation(
+  const finalValidator = data.transitiveDataValidation(
     initialValidator,
     (data) => {
       const finalResult: Record<string, unknown> = {};
@@ -89,7 +89,7 @@ export const queryValidator = <
   return {
     validator: {
       query: "object",
-      validator: finalValidator as core.DataValidator<
+      validator: finalValidator as data.DataValidator<
         q.ParsedUrlQuery,
         { [P in TRequired]: t.TypeOf<TValidation[P]["validation"]> } & {
           [P in TOptional]?: t.TypeOf<TValidation[P]["validation"]>;
@@ -151,7 +151,7 @@ function createValidatorForStringParameter<TValidation extends t.Mixed>(
     stringValidation,
   }: StringParameterTransform<TValidation, string>,
   isRequired: true,
-): core.DataValidator<string, t.TypeOf<TValidation>, error.ValidationError>;
+): data.DataValidator<string, t.TypeOf<TValidation>, error.ValidationError>;
 function createValidatorForStringParameter<TValidation extends t.Mixed>(
   {
     transform,
@@ -159,7 +159,7 @@ function createValidatorForStringParameter<TValidation extends t.Mixed>(
     stringValidation,
   }: StringParameterTransform<TValidation, string | undefined>,
   isRequired: false,
-): core.DataValidator<
+): data.DataValidator<
   string | undefined,
   t.TypeOf<TValidation>,
   error.ValidationError
@@ -171,7 +171,7 @@ function createValidatorForStringParameter<TValidation extends t.Mixed>(
     stringValidation,
   }: StringParameterTransform<TValidation, string | undefined>,
   isRequired: boolean,
-): core.DataValidator<
+): data.DataValidator<
   string | undefined,
   t.TypeOf<TValidation>,
   error.ValidationError
@@ -185,7 +185,7 @@ function createValidatorForStringParameter<TValidation extends t.Mixed>(
     | StringParameterTransform<TValidation, string | undefined>
     | StringParameterTransform<TValidation, string>,
   isRequired: boolean,
-): core.DataValidator<
+): data.DataValidator<
   string | undefined,
   t.TypeOf<TValidation>,
   error.ValidationError

@@ -1,7 +1,8 @@
-import * as evt from "./events";
-import * as core from "../core";
+import type * as evt from "./events";
+import type * as ep from "../endpoint";
+import type * as data from "../data";
 
-import * as evtEmit from "@data-heaving/common";
+import type * as evtEmit from "@data-heaving/common";
 
 import * as stream from "stream";
 import * as u from "url";
@@ -59,8 +60,8 @@ export const checkMethodForHandler = <TContext, TState, TValidationError>(
   events:
     | ServerEventEmitter<TContext, TState, TValidationError, "onInvalidMethod">
     | undefined,
-  method: core.HttpMethod,
-  handler: core.DynamicHandlerGetter<TContext, TValidationError>,
+  method: ep.HttpMethod,
+  handler: ep.DynamicHandlerGetter<TContext, TValidationError>,
 ) => {
   const foundHandler = handler(method, eventArgs.groups);
   const foundSuccess = foundHandler.found === "handler";
@@ -80,7 +81,7 @@ export const checkContextForHandler = <TContext, TState, TValidationError>(
   {
     validator,
     getState,
-  }: core.StaticAppEndpointHandler<
+  }: ep.StaticAppEndpointHandler<
     TContext,
     TValidationError
   >["contextValidator"],
@@ -135,7 +136,7 @@ export const checkURLParametersForHandler = <
         "onInvalidUrlParameters"
       >
     | undefined,
-  urlValidation: core.StaticAppEndpointHandler<
+  urlValidation: ep.StaticAppEndpointHandler<
     TContext,
     TValidationError
   >["urlValidator"],
@@ -176,7 +177,7 @@ export const checkQueryForHandler = <TContext, TState, TValidationError>(
   events:
     | ServerEventEmitter<TContext, TState, TValidationError, "onInvalidQuery">
     | undefined,
-  queryValidation: core.StaticAppEndpointHandler<
+  queryValidation: ep.StaticAppEndpointHandler<
     TContext,
     TValidationError
   >["queryValidator"],
@@ -188,7 +189,7 @@ export const checkQueryForHandler = <TContext, TState, TValidationError>(
   let proceedToInvokeHandler: boolean;
   let query: unknown;
   if (queryValidation) {
-    let queryValidationResult: core.DataValidatorResult<
+    let queryValidationResult: data.DataValidatorResult<
       unknown,
       TValidationError
     >;
@@ -239,7 +240,7 @@ export const checkBodyForHandler = async <TContext, TState, TValidationError>(
         "onInvalidBody" | "onInvalidContentType"
       >
     | undefined,
-  isBodyValid: core.StaticAppEndpointHandler<
+  isBodyValid: ep.StaticAppEndpointHandler<
     TContext,
     TValidationError
   >["bodyValidator"],
@@ -301,7 +302,7 @@ export const invokeHandler = <TContext, TState, TValidationError>(
         "onInvalidResponse"
       >
     | undefined,
-  handler: core.StaticAppEndpointHandler<TContext, TValidationError>["handler"],
+  handler: ep.StaticAppEndpointHandler<TContext, TValidationError>["handler"],
   ...handlerParameters: Parameters<typeof handler>
 ) => {
   const retVal = handler(...handlerParameters);

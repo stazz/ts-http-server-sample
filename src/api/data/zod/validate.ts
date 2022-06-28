@@ -1,4 +1,4 @@
-import * as core from "../../core/core";
+import type * as data from "../../core/data";
 import * as t from "zod";
 import type * as error from "./error";
 import * as utils from "./utils";
@@ -12,7 +12,7 @@ export type Encoder<TOutput, TSerialized> = {
 export const plainValidator =
   <TData>(
     validation: Decoder<TData>,
-  ): core.DataValidator<unknown, TData, error.ValidationError> =>
+  ): data.DataValidator<unknown, TData, error.ValidationError> =>
   (input) =>
     utils.transformLibraryResultToModelResult(validation.safeParse(input));
 
