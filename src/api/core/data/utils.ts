@@ -14,6 +14,7 @@ export const transitiveDataValidation =
         return intermediate;
     }
   };
+
 export const omit = <T, TKey extends keyof T>(
   obj: T,
   ...keys: ReadonlyArray<TKey>

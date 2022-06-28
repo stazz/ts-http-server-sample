@@ -15,7 +15,7 @@ export type ContextValidator<TInput, TOutput, TValidationError> =
     TInput,
     TOutput,
     TValidationError,
-    | common.DataValidatorResult<TOutput, TValidationError>
+    | common.DataValidatorResultError<TValidationError>
     | {
         error: "protocol-error";
         statusCode: number;

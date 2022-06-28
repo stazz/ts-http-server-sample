@@ -10,18 +10,17 @@ export interface DataValidatorRequestInputSpec<
   validatorSpec: TValidatorSpec;
 }
 
-export type DataValidatorRequestInput<TData, TError> = common.DataValidator<
-  {
-    contentType: string;
-    input: stream.Readable;
-  },
-  TData,
-  TError,
-  Promise<
-    | common.DataValidatorResult<TData, TError>
+export type DataValidatorRequestInput<TData, TError> =
+  common.DataValidatorAsync<
+    {
+      contentType: string;
+      input: stream.Readable;
+    },
+    TData,
+    TError,
+    | common.DataValidatorResultError<TError>
     | {
         error: "unsupported-content-type";
         supportedContentTypes: ReadonlyArray<string>;
       }
-  >
->;
+  >;
