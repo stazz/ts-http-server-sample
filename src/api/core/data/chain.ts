@@ -69,11 +69,10 @@ export class ValidationChainer<
         common.DataValidator<unknown, unknown, unknown, unknown>
       >,
     )) {
-      const input = inputs[name];
-      if (input !== undefined) {
+      if (name in inputs) {
         const validationResult:
           | common.DataValidatorResultSuccess<unknown>
-          | unknown = validator(input.input);
+          | unknown = validator(inputs[name]);
         if (isSuccessResult(validationResult)) {
           outputs[name as keyof typeof outputs] =
             validationResult.data as typeof outputs[keyof typeof outputs];
@@ -102,26 +101,6 @@ export class ValidationChainer<
   }
 }
 
-export interface TValidatorChainStateComponent {
-  validator: common.DataValidator<unknown, unknown, unknown, unknown>;
-  tryGetOutput: (
-    this: void,
-    result: unknown,
-  ) => common.DataValidatorResultSuccess<unknown> | undefined;
-}
-
-declare const validatorString: common.DataValidator<unknown, string, Error>;
-declare const validatorNumber: common.DataValidator<
-  unknown,
-  number,
-  string,
-  | common.DataValidatorResultError<string>
-  | {
-      error: "custom-error";
-      data: Error;
-    }
->;
-
 const isSuccessResult = (
   val: unknown,
 ): val is common.DataValidatorResultSuccess<unknown> =>
@@ -139,7 +118,7 @@ export type GetInputs<TValidators> = {
     infer _1,
     infer _2
   >
-    ? { input: TInput }
+    ? TInput
     : never;
 };
 
