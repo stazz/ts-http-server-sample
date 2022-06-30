@@ -1,15 +1,12 @@
 import type * as common from "./common";
 
 export class ValidationChainer<
-  TInputs extends Record<string, unknown>,
-  TOutputs extends Record<string, unknown>,
-  TErrors,
+  TValidators extends Record<
+    string,
+    common.DataValidator<unknown, unknown, unknown, unknown>
+  >,
 > {
-  public constructor(
-    private readonly _state: {
-      [P in keyof TInputs & keyof TOutputs]: TValidatorChainStateComponent;
-    },
-  ) {}
+  public constructor(private readonly _state: TValidators) {}
 
   public withInput<
     TName extends string,
@@ -21,75 +18,86 @@ export class ValidationChainer<
     >,
   >(
     // eslint-disable-next-line @typescript-eslint/ban-types
-    name: TName & (TName extends keyof TInputs ? never : {}),
-    validatorInfo:
-      | {
-          validator: TDataValidator;
-        }
-      | undefined,
+    name: TName & (TName extends keyof TValidators ? never : {}),
+    validator: TDataValidator | undefined,
   ): TDataValidator extends common.DataValidator<
-    infer TInput,
-    infer TOutput,
-    infer TError,
-    infer TErrorResponse
+    unknown,
+    unknown,
+    unknown,
+    unknown
   >
-    ? ValidationChainer<
-        TInputs & { [P in TName]: TInput },
-        TOutputs & { [P in TName]: TOutput },
-        TErrors | TErrorResponse
-      >
+    ? ValidationChainer<{
+        [P in keyof TValidators | TName]: P extends keyof TValidators
+          ? TValidators[P]
+          : TDataValidator;
+      }>
     : never {
-    return (
-      validatorInfo
-        ? new ValidationChainer({
-            ...this._state,
-            [name]: {
-              validator: validatorInfo.validator,
-            },
-          } as { [P in keyof TInputs | (TName & keyof TOutputs) | TName]: TValidatorChainStateComponent })
-        : this
-    ) as TDataValidator extends common.DataValidator<
-      infer TInput,
-      infer TOutput,
-      infer TError,
-      infer TErrorResponse
+    return (validator
+      ? new ValidationChainer({
+          ...this._state,
+          [name]: validator,
+        })
+      : this) as unknown as TDataValidator extends common.DataValidator<
+      unknown,
+      unknown,
+      unknown,
+      unknown
     >
-      ? ValidationChainer<
-          TInputs & { [P in TName]: TInput },
-          TOutputs & { [P in TName]: TOutput },
-          TErrors | TErrorResponse
-        >
+      ? ValidationChainer<{
+          [P in keyof TValidators | TName]: P extends keyof TValidators
+            ? TValidators[P]
+            : TDataValidator;
+        }>
       : never;
   }
 
-  public getOutputs(
-    input: Partial<TInputs>,
+  public getOutputs<TInputs extends Partial<GetInputs<TValidators>>>(
+    inputs: TInputs,
   ):
-    | common.DataValidatorResultSuccess<TOutputs>
-    | common.DataValidatorResultError<Array<TErrors>> {
-    const outputs: Partial<TOutputs> = {};
-    const errors: Array<TErrors> = [];
-    for (const [name, { validator, tryGetOutput }] of Object.entries(
-      this._state as Record<string, TValidatorChainStateComponent>,
+    | common.DataValidatorResultSuccess<GetOutputs<TValidators, TInputs>>
+    | common.DataValidatorResultError<
+        Partial<GetErrors<TValidators, TInputs>>
+      > {
+    const outputs: GetOutputs<TValidators, TInputs> = {} as GetOutputs<
+      TValidators,
+      TInputs
+    >;
+    const errors: Partial<GetErrors<TValidators, TInputs>> = {};
+    for (const [name, validator] of Object.entries(
+      this._state as Record<
+        string,
+        common.DataValidator<unknown, unknown, unknown, unknown>
+      >,
     )) {
-      const validationResult = validator(input[name]);
-      const maybeSuccess = tryGetOutput(validationResult);
-      if (maybeSuccess?.error === "none") {
-        outputs[name as keyof TOutputs] =
-          maybeSuccess.data as TOutputs[keyof TOutputs];
+      const input = inputs[name];
+      if (input !== undefined) {
+        const validationResult:
+          | common.DataValidatorResultSuccess<unknown>
+          | unknown = validator(input.input);
+        if (isSuccessResult(validationResult)) {
+          outputs[name as keyof typeof outputs] =
+            validationResult.data as typeof outputs[keyof typeof outputs];
+        } else {
+          errors[name as keyof typeof errors] = {
+            error: "validator-error",
+            errorInfo: validationResult,
+          } as typeof errors[keyof typeof errors];
+        }
       } else {
-        errors.push(validationResult as typeof errors[number]);
+        errors[name as keyof typeof errors] = {
+          error: "missing-validator",
+        } as typeof errors[keyof typeof errors];
       }
     }
 
-    return errors.length > 0
+    return Object.keys(errors).length > 0
       ? {
           error: "error",
           errorInfo: errors,
         }
       : {
           error: "none",
-          data: outputs as TOutputs,
+          data: outputs,
         };
   }
 }
@@ -102,42 +110,68 @@ export interface TValidatorChainStateComponent {
   ) => common.DataValidatorResultSuccess<unknown> | undefined;
 }
 
-export const start = <
-  TName extends string,
-  TDataValidator extends common.DataValidator<
-    unknown,
-    unknown,
-    unknown,
-    unknown
-  >,
->(
-  name: TName,
-  validator: TDataValidator,
-): TDataValidator extends common.DataValidator<
-  infer TInput,
-  infer TOutput,
-  infer TError,
-  infer TErrorResponse
->
-  ? ValidationChainer<
-      { [P in TName]: TInput },
-      { [P in TName]: TOutput },
-      TErrorResponse
-    >
-  : never =>
-  new ValidationChainer({
-    [name]: {
-      validator,
-    },
-  } as unknown as { [P in TName]: TValidatorChainStateComponent }) as TDataValidator extends common.DataValidator<
+declare const validatorString: common.DataValidator<unknown, string, Error>;
+declare const validatorNumber: common.DataValidator<
+  unknown,
+  number,
+  string,
+  | common.DataValidatorResultError<string>
+  | {
+      error: "custom-error";
+      data: Error;
+    }
+>;
+
+const isSuccessResult = (
+  val: unknown,
+): val is common.DataValidatorResultSuccess<unknown> =>
+  !!val &&
+  typeof val === "object" &&
+  "error" in val &&
+  "data" in val &&
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+  (val as any).error === "none";
+
+export type GetInputs<TValidators> = {
+  [P in keyof TValidators]: TValidators[P] extends common.DataValidator<
     infer TInput,
-    infer TOutput,
-    infer TError,
-    infer TErrorResponse
+    infer _,
+    infer _1,
+    infer _2
   >
-    ? ValidationChainer<
-        { [P in TName]: TInput },
-        { [P in TName]: TOutput },
-        TErrorResponse
-      >
+    ? { input: TInput }
     : never;
+};
+
+export type GetOutputs<TValidators, TInputs> = {
+  [P in keyof TInputs &
+    keyof TValidators]: TValidators[P] extends common.DataValidator<
+    infer _,
+    infer TOutput,
+    infer _1,
+    infer _2
+  >
+    ? TOutput
+    : never;
+};
+
+export type GetErrors<TValidators, TInputs> = {
+  [P in keyof TInputs &
+    keyof TValidators]: TValidators[P] extends common.DataValidator<
+    infer _,
+    infer _1,
+    infer _2,
+    infer TError
+  >
+    ? GetError<TError>
+    : never;
+};
+
+export type GetError<TError> =
+  | {
+      error: "missing-validator";
+    }
+  | {
+      error: "validator-error";
+      errorInfo: TError;
+    };

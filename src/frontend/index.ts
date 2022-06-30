@@ -3,12 +3,12 @@
 // Notice that it doesn't use runtime validation - but one can build such on top of this simple sample.
 // Also notice that URL building is now a bit duplicated. This is not optimal, and will be refactored to be DRY later.
 import type * as protocol from "../protocol";
-import type * as data from "../api/core/data";
+import * as data from "../api/core/data";
 
 // These overloads are a bit fugly but oh well...
 
 // Overload for 1-form
-function makeAPICall<
+export function makeAPICall<
   TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> & {
     [P in keyof (protocol.ProtocolSpecQuery<Record<string, unknown>> &
       protocol.ProtocolSpecRequestBody<unknown> &
@@ -24,7 +24,7 @@ function makeAPICall<
 ): APICall<void, TProtocolSpec["responseBody"], TError>;
 
 // Overloads for 2-forms
-function makeAPICall<
+export function makeAPICall<
   TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
     protocol.ProtocolSpecQuery<Record<string, unknown>> & {
       [P in keyof (protocol.ProtocolSpecRequestBody<unknown> &
@@ -43,7 +43,7 @@ function makeAPICall<
   TProtocolSpec["responseBody"],
   TError
 >;
-function makeAPICall<
+export function makeAPICall<
   TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
     protocol.ProtocolSpecRequestBody<unknown> & {
       [P in keyof (protocol.ProtocolSpecQuery<Record<string, unknown>> &
@@ -62,7 +62,7 @@ function makeAPICall<
   TProtocolSpec["responseBody"],
   TError
 >;
-function makeAPICall<
+export function makeAPICall<
   TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
     protocol.ProtocolSpecURL<Record<string, unknown>> & {
       [P in keyof (protocol.ProtocolSpecRequestBody<unknown> &
@@ -83,7 +83,7 @@ function makeAPICall<
 >;
 
 // Overloads for 3-forms
-function makeAPICall<
+export function makeAPICall<
   TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
     protocol.ProtocolSpecQuery<Record<string, unknown>> &
     protocol.ProtocolSpecRequestBody<unknown> & {
@@ -103,7 +103,7 @@ function makeAPICall<
   TProtocolSpec["responseBody"],
   TError
 >;
-function makeAPICall<
+export function makeAPICall<
   TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
     protocol.ProtocolSpecQuery<Record<string, unknown>> &
     protocol.ProtocolSpecURL<Record<string, unknown>> & {
@@ -123,7 +123,7 @@ function makeAPICall<
   TProtocolSpec["responseBody"],
   TError
 >;
-function makeAPICall<
+export function makeAPICall<
   TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
     protocol.ProtocolSpecRequestBody<unknown> &
     protocol.ProtocolSpecURL<Record<string, unknown>> & {
@@ -145,7 +145,7 @@ function makeAPICall<
 >;
 
 // Overload for 4-form
-function makeAPICall<
+export function makeAPICall<
   TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
     protocol.ProtocolSpecQuery<Record<string, unknown>> &
     protocol.ProtocolSpecRequestBody<unknown> &
@@ -171,7 +171,7 @@ function makeAPICall<
 >;
 
 // Implementation
-function makeAPICall<
+export function makeAPICall<
   TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown>,
   TError,
 >({
@@ -193,6 +193,18 @@ function makeAPICall<
   TProtocolSpec["responseBody"],
   TError
 > {
+  const componentValidations = new data.ValidationChainer({
+    method,
+    response,
+  })
+    .withInput("url", "url" in rest ? rest.url : undefined)
+    .withInput("query", "query" in rest ? rest.query : undefined)
+    .withInput("body", "body" in rest ? rest.body : undefined);
+  componentValidations.getOutputs({
+    method: {
+      input: undefined,
+    },
+  });
   return async (args) =>
     response(
       await someMethodToInvokeHTTPEndpoint({
