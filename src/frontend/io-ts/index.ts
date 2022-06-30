@@ -28,10 +28,3 @@ const getThing = common
     query,
     response: tPlugin.plainValidator(tt.UUID),
   });
-
-void getThing({
-  query: {},
-  url: {
-    id: "moi",
-  },
-});
