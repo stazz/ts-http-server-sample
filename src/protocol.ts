@@ -8,6 +8,12 @@ export interface ProtocolSpecCore<TMethod extends string, TOutput> {
   responseBody: TOutput;
 }
 
+export interface ProtocolSpecHeaders<THeaders extends Record<string, string>> {
+  // Key: header name
+  // Value: functionality ID
+  headers: THeaders;
+}
+
 export interface ProtocolSpecURL<TURLData extends Record<string, unknown>> {
   url: TURLData;
 }
@@ -64,6 +70,9 @@ export interface APIConnectThings {
 export interface APIAuthenticated {
   method: "GET";
   responseBody: undefined;
+  headers: {
+    Authorization: "auth";
+  };
 }
 
 export interface DataThing {

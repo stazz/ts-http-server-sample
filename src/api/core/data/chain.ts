@@ -1,5 +1,8 @@
 import type * as common from "./common";
 
+// TODO refactor this.
+// Class allows situations where TValidators is e.g. { url: <url validator>, query: <query validator>}, while actual value of _state may be just { url: <url validator> }.
+// It is nice in certain cases, but not nice for understanding and maintaining the code.
 export class ValidationChainer<
   TValidators extends Record<
     string,

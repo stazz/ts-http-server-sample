@@ -5,69 +5,116 @@
 import type * as protocol from "../protocol";
 import * as data from "../api/core/data";
 
-export const bindErrorType = <TError>(): APICallFactory<TError> => {
+export const withDataValidation = <TError>(
+  undefinedValidator: data.DataValidator<unknown, undefined, TError>,
+): {
+  withHeaders: <THeaders extends Record<string, HeaderProvider>>(
+    headers: THeaders,
+  ) => APICallFactory<keyof THeaders & string, TError>;
+} => {
   return {
-    makeAPICall: <
-      TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown>,
-    >(
-      methodValue: TProtocolSpec["method"],
-      {
-        method,
-        response,
-        ...rest
-      }: MakeAPICallArgs<
-        TProtocolSpec["method"],
+    withHeaders: (headers) => ({
+      makeAPICall: <
+        TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown>,
+      >(
+        methodValue: TProtocolSpec["method"],
+        {
+          method,
+          response,
+          url,
+          ...rest
+        }:
+          | (MakeAPICallArgs<
+              TProtocolSpec["method"],
+              TProtocolSpec["responseBody"],
+              TError
+            > &
+              (MakeAPICallArgsURL | MakeAPICallArgsURLData<unknown, TError>)) &
+              // eslint-disable-next-line @typescript-eslint/ban-types
+              (| {}
+                | MakeAPICallArgsHeaders<Record<string, string>>
+                | MakeAPICallArgsQuery<Record<string, unknown>, TError>
+                | MakeAPICallArgsBody<unknown, TError>
+              ),
+      ): APICall<
+        Partial<Record<"method" | "url" | "query" | "body", unknown>> | void,
         TProtocolSpec["responseBody"],
         TError
-      > &
-        // eslint-disable-next-line @typescript-eslint/ban-types
-        (| {}
-          | MakeAPICallArgsURL<unknown, TError>
-          | MakeAPICallArgsQuery<Record<string, unknown>, TError>
-          | MakeAPICallArgsBody<unknown, TError>
-        ),
-    ): APICall<
-      Partial<Record<"method" | "url" | "query" | "body", unknown>> | void,
-      TProtocolSpec["responseBody"],
-      TError
-    > => {
-      const validatedMethod = method(methodValue);
-      if (validatedMethod.error !== "none") {
-        throw new Error(
-          `Invalid method: ${JSON.stringify(validatedMethod.errorInfo)}`,
-        );
-      }
+      > => {
+        const validatedMethod = method(methodValue);
+        if (validatedMethod.error !== "none") {
+          throw new Error(
+            `Invalid method: ${JSON.stringify(validatedMethod.errorInfo)}`,
+          );
+        }
+        if ("headers" in rest) {
+          const missingHeaders = Object.values(rest.headers).filter(
+            (headerFunctionality) => !(headerFunctionality in headers),
+          );
+          if (missingHeaders.length > 0) {
+            throw new Error(
+              `The endpoint requires the following header functionality, missing from given header functionality: ${missingHeaders.join(
+                ", ",
+              )}`,
+            );
+          }
+        }
 
-      const componentValidations = new data.ValidationChainer({})
-        .withInput("url", "url" in rest ? rest.url : undefined)
-        .withInput("query", "query" in rest ? rest.query : undefined)
-        .withInput("body", "body" in rest ? rest.body : undefined);
-      return async (args) => {
-        const validatedArgs = componentValidations.getOutputs({
-          ...(args ?? {}),
-        });
-        return validatedArgs.error === "none"
-          ? response(
-              await someMethodToInvokeHTTPEndpoint({
+        const componentValidations = new data.ValidationChainer({
+          url:
+            typeof url === "string"
+              ? data.transitiveDataValidation(
+                  undefinedValidator,
+                  () => ({ error: "none", data: url } as const),
+                )
+              : url,
+        })
+          .withInput("query", "query" in rest ? rest.query : undefined)
+          .withInput("body", "body" in rest ? rest.body : undefined);
+        return async (args) => {
+          const validatedArgs = componentValidations.getOutputs({
+            ...(args ?? {}),
+          });
+          switch (validatedArgs.error) {
+            case "none": {
+              const httpArgs: HTTPInvocationArguments = {
                 method: validatedMethod.data,
                 ...validatedArgs.data,
-              }),
-            )
-          : {
-              error: "error-input",
-              errorInfo: validatedArgs.errorInfo,
-            };
-      };
-    },
+              };
+              if ("headers" in rest) {
+                httpArgs.headers = Object.fromEntries(
+                  Object.entries(rest.headers).map(
+                    ([headerName, headerFunctionalityID]) => [
+                      headerName,
+                      headers[headerFunctionalityID]({
+                        ...httpArgs,
+                        headerName,
+                      }),
+                    ],
+                  ),
+                );
+              }
+              return response(await someMethodToInvokeHTTPEndpoint(httpArgs));
+            }
+            default:
+              return {
+                error: "error-input",
+                errorInfo: validatedArgs.errorInfo,
+              };
+          }
+        };
+      },
+    }),
   };
 };
 
-// These overloads are a bit fugly but oh well...
-export interface APICallFactory<TError> {
-  // Overload for 1-form
+// These 16 overloads are a bit fugly but oh well...
+export interface APICallFactory<THeaders extends string, TError> {
+  // Overloads for 1-form
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> & {
-      [P in keyof (protocol.ProtocolSpecQuery<Record<string, unknown>> &
+      [P in keyof (protocol.ProtocolSpecHeaders<Record<string, string>> &
+        protocol.ProtocolSpecQuery<Record<string, unknown>> &
         protocol.ProtocolSpecRequestBody<unknown> &
         protocol.ProtocolSpecURL<Record<string, unknown>>)]?: never;
     },
@@ -77,12 +124,53 @@ export interface APICallFactory<TError> {
       TProtocolSpec["method"],
       TProtocolSpec["responseBody"],
       TError
-    >,
+    > &
+      MakeAPICallArgsURL,
+  ): APICall<void, TProtocolSpec["responseBody"], TError>;
+
+  makeAPICall<
+    TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
+      protocol.ProtocolSpecHeaders<Record<string, THeaders>> & {
+        [P in keyof (protocol.ProtocolSpecQuery<Record<string, unknown>> &
+          protocol.ProtocolSpecRequestBody<unknown> &
+          protocol.ProtocolSpecURL<Record<string, unknown>>)]?: never;
+      },
+  >(
+    method: TProtocolSpec["method"],
+    args: MakeAPICallArgs<
+      TProtocolSpec["method"],
+      TProtocolSpec["responseBody"],
+      TError
+    > &
+      MakeAPICallArgsHeaders<TProtocolSpec["headers"]> &
+      MakeAPICallArgsURL,
   ): APICall<void, TProtocolSpec["responseBody"], TError>;
 
   // Overloads for 2-forms
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
+      protocol.ProtocolSpecQuery<Record<string, unknown>> & {
+        [P in keyof (protocol.ProtocolSpecHeaders<Record<string, string>> &
+          protocol.ProtocolSpecRequestBody<unknown> &
+          protocol.ProtocolSpecURL<Record<string, unknown>>)]?: never;
+      },
+  >(
+    method: TProtocolSpec["method"],
+    args: MakeAPICallArgs<
+      TProtocolSpec["method"],
+      TProtocolSpec["responseBody"],
+      TError
+    > &
+      MakeAPICallArgsURL &
+      MakeAPICallArgsQuery<TProtocolSpec["query"], TError>,
+  ): APICall<
+    { query: TProtocolSpec["query"] },
+    TProtocolSpec["responseBody"],
+    TError
+  >;
+  makeAPICall<
+    TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
+      protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
       protocol.ProtocolSpecQuery<Record<string, unknown>> & {
         [P in keyof (protocol.ProtocolSpecRequestBody<unknown> &
           protocol.ProtocolSpecURL<Record<string, unknown>>)]?: never;
@@ -94,6 +182,8 @@ export interface APICallFactory<TError> {
       TProtocolSpec["responseBody"],
       TError
     > &
+      MakeAPICallArgsHeaders<TProtocolSpec["headers"]> &
+      MakeAPICallArgsURL &
       MakeAPICallArgsQuery<TProtocolSpec["query"], TError>,
   ): APICall<
     { query: TProtocolSpec["query"] },
@@ -102,6 +192,28 @@ export interface APICallFactory<TError> {
   >;
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
+      protocol.ProtocolSpecRequestBody<unknown> & {
+        [P in keyof (protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
+          protocol.ProtocolSpecQuery<Record<string, unknown>> &
+          protocol.ProtocolSpecURL<Record<string, unknown>>)]?: never;
+      },
+  >(
+    method: TProtocolSpec["method"],
+    args: MakeAPICallArgs<
+      TProtocolSpec["method"],
+      TProtocolSpec["responseBody"],
+      TError
+    > &
+      MakeAPICallArgsURL &
+      MakeAPICallArgsBody<TProtocolSpec["requestBody"], TError>,
+  ): APICall<
+    { body: TProtocolSpec["requestBody"] },
+    TProtocolSpec["responseBody"],
+    TError
+  >;
+  makeAPICall<
+    TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
+      protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
       protocol.ProtocolSpecRequestBody<unknown> & {
         [P in keyof (protocol.ProtocolSpecQuery<Record<string, unknown>> &
           protocol.ProtocolSpecURL<Record<string, unknown>>)]?: never;
@@ -113,6 +225,8 @@ export interface APICallFactory<TError> {
       TProtocolSpec["responseBody"],
       TError
     > &
+      MakeAPICallArgsHeaders<TProtocolSpec["headers"]> &
+      MakeAPICallArgsURL &
       MakeAPICallArgsBody<TProtocolSpec["requestBody"], TError>,
   ): APICall<
     { body: TProtocolSpec["requestBody"] },
@@ -121,6 +235,27 @@ export interface APICallFactory<TError> {
   >;
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
+      protocol.ProtocolSpecURL<Record<string, unknown>> & {
+        [P in keyof (protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
+          protocol.ProtocolSpecRequestBody<unknown> &
+          protocol.ProtocolSpecQuery<Record<string, unknown>>)]?: never;
+      },
+  >(
+    method: TProtocolSpec["method"],
+    args: MakeAPICallArgs<
+      TProtocolSpec["method"],
+      TProtocolSpec["responseBody"],
+      TError
+    > &
+      MakeAPICallArgsURLData<TProtocolSpec["url"], TError>,
+  ): APICall<
+    { url: TProtocolSpec["url"] },
+    TProtocolSpec["responseBody"],
+    TError
+  >;
+  makeAPICall<
+    TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
+      protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
       protocol.ProtocolSpecURL<Record<string, unknown>> & {
         [P in keyof (protocol.ProtocolSpecRequestBody<unknown> &
           protocol.ProtocolSpecQuery<Record<string, unknown>>)]?: never;
@@ -132,7 +267,8 @@ export interface APICallFactory<TError> {
       TProtocolSpec["responseBody"],
       TError
     > &
-      MakeAPICallArgsURL<TProtocolSpec["url"], TError>,
+      MakeAPICallArgsHeaders<TProtocolSpec["headers"]> &
+      MakeAPICallArgsURLData<TProtocolSpec["url"], TError>,
   ): APICall<
     { url: TProtocolSpec["url"] },
     TProtocolSpec["responseBody"],
@@ -144,6 +280,29 @@ export interface APICallFactory<TError> {
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
       protocol.ProtocolSpecQuery<Record<string, unknown>> &
       protocol.ProtocolSpecRequestBody<unknown> & {
+        [P in keyof (protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
+          protocol.ProtocolSpecURL<Record<string, unknown>>)]?: never;
+      },
+  >(
+    method: TProtocolSpec["method"],
+    args: MakeAPICallArgs<
+      TProtocolSpec["method"],
+      TProtocolSpec["responseBody"],
+      TError
+    > &
+      MakeAPICallArgsURL &
+      MakeAPICallArgsQuery<TProtocolSpec["query"], TError> &
+      MakeAPICallArgsBody<TProtocolSpec["requestBody"], TError>,
+  ): APICall<
+    { query: TProtocolSpec["query"]; body: TProtocolSpec["requestBody"] },
+    TProtocolSpec["responseBody"],
+    TError
+  >;
+  makeAPICall<
+    TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
+      protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
+      protocol.ProtocolSpecQuery<Record<string, unknown>> &
+      protocol.ProtocolSpecRequestBody<unknown> & {
         [P in keyof protocol.ProtocolSpecURL<Record<string, unknown>>]?: never;
       },
   >(
@@ -153,6 +312,8 @@ export interface APICallFactory<TError> {
       TProtocolSpec["responseBody"],
       TError
     > &
+      MakeAPICallArgsHeaders<TProtocolSpec["headers"]> &
+      MakeAPICallArgsURL &
       MakeAPICallArgsQuery<TProtocolSpec["query"], TError> &
       MakeAPICallArgsBody<TProtocolSpec["requestBody"], TError>,
   ): APICall<
@@ -164,6 +325,28 @@ export interface APICallFactory<TError> {
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
       protocol.ProtocolSpecQuery<Record<string, unknown>> &
       protocol.ProtocolSpecURL<Record<string, unknown>> & {
+        [P in keyof (protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
+          protocol.ProtocolSpecRequestBody<unknown>)]?: never;
+      },
+  >(
+    method: TProtocolSpec["method"],
+    args: MakeAPICallArgs<
+      TProtocolSpec["method"],
+      TProtocolSpec["responseBody"],
+      TError
+    > &
+      MakeAPICallArgsURLData<TProtocolSpec["url"], TError> &
+      MakeAPICallArgsQuery<TProtocolSpec["query"], TError>,
+  ): APICall<
+    { query: TProtocolSpec["query"]; url: TProtocolSpec["url"] },
+    TProtocolSpec["responseBody"],
+    TError
+  >;
+  makeAPICall<
+    TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
+      protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
+      protocol.ProtocolSpecQuery<Record<string, unknown>> &
+      protocol.ProtocolSpecURL<Record<string, unknown>> & {
         [P in keyof protocol.ProtocolSpecRequestBody<unknown>]?: never;
       },
   >(
@@ -173,7 +356,8 @@ export interface APICallFactory<TError> {
       TProtocolSpec["responseBody"],
       TError
     > &
-      MakeAPICallArgsURL<TProtocolSpec["url"], TError> &
+      MakeAPICallArgsHeaders<TProtocolSpec["headers"]> &
+      MakeAPICallArgsURLData<TProtocolSpec["url"], TError> &
       MakeAPICallArgsQuery<TProtocolSpec["query"], TError>,
   ): APICall<
     { query: TProtocolSpec["query"]; url: TProtocolSpec["url"] },
@@ -182,6 +366,28 @@ export interface APICallFactory<TError> {
   >;
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
+      protocol.ProtocolSpecRequestBody<unknown> &
+      protocol.ProtocolSpecURL<Record<string, unknown>> & {
+        [P in keyof (protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
+          protocol.ProtocolSpecQuery<Record<string, unknown>>)]?: never;
+      },
+  >(
+    method: TProtocolSpec["method"],
+    args: MakeAPICallArgs<
+      TProtocolSpec["method"],
+      TProtocolSpec["responseBody"],
+      TError
+    > &
+      MakeAPICallArgsURLData<TProtocolSpec["url"], TError> &
+      MakeAPICallArgsBody<TProtocolSpec["requestBody"], TError>,
+  ): APICall<
+    { body: TProtocolSpec["requestBody"]; url: TProtocolSpec["url"] },
+    TProtocolSpec["responseBody"],
+    TError
+  >;
+  makeAPICall<
+    TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
+      protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
       protocol.ProtocolSpecRequestBody<unknown> &
       protocol.ProtocolSpecURL<Record<string, unknown>> & {
         [P in keyof protocol.ProtocolSpecQuery<
@@ -195,7 +401,8 @@ export interface APICallFactory<TError> {
       TProtocolSpec["responseBody"],
       TError
     > &
-      MakeAPICallArgsURL<TProtocolSpec["url"], TError> &
+      MakeAPICallArgsHeaders<TProtocolSpec["headers"]> &
+      MakeAPICallArgsURLData<TProtocolSpec["url"], TError> &
       MakeAPICallArgsBody<TProtocolSpec["requestBody"], TError>,
   ): APICall<
     { body: TProtocolSpec["requestBody"]; url: TProtocolSpec["url"] },
@@ -203,9 +410,38 @@ export interface APICallFactory<TError> {
     TError
   >;
 
-  // Overload for 4-form
+  // Overloads for 4-form
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
+      protocol.ProtocolSpecQuery<Record<string, unknown>> &
+      protocol.ProtocolSpecRequestBody<unknown> &
+      protocol.ProtocolSpecURL<Record<string, unknown>> & {
+        [P in keyof protocol.ProtocolSpecHeaders<
+          Record<string, THeaders>
+        >]?: never;
+      },
+  >(
+    method: TProtocolSpec["method"],
+    args: MakeAPICallArgs<
+      TProtocolSpec["method"],
+      TProtocolSpec["responseBody"],
+      TError
+    > &
+      MakeAPICallArgsURLData<TProtocolSpec["url"], TError> &
+      MakeAPICallArgsQuery<TProtocolSpec["query"], TError> &
+      MakeAPICallArgsBody<TProtocolSpec["requestBody"], TError>,
+  ): APICall<
+    {
+      query: TProtocolSpec["query"];
+      body: TProtocolSpec["requestBody"];
+      url: TProtocolSpec["url"];
+    },
+    TProtocolSpec["responseBody"],
+    TError
+  >;
+  makeAPICall<
+    TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
+      protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
       protocol.ProtocolSpecQuery<Record<string, unknown>> &
       protocol.ProtocolSpecRequestBody<unknown> &
       protocol.ProtocolSpecURL<Record<string, unknown>>,
@@ -216,7 +452,8 @@ export interface APICallFactory<TError> {
       TProtocolSpec["responseBody"],
       TError
     > &
-      MakeAPICallArgsURL<TProtocolSpec["url"], TError> &
+      MakeAPICallArgsHeaders<TProtocolSpec["headers"]> &
+      MakeAPICallArgsURLData<TProtocolSpec["url"], TError> &
       MakeAPICallArgsQuery<TProtocolSpec["query"], TError> &
       MakeAPICallArgsBody<TProtocolSpec["requestBody"], TError>,
   ): APICall<
@@ -247,7 +484,17 @@ export interface MakeAPICallArgs<TMethod, TResponse, TError> {
   response: data.DataValidator<unknown, TResponse, TError>;
 }
 
-export interface MakeAPICallArgsURL<TURLData, TError> {
+export interface MakeAPICallArgsHeaders<
+  THeaders extends Record<string, string>,
+> {
+  headers: THeaders;
+}
+
+export interface MakeAPICallArgsURL {
+  url: string;
+}
+
+export interface MakeAPICallArgsURLData<TURLData, TError> {
   url: (urlParams: TURLData) => data.DataValidatorResult<string, TError>;
 }
 
@@ -259,12 +506,25 @@ export interface MakeAPICallArgsBody<TBodyData, TError> {
   body: data.DataValidator<unknown, TBodyData, TError>;
 }
 
-const someMethodToInvokeHTTPEndpoint = (args: {
+export type HeaderProvider = (
+  args: Omit<HTTPInvocationArguments, "headers"> & { headerName: string },
+) => string;
+
+export interface HTTPInvocationArguments {
   method: string;
   url: string;
   query?: Record<string, unknown>;
   body?: unknown;
-}): Promise<unknown> => {
+  headers?: Record<string, string>;
+}
+
+const someMethodToInvokeHTTPEndpoint = ({
+  method,
+  url,
+  query,
+  body,
+  headers,
+}: HTTPInvocationArguments): Promise<unknown> => {
   throw new Error(
     "This exists only to simulate signature of some way of invoking HTTP endpoint in the client.",
   );
