@@ -24,6 +24,9 @@ const demontrateInvokingRestApi = async ({
     url: { id: "00000000-0000-0000-0000-000000000000" },
     body: { anotherThingId: "00000000-0000-0000-0000-000000000000" },
   });
+  if (connectionInfo.error === "none") {
+    const timestamp = connectionInfo.data.connectedAt;
+  }
   const none = await authenticated();
 };
 

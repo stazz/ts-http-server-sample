@@ -30,3 +30,13 @@ export interface DataValidatorResultError<TError> {
   error: "error";
   errorInfo: TError;
 }
+
+export type DataValidatorOutput<T> = T extends DataValidator<
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  infer _,
+  infer TData,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  infer _1
+>
+  ? TData
+  : never;

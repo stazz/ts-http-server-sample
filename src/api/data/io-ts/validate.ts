@@ -1,5 +1,5 @@
 import * as t from "io-ts";
-import type * as data from "../../core/data-server";
+import * as data from "../../core/data-server";
 import type * as error from "./error";
 import * as utils from "./utils";
 
@@ -16,3 +16,10 @@ export const plainValidator =
   ): data.DataValidator<TInput, TData, error.ValidationError> =>
   (input) =>
     utils.transformLibraryResultToModelResult(validation.decode(input));
+
+// export const plainValidatorEncoder =
+//   <TOutput, TSerialized>(
+//     validation: Encoder<TOutput, TSerialized>,
+//   ): data.DataValidator<TOutput, TSerialized, error.ValidationError> =>
+//   (input) =>
+//     utils.transformLibraryResultToModelResult(validation.encode(input));
