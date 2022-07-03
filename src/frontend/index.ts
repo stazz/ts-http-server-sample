@@ -83,14 +83,17 @@ export const withDataValidation = <TError>(
               };
               if ("headers" in rest) {
                 httpArgs.headers = Object.fromEntries(
-                  Object.entries(rest.headers).map(
-                    ([headerName, headerFunctionalityID]) => [
-                      headerName,
-                      headers[headerFunctionalityID]({
-                        ...httpArgs,
-                        headerName,
-                      }),
-                    ],
+                  await Promise.all(
+                    Object.entries(rest.headers).map(
+                      async ([headerName, headerFunctionalityID]) =>
+                        [
+                          headerName,
+                          await headers[headerFunctionalityID]({
+                            ...httpArgs,
+                            headerName,
+                          }),
+                        ] as const,
+                    ),
                   ),
                 );
               }
@@ -508,7 +511,7 @@ export interface MakeAPICallArgsBody<TBodyData, TError> {
 
 export type HeaderProvider = (
   args: Omit<HTTPInvocationArguments, "headers"> & { headerName: string },
-) => string;
+) => string | PromiseLike<string>;
 
 export interface HTTPInvocationArguments {
   method: string;
