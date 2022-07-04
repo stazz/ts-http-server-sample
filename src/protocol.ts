@@ -32,6 +32,7 @@ export interface APIGetThings {
   method: "GET";
   query: {
     includeDeleted?: boolean;
+    lastModified?: Date;
   };
   responseBody: Array<unknown>;
 }

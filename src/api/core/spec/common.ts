@@ -19,7 +19,7 @@ export interface EndpointHandlerArgsWithBody<TBody> {
 }
 
 export interface QueryInfo<TValidationError, TArgs> {
-  query?: data.QueryValidatorSpec<unknown, TValidationError>;
+  query?: data.QueryValidatorSpec<unknown, string, TValidationError>;
   getEndpointArgs: (query: unknown) => TArgs;
 }
 

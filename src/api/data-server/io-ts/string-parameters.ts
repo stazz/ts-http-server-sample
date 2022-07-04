@@ -1,4 +1,5 @@
 import * as t from "io-ts";
+import * as tt from "io-ts-types";
 import * as common from "../../data/io-ts";
 import * as validateString from "./validate-string";
 
@@ -43,3 +44,9 @@ export const parameterBoolean = () =>
     t.boolean,
     (str) => str === TRUE,
   );
+
+export const parameterISOTimestamp =
+  (): validateString.StringParameterTransform<tt.DateFromISOStringC, Date> => ({
+    validation: tt.DateFromISOString,
+    transform: (date) => date,
+  });

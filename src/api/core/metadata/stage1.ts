@@ -14,7 +14,10 @@ export interface MetadataBuilder<
         string,
         {
           querySpec:
-            | Omit<data.QueryValidatorSpec<unknown, unknown>, "validator">
+            | Omit<
+                data.QueryValidatorSpec<unknown, string, unknown>,
+                "validator"
+              >
             | undefined;
           inputSpec:
             | Omit<

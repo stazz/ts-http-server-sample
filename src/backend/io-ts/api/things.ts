@@ -15,8 +15,15 @@ export const getThings: types.EndpointSpec<
   typeof functionality.queryThings
 > = () => ({
   method: "GET",
-  query: queryIncludeDeleted,
-  endpointHandler: ({ query: { includeDeleted } }) =>
+  query: tPlugin.queryValidator({
+    required: [],
+    optional: ["includeDeleted", "lastModified"],
+    validation: {
+      includeDeleted: tPlugin.parameterBoolean(),
+      lastModified: tPlugin.parameterISOTimestamp(),
+    },
+  }),
+  endpointHandler: ({ query: { includeDeleted, lastModified } }) =>
     functionality.queryThings(includeDeleted === true),
   output: tPlugin.outputValidator(t.array(t.unknown)),
   mdArgs: {
@@ -26,6 +33,9 @@ export const getThings: types.EndpointSpec<
       queryParameters: {
         includeDeleted: {
           description: "Include deleted description",
+        },
+        lastModified: {
+          description: "Last modified description",
         },
       },
       body: undefined,

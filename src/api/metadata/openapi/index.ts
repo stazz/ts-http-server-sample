@@ -30,17 +30,17 @@ interface OpenAPIParameterMedia<T> {
 }
 
 interface OpenAPIArgumentsURLData<TURLData> {
-  urlParameters: { [P in keyof TURLData]: OpenAPIParameterInput };
+  urlParameters: { [P in keyof TURLData]-?: OpenAPIParameterInput };
 }
 
 interface OpenAPIArgumentsQuery<TQuery> {
   queryParameters: {
-    [P in keyof TQuery]: OpenAPIParameterInput;
+    [P in keyof TQuery]-?: OpenAPIParameterInput;
   };
 }
 
 interface OpenAPIArgumentsInput<TBody> {
-  body: { [P in keyof TBody]: OpenAPIParameterMedia<TBody[P]> };
+  body: { [P in keyof TBody]-?: OpenAPIParameterMedia<TBody[P]> };
 }
 
 interface OpenAPIArgumentsOutput<TOutput> {

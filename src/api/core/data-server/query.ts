@@ -1,9 +1,13 @@
 import type * as q from "querystring";
 import type * as common from "../data";
 
-export interface QueryValidatorSpec<TQuery, TValidationError> {
+export interface QueryValidatorSpec<
+  TQuery,
+  TQueryKeys extends string,
+  TValidationError,
+> {
   validator: QueryValidator<TQuery, TValidationError>;
-  isParameterRequired: Record<string, boolean>;
+  isParameterRequired: Record<TQueryKeys, boolean>;
 }
 
 export type QueryValidator<TQuery, TValidationError> =

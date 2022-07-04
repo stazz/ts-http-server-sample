@@ -31,6 +31,7 @@ export const queryValidator = <
   { [P in TRequired]: t.Static<TValidation[P]["validation"]> } & {
     [P in TOptional]?: t.Static<TValidation[P]["validation"]>;
   },
+  TRequired | TOptional,
   common.ValidationError
 > => {
   // Unfortunately, Runtypes does not have "exact", and the following PR is still open:
@@ -96,7 +97,7 @@ export const queryValidator = <
       required
         .map<[string, boolean]>((r) => [r, true])
         .concat(optional.map((o) => [o, false])),
-    ),
+    ) as Record<TRequired | TOptional, boolean>,
   };
 };
 

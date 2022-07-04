@@ -59,7 +59,11 @@ export class AppEndpointBuilderInitial<
   >;
   public forMethod<TMethods extends TAllowedMethods, TQuery>(
     method: TMethods & ep.HttpMethodWithoutBody,
-    query: data.QueryValidatorSpec<TQuery, TValidationError>,
+    query: data.QueryValidatorSpec<
+      TQuery,
+      keyof TQuery & string,
+      TValidationError
+    >,
   ): AppEndpointBuilderForMethods<
     TContext,
     TRefinedContext,
@@ -73,7 +77,11 @@ export class AppEndpointBuilderInitial<
   >;
   public forMethod<TMethods extends TAllowedMethods, TQuery>(
     method: TMethods & ep.HttpMethodWithBody,
-    query: data.QueryValidatorSpec<TQuery, TValidationError>,
+    query: data.QueryValidatorSpec<
+      TQuery,
+      keyof TQuery & string,
+      TValidationError
+    >,
   ): AppEndpointBuilderForMethodsAndBody<
     TContext,
     TRefinedContext,
@@ -87,7 +95,9 @@ export class AppEndpointBuilderInitial<
   >;
   forMethod<TMethods extends TAllowedMethods, TQuery>(
     method: TMethods,
-    query?: data.QueryValidatorSpec<TQuery, TValidationError> | undefined,
+    query?:
+      | data.QueryValidatorSpec<TQuery, keyof TQuery & string, TValidationError>
+      | undefined,
   ):
     | AppEndpointBuilderForMethods<
         TContext,
@@ -116,7 +126,9 @@ export class AppEndpointBuilderInitial<
 
   private _forMethod<TMethods extends TAllowedMethods, TQuery>(
     method: TMethods,
-    query?: data.QueryValidatorSpec<TQuery, TValidationError> | undefined,
+    query?:
+      | data.QueryValidatorSpec<TQuery, keyof TQuery & string, TValidationError>
+      | undefined,
   ):
     | AppEndpointBuilderForMethods<
         TContext,
@@ -415,7 +427,11 @@ export type BatchSpecificationWithQueryWithoutBody<
   TOutputContentTypes extends Record<string, unknown>,
 > = {
   method: TMethod;
-  query: data.QueryValidatorSpec<TQueryData, TValidationError>;
+  query: data.QueryValidatorSpec<
+    TQueryData,
+    keyof TQueryData & string,
+    TValidationError
+  >;
 } & common.EndpointSpecArgsWithoutBody<
   TRefinedContext,
   TState,
@@ -474,7 +490,11 @@ export type BatchSpecificationWithQueryWithBody<
   TInputContentTypes extends Record<string, unknown>,
 > = {
   method: TMethod;
-  query: data.QueryValidatorSpec<TQueryData, TValidationError>;
+  query: data.QueryValidatorSpec<
+    TQueryData,
+    keyof TQueryData & string,
+    TValidationError
+  >;
 } & common.EndpointSpecArgsWithBody<
   TRefinedContext,
   TState,

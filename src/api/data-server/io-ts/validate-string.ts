@@ -31,6 +31,7 @@ export const queryValidator = <
   { [P in TRequired]: t.TypeOf<TValidation[P]["validation"]> } & {
     [P in TOptional]?: t.TypeOf<TValidation[P]["validation"]>;
   },
+  TRequired | TOptional,
   common.ValidationError
 > => {
   const requiredValidation = t.type(
@@ -99,7 +100,7 @@ export const queryValidator = <
       required
         .map<[string, boolean]>((r) => [r, true])
         .concat(optional.map((o) => [o, false])),
-    ),
+    ) as Record<TRequired | TOptional, boolean>,
   };
 };
 
