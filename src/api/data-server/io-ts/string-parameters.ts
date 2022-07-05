@@ -1,52 +1,39 @@
 import * as t from "io-ts";
 import * as tt from "io-ts-types";
+import * as data from "../../core/data";
 import * as common from "../../data/io-ts";
-import * as validateString from "./validate-string";
 
-// TODO we might need overloads for optional string parameters
-export function parameterString(): validateString.StringParameterTransform<
-  t.StringType,
-  string
+export function parameterString(): data.StringParameterTransform<
+  string,
+  common.ValidationError
 >;
 export function parameterString<
-  TDecoder extends common.Decoder<string> & t.Mixed,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TDecoder extends t.Type<any, string>,
 >(
   customString: TDecoder,
-): validateString.StringParameterTransform<TDecoder, string>;
+): data.StringParameterTransform<t.TypeOf<TDecoder>, common.ValidationError>;
 export function parameterString<
-  TDecoder extends common.Decoder<string> & t.Mixed,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TDecoder extends t.Type<any, string>,
 >(
   customString?: TDecoder,
-): validateString.StringParameterTransform<TDecoder | t.StringType, string> {
-  return customString
-    ? {
-        transform: (str) => str,
-        validation: customString,
-      }
-    : {
-        // Copy to prevent modifications by caller
-        ...parameterStringValue,
-      };
+): data.StringParameterTransform<
+  string | t.TypeOf<TDecoder>,
+  common.ValidationError
+> {
+  return common.plainValidator(customString ?? t.string);
 }
-
-const parameterStringValue: validateString.StringParameterTransform<
-  t.StringType,
-  string
-> = {
-  transform: (str) => str,
-  validation: t.string,
-};
 
 const TRUE = "true" as const;
 export const parameterBoolean = () =>
-  validateString.stringParameterWithTransform(
-    t.union([t.undefined, t.keyof({ [TRUE]: "", false: "" })]),
-    t.boolean,
-    (str) => str === TRUE,
+  data.transitiveDataValidation(
+    common.plainValidator(t.keyof({ [TRUE]: "", false: "" })),
+    (str) => ({
+      error: "none",
+      data: str === TRUE,
+    }),
   );
 
-export const parameterISOTimestamp =
-  (): validateString.StringParameterTransform<tt.DateFromISOStringC, Date> => ({
-    validation: tt.DateFromISOString,
-    transform: (date) => date,
-  });
+export const parameterISOTimestamp = () =>
+  common.plainValidator(tt.DateFromISOString);

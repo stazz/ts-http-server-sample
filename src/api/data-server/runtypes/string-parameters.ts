@@ -1,41 +1,38 @@
 import * as t from "runtypes";
+import * as data from "../../core/data";
 import * as common from "../../data/runtypes";
-import * as validateString from "./validate-string";
 
-// TODO we might need overloads for optional string parameters
-export function parameterString(): validateString.StringParameterTransform<
-  t.String,
-  string
+export function parameterString(): data.StringParameterTransform<
+  string,
+  common.ValidationError
 >;
-export function parameterString<TDecoder extends common.Decoder<string>>(
+export function parameterString<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TDecoder extends t.Runtype<string>,
+>(
   customString: TDecoder,
-): validateString.StringParameterTransform<TDecoder, string>;
-export function parameterString<TDecoder extends common.Decoder<string>>(
+): data.StringParameterTransform<t.Static<TDecoder>, common.ValidationError>;
+export function parameterString<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TDecoder extends t.Runtype<string>,
+>(
   customString?: TDecoder,
-): validateString.StringParameterTransform<TDecoder | t.String, string> {
-  return customString
-    ? {
-        transform: (str) => str,
-        validation: customString,
-      }
-    : {
-        // Copy to prevent modifications by caller
-        ...parameterStringValue,
-      };
+): data.StringParameterTransform<
+  string | t.Static<TDecoder>,
+  common.ValidationError
+> {
+  return common.plainValidator(customString ?? t.String);
 }
-
-const parameterStringValue: validateString.StringParameterTransform<
-  t.String,
-  string
-> = {
-  transform: (str) => str,
-  validation: t.String,
-};
 
 const TRUE = "true" as const;
 export const parameterBoolean = () =>
-  validateString.stringParameterWithTransform(
-    t.Union(t.Undefined, t.Literal(TRUE), t.Literal("false")),
-    t.Boolean,
-    (str) => str === TRUE,
+  data.transitiveDataValidation(
+    common.plainValidator(t.Union(t.Literal(TRUE), t.Literal("false"))),
+    (str) => ({
+      error: "none",
+      data: str === TRUE,
+    }),
   );
+
+// export const parameterISOTimestamp = () =>
+//   common.plainValidator(tt.DateFromISOString);
