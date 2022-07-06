@@ -1,6 +1,9 @@
-export const queryThings = (includeDeleted: boolean): Array<unknown> => {
+export const queryThings = (
+  includeDeleted: boolean,
+  lastModified: Date | undefined,
+): Array<unknown> => {
   // eslint-disable-next-line no-console
-  console.log(`QUERY ALL ${includeDeleted}`);
+  console.log(`QUERY ALL ${includeDeleted} ${lastModified}`);
   // Get the things from DB, maybe with pagination in the future
   return [];
 };

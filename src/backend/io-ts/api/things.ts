@@ -24,7 +24,7 @@ export const getThings: types.EndpointSpec<
     },
   }),
   endpointHandler: ({ query: { includeDeleted, lastModified } }) =>
-    functionality.queryThings(includeDeleted === true),
+    functionality.queryThings(includeDeleted === true, lastModified),
   output: tPlugin.outputValidator(t.array(t.unknown)),
   mdArgs: {
     openapi: {

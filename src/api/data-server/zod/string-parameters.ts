@@ -34,5 +34,43 @@ export const parameterBoolean = () =>
     }),
   );
 
-// export const parameterISOTimestamp = () =>
-//   common.plainValidator(tt.DateFromISOString);
+export const parameterISOTimestamp = (): data.DataValidator<
+  unknown,
+  Date,
+  common.ValidationError
+> =>
+  data.transitiveDataValidation(common.plainValidator(t.string()), (str) => {
+    try {
+      const d = new Date(str);
+      return isNaN(d.getTime())
+        ? {
+            error: "error",
+            errorInfo: [
+              new t.ZodError([
+                {
+                  code: "custom",
+                  message: "Timestamp string was not ISO format",
+                  path: [],
+                },
+              ]),
+            ],
+          }
+        : {
+            error: "none",
+            data: d,
+          };
+    } catch {
+      return {
+        error: "error",
+        errorInfo: [
+          new t.ZodError([
+            {
+              code: "custom",
+              message: "Timestamp string was not ISO format",
+              path: [],
+            },
+          ]),
+        ],
+      };
+    }
+  });
