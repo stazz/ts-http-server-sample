@@ -69,7 +69,16 @@ export const withDataValidation = <TError>(
                 )
               : url,
         })
-          .withInput("query", "query" in rest ? rest.query : undefined)
+          .withInput(
+            "query",
+            "query" in rest
+              ? (rest.query as data.DataValidator<
+                  unknown,
+                  Record<string, unknown>,
+                  TError
+                >)
+              : undefined,
+          )
           .withInput("body", "body" in rest ? rest.body : undefined);
         return async (args) => {
           const validatedArgs = componentValidations.getOutputs({
@@ -470,8 +479,10 @@ export interface APICallFactory<THeaders extends string, TError> {
   >;
 }
 
-export type APICall<TArgs, TReturnType, TError> = (args: TArgs) => Promise<
-  | data.DataValidatorResult<TReturnType, TError>
+export type APICall<TArgs, TReturnType, TError> = (
+  args: protocol.GetRuntime<TArgs>,
+) => Promise<
+  | data.DataValidatorResult<protocol.GetRuntime<TReturnType>, TError>
   | {
       error: "error-input";
       errorInfo: Partial<{
@@ -484,7 +495,7 @@ export type APICall<TArgs, TReturnType, TError> = (args: TArgs) => Promise<
 
 export interface MakeAPICallArgs<TMethod, TResponse, TError> {
   method: data.DataValidator<unknown, TMethod, TError>;
-  response: data.DataValidator<unknown, TResponse, TError>;
+  response: data.DataValidator<unknown, protocol.GetRuntime<TResponse>, TError>;
 }
 
 export interface MakeAPICallArgsHeaders<
@@ -498,15 +509,23 @@ export interface MakeAPICallArgsURL {
 }
 
 export interface MakeAPICallArgsURLData<TURLData, TError> {
-  url: (urlParams: TURLData) => data.DataValidatorResult<string, TError>;
+  url: data.DataValidator<protocol.GetRuntime<TURLData>, string, TError>;
 }
 
 export interface MakeAPICallArgsQuery<TQueryData, TError> {
-  query: data.DataValidator<unknown, TQueryData, TError>;
+  query: data.DataValidator<
+    protocol.GetRuntime<TQueryData>,
+    protocol.GetEncoded<TQueryData>,
+    TError
+  >;
 }
 
 export interface MakeAPICallArgsBody<TBodyData, TError> {
-  body: data.DataValidator<unknown, TBodyData, TError>;
+  body: data.DataValidator<
+    protocol.GetRuntime<TBodyData>,
+    protocol.GetEncoded<TBodyData>,
+    TError
+  >;
 }
 
 export type HeaderProvider = (

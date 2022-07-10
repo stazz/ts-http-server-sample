@@ -26,7 +26,10 @@ export function parameterString<
 }
 
 const TRUE = "true" as const;
-export const parameterBoolean = () =>
+export const parameterBoolean = (): data.StringParameterTransform<
+  boolean,
+  common.ValidationError
+> =>
   data.transitiveDataValidation(
     common.plainValidator(t.keyof({ [TRUE]: "", false: "" })),
     (str) => ({
@@ -35,5 +38,7 @@ export const parameterBoolean = () =>
     }),
   );
 
-export const parameterISOTimestamp = () =>
-  common.plainValidator(tt.DateFromISOString);
+export const parameterISOTimestamp = (): data.StringParameterTransform<
+  Date,
+  common.ValidationError
+> => common.plainValidator(tt.DateFromISOString);

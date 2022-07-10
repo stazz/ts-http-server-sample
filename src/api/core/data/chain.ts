@@ -13,22 +13,14 @@ export class ValidationChainer<
 
   public withInput<
     TName extends string,
-    TDataValidator extends common.DataValidator<
-      unknown,
-      unknown,
-      unknown,
-      unknown
-    >,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    TDataValidator extends common.DataValidator<any, unknown, unknown, unknown>,
   >(
     // eslint-disable-next-line @typescript-eslint/ban-types
     name: TName & (TName extends keyof TValidators ? never : {}),
     validator: TDataValidator | undefined,
-  ): TDataValidator extends common.DataValidator<
-    unknown,
-    unknown,
-    unknown,
-    unknown
-  >
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): TDataValidator extends common.DataValidator<any, unknown, unknown, unknown>
     ? ValidationChainer<{
         [P in keyof TValidators | TName]: P extends keyof TValidators
           ? TValidators[P]
@@ -41,7 +33,8 @@ export class ValidationChainer<
           [name]: validator,
         })
       : this) as unknown as TDataValidator extends common.DataValidator<
-      unknown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      any,
       unknown,
       unknown,
       unknown

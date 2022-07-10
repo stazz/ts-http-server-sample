@@ -32,7 +32,7 @@ export interface APIGetThings {
   method: "GET";
   query: {
     includeDeleted?: boolean;
-    lastModified?: Date;
+    lastModified?: TimestampISO;
   };
   responseBody: Array<unknown>;
 }
@@ -80,5 +80,36 @@ export interface DataThing {
   property: string;
 }
 
+export interface Encoded<TRuntime, TEncoded> {
+  __runtime: TRuntime & never;
+  __encoded: TEncoded & never;
+}
+
 export type ID = string; // Really a UUID
-export type TimestampISO = string; // Really ISO-formatted timestamp
+export type TimestampISO = Encoded<Date, string>; // Really ISO-formatted timestamp
+
+export type GetRuntime<T> = T extends Encoded<infer TRuntime, infer _>
+  ? TRuntime
+  : T extends Array<infer U>
+  ? GetRuntimeArray<U>
+  : T extends object
+  ? GetRuntimeObject<T>
+  : T;
+export type GetRuntimeObject<T> = {
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  [P in keyof T]: T[P] extends Function ? T[P] : GetRuntime<T[P]>;
+};
+export type GetRuntimeArray<T> = Array<GetRuntime<T>>;
+
+export type GetEncoded<T> = T extends Encoded<infer _, infer TEncoded>
+  ? TEncoded
+  : T extends Array<infer U>
+  ? GetEncodedArray<U>
+  : T extends object
+  ? GetEncodedObject<T>
+  : T;
+export type GetEncodedObject<T> = {
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  [P in keyof T]: T[P] extends Function ? T[P] : GetEncoded<T[P]>;
+};
+export type GetEncodedArray<T> = Array<GetEncoded<T>>;

@@ -52,13 +52,13 @@ export type MakeSpecWithoutBody<
         ? spec.EndpointHandlerArgsWithURL<TURLData>
         : // eslint-disable-next-line @typescript-eslint/ban-types
           {},
-      TQuery,
+      protocol.GetRuntime<TQuery>,
       TMetadataProviders,
       TProtocolSpec["method"],
       ReturnType<TFunctionality>,
       tPlugin.OutputValidatorSpec<
         ReturnType<TFunctionality>,
-        TProtocolSpec["responseBody"]
+        protocol.GetEncoded<TProtocolSpec["responseBody"]>
       >
     >
   : spec.BatchSpecificationWithoutQueryWithoutBody<
@@ -74,7 +74,7 @@ export type MakeSpecWithoutBody<
       ReturnType<TFunctionality>,
       tPlugin.OutputValidatorSpec<
         ReturnType<TFunctionality>,
-        TProtocolSpec["responseBody"]
+        protocol.GetEncoded<TProtocolSpec["responseBody"]>
       >
     >;
 
@@ -93,16 +93,18 @@ export type MakeSpecWithBody<
         ? spec.EndpointHandlerArgsWithURL<TURLData>
         : // eslint-disable-next-line @typescript-eslint/ban-types
           {},
-      TQuery,
+      protocol.GetRuntime<TQuery>,
       TMetadataProviders,
       TProtocolSpec["method"],
       ReturnType<TFunctionality>,
       tPlugin.OutputValidatorSpec<
         ReturnType<TFunctionality>,
-        TProtocolSpec["responseBody"]
+        protocol.GetEncoded<TProtocolSpec["responseBody"]>
       >,
-      TProtocolSpec["requestBody"],
-      tPlugin.InputValidatorSpec<TProtocolSpec["requestBody"]>
+      protocol.GetRuntime<TProtocolSpec["requestBody"]>,
+      tPlugin.InputValidatorSpec<
+        protocol.GetRuntime<TProtocolSpec["requestBody"]>
+      >
     >
   : spec.BatchSpecificationWithoutQueryWithBody<
       unknown,
@@ -117,8 +119,10 @@ export type MakeSpecWithBody<
       ReturnType<TFunctionality>,
       tPlugin.OutputValidatorSpec<
         ReturnType<TFunctionality>,
-        TProtocolSpec["responseBody"]
+        protocol.GetEncoded<TProtocolSpec["responseBody"]>
       >,
-      TProtocolSpec["requestBody"],
-      tPlugin.InputValidatorSpec<TProtocolSpec["requestBody"]>
+      protocol.GetRuntime<TProtocolSpec["requestBody"]>,
+      tPlugin.InputValidatorSpec<
+        protocol.GetRuntime<TProtocolSpec["requestBody"]>
+      >
     >;
