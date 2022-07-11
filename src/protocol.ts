@@ -110,6 +110,14 @@ export type GetEncoded<T> = T extends Encoded<infer _, infer TEncoded>
   : T;
 export type GetEncodedObject<T> = {
   // eslint-disable-next-line @typescript-eslint/ban-types
-  [P in keyof T]: T[P] extends Function ? T[P] : GetEncoded<T[P]>;
+  [P in NonOptionalKeys<T>]: T[P] extends Function ? T[P] : GetEncoded<T[P]>;
+} & {
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  [P in keyof Omit<T, NonOptionalKeys<T>>]: T[P] extends Function
+    ? T[P]
+    : GetEncoded<T[P]> | undefined;
 };
 export type GetEncodedArray<T> = Array<GetEncoded<T>>;
+type NonOptionalKeys<T> = {
+  [k in keyof T]-?: undefined extends T[k] ? never : k;
+}[keyof T];
