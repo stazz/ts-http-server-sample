@@ -1,6 +1,6 @@
 import type * as protocol from "../../core/protocol";
 import * as data from "../../core/data";
-import type * as tPlugin from "../../data/io-ts";
+import type * as tPlugin from "../../data/zod";
 
 // These 16 overloads are a bit fugly but oh well...
 export interface APICallFactory<THeaders extends string, TError> {
