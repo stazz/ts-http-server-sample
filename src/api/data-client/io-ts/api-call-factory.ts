@@ -1,124 +1,6 @@
-// This file is not used by this sample
-// It only exists to demonstrate how to use shared code in protocol.ts
-// Notice that it doesn't use runtime validation - but one can build such on top of this simple sample.
-// Also notice that URL building is now a bit duplicated. This is not optimal, and will be refactored to be DRY later.
-import type * as protocol from "../protocol";
-import * as data from "../api/core/data";
-
-export const withDataValidation = <TError>(
-  undefinedValidator: data.DataValidator<unknown, undefined, TError>,
-): {
-  withHeaders: <THeaders extends Record<string, HeaderProvider>>(
-    headers: THeaders,
-  ) => APICallFactory<keyof THeaders & string, TError>;
-} => {
-  return {
-    withHeaders: (headers) => ({
-      makeAPICall: <
-        TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown>,
-      >(
-        methodValue: TProtocolSpec["method"],
-        {
-          method,
-          response,
-          url,
-          ...rest
-        }:
-          | (MakeAPICallArgs<
-              TProtocolSpec["method"],
-              TProtocolSpec["responseBody"],
-              TError
-            > &
-              (MakeAPICallArgsURL | MakeAPICallArgsURLData<unknown, TError>)) &
-              // eslint-disable-next-line @typescript-eslint/ban-types
-              (| {}
-                | MakeAPICallArgsHeaders<Record<string, string>>
-                | MakeAPICallArgsQuery<Record<string, unknown>, TError>
-                | MakeAPICallArgsBody<unknown, TError>
-              ),
-      ): APICall<
-        Partial<Record<"method" | "url" | "query" | "body", unknown>> | void,
-        TProtocolSpec["responseBody"],
-        TError
-      > => {
-        const validatedMethod = method(methodValue);
-        if (validatedMethod.error !== "none") {
-          throw new Error(
-            `Invalid method: ${JSON.stringify(validatedMethod.errorInfo)}`,
-          );
-        }
-        if ("headers" in rest) {
-          const missingHeaders = Object.values(rest.headers).filter(
-            (headerFunctionality) => !(headerFunctionality in headers),
-          );
-          if (missingHeaders.length > 0) {
-            throw new Error(
-              `The endpoint requires the following header functionality, missing from given header functionality: ${missingHeaders.join(
-                ", ",
-              )}`,
-            );
-          }
-        }
-
-        const componentValidations = new data.ValidationChainer({
-          url:
-            typeof url === "string"
-              ? data.transitiveDataValidation(
-                  undefinedValidator,
-                  () => ({ error: "none", data: url } as const),
-                )
-              : url,
-        })
-          .withInput(
-            "query",
-            "query" in rest
-              ? (rest.query as data.DataValidator<
-                  unknown,
-                  Record<string, unknown>,
-                  TError
-                >)
-              : undefined,
-          )
-          .withInput("body", "body" in rest ? rest.body : undefined);
-        return async (args) => {
-          const validatedArgs = componentValidations.getOutputs({
-            ...(args ?? {}),
-          });
-          switch (validatedArgs.error) {
-            case "none": {
-              const httpArgs: HTTPInvocationArguments = {
-                method: validatedMethod.data,
-                ...validatedArgs.data,
-              };
-              if ("headers" in rest) {
-                httpArgs.headers = Object.fromEntries(
-                  await Promise.all(
-                    Object.entries(rest.headers).map(
-                      async ([headerName, headerFunctionalityID]) =>
-                        [
-                          headerName,
-                          await headers[headerFunctionalityID]({
-                            ...httpArgs,
-                            headerName,
-                          }),
-                        ] as const,
-                    ),
-                  ),
-                );
-              }
-              return response(await someMethodToInvokeHTTPEndpoint(httpArgs));
-            }
-            default:
-              return {
-                error: "error-input",
-                errorInfo: validatedArgs.errorInfo,
-              };
-          }
-        };
-      },
-    }),
-  };
-};
+import type * as protocol from "../../core/protocol";
+import * as data from "../../core/data";
+import type * as tPlugin from "../../data/io-ts";
 
 // These 16 overloads are a bit fugly but oh well...
 export interface APICallFactory<THeaders extends string, TError> {
@@ -480,9 +362,9 @@ export interface APICallFactory<THeaders extends string, TError> {
 }
 
 export type APICall<TArgs, TReturnType, TError> = (
-  args: protocol.GetRuntime<TArgs>,
+  args: tPlugin.GetRuntime<TArgs>,
 ) => Promise<
-  | data.DataValidatorResult<protocol.GetRuntime<TReturnType>, TError>
+  | data.DataValidatorResult<tPlugin.GetRuntime<TReturnType>, TError>
   | {
       error: "error-input";
       errorInfo: Partial<{
@@ -495,7 +377,7 @@ export type APICall<TArgs, TReturnType, TError> = (
 
 export interface MakeAPICallArgs<TMethod, TResponse, TError> {
   method: data.DataValidator<unknown, TMethod, TError>;
-  response: data.DataValidator<unknown, protocol.GetRuntime<TResponse>, TError>;
+  response: data.DataValidator<unknown, tPlugin.GetRuntime<TResponse>, TError>;
 }
 
 export interface MakeAPICallArgsHeaders<
@@ -509,45 +391,21 @@ export interface MakeAPICallArgsURL {
 }
 
 export interface MakeAPICallArgsURLData<TURLData, TError> {
-  url: data.DataValidator<protocol.GetRuntime<TURLData>, string, TError>;
+  url: data.DataValidator<tPlugin.GetRuntime<TURLData>, string, TError>;
 }
 
 export interface MakeAPICallArgsQuery<TQueryData, TError> {
   query: data.DataValidator<
-    protocol.GetRuntime<TQueryData>,
-    protocol.GetEncoded<TQueryData>,
+    tPlugin.GetRuntime<TQueryData>,
+    tPlugin.GetEncoded<TQueryData>,
     TError
   >;
 }
 
 export interface MakeAPICallArgsBody<TBodyData, TError> {
   body: data.DataValidator<
-    protocol.GetRuntime<TBodyData>,
-    protocol.GetEncoded<TBodyData>,
+    tPlugin.GetRuntime<TBodyData>,
+    tPlugin.GetEncoded<TBodyData>,
     TError
   >;
 }
-
-export type HeaderProvider = (
-  args: Omit<HTTPInvocationArguments, "headers"> & { headerName: string },
-) => string | PromiseLike<string>;
-
-export interface HTTPInvocationArguments {
-  method: string;
-  url: string;
-  query?: Record<string, unknown>;
-  body?: unknown;
-  headers?: Record<string, string>;
-}
-
-const someMethodToInvokeHTTPEndpoint = ({
-  method,
-  url,
-  query,
-  body,
-  headers,
-}: HTTPInvocationArguments): Promise<unknown> => {
-  throw new Error(
-    "This exists only to simulate signature of some way of invoking HTTP endpoint in the client.",
-  );
-};

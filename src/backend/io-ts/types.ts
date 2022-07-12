@@ -1,6 +1,7 @@
 // Import generic REST-related things
 import type * as ep from "../../api/core/endpoint";
 import type * as spec from "../../api/core/spec";
+import type * as protocol from "../../api/core/protocol";
 
 // Import plugin for OpenAPI metadata
 import type * as openapi from "../../api/metadata/openapi";
@@ -8,8 +9,8 @@ import type * as openapi from "../../api/metadata/openapi";
 // IO-TS as data runtime validator
 import type * as t from "io-ts";
 // Import plugin for IO-TS
+import type * as tPluginCommon from "../../api/data/io-ts";
 import type * as tPlugin from "../../api/data-server/io-ts";
-import type * as protocol from "../../protocol";
 import type * as common from "../../module-api/common";
 
 export type TMetadataProviders = { openapi: openapi.OpenAPIMetadataBuilder };
@@ -52,13 +53,13 @@ export type MakeSpecWithoutBody<
         ? spec.EndpointHandlerArgsWithURL<TURLData>
         : // eslint-disable-next-line @typescript-eslint/ban-types
           {},
-      protocol.GetRuntime<TQuery>,
+      tPluginCommon.GetRuntime<TQuery>,
       TMetadataProviders,
       TProtocolSpec["method"],
       ReturnType<TFunctionality>,
       tPlugin.OutputValidatorSpec<
         ReturnType<TFunctionality>,
-        protocol.GetEncoded<TProtocolSpec["responseBody"]>
+        tPluginCommon.GetEncoded<TProtocolSpec["responseBody"]>
       >
     >
   : spec.BatchSpecificationWithoutQueryWithoutBody<
@@ -74,7 +75,7 @@ export type MakeSpecWithoutBody<
       ReturnType<TFunctionality>,
       tPlugin.OutputValidatorSpec<
         ReturnType<TFunctionality>,
-        protocol.GetEncoded<TProtocolSpec["responseBody"]>
+        tPluginCommon.GetEncoded<TProtocolSpec["responseBody"]>
       >
     >;
 
@@ -93,17 +94,17 @@ export type MakeSpecWithBody<
         ? spec.EndpointHandlerArgsWithURL<TURLData>
         : // eslint-disable-next-line @typescript-eslint/ban-types
           {},
-      protocol.GetRuntime<TQuery>,
+      tPluginCommon.GetRuntime<TQuery>,
       TMetadataProviders,
       TProtocolSpec["method"],
       ReturnType<TFunctionality>,
       tPlugin.OutputValidatorSpec<
         ReturnType<TFunctionality>,
-        protocol.GetEncoded<TProtocolSpec["responseBody"]>
+        tPluginCommon.GetEncoded<TProtocolSpec["responseBody"]>
       >,
-      protocol.GetRuntime<TProtocolSpec["requestBody"]>,
+      tPluginCommon.GetRuntime<TProtocolSpec["requestBody"]>,
       tPlugin.InputValidatorSpec<
-        protocol.GetRuntime<TProtocolSpec["requestBody"]>
+        tPluginCommon.GetRuntime<TProtocolSpec["requestBody"]>
       >
     >
   : spec.BatchSpecificationWithoutQueryWithBody<
@@ -119,10 +120,10 @@ export type MakeSpecWithBody<
       ReturnType<TFunctionality>,
       tPlugin.OutputValidatorSpec<
         ReturnType<TFunctionality>,
-        protocol.GetEncoded<TProtocolSpec["responseBody"]>
+        tPluginCommon.GetEncoded<TProtocolSpec["responseBody"]>
       >,
-      protocol.GetRuntime<TProtocolSpec["requestBody"]>,
+      tPluginCommon.GetRuntime<TProtocolSpec["requestBody"]>,
       tPlugin.InputValidatorSpec<
-        protocol.GetRuntime<TProtocolSpec["requestBody"]>
+        tPluginCommon.GetRuntime<TProtocolSpec["requestBody"]>
       >
     >;

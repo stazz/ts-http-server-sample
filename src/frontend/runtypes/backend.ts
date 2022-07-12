@@ -1,6 +1,7 @@
-import * as common from "..";
-import * as tPlugin from "../../api/data/runtypes";
 import * as data from "../../api/core/data";
+import * as tPlugin from "../../api/data/runtypes";
+import type * as common from "../../api/data-client/common";
+import * as apiCall from "../../api/data-client/runtypes";
 import type * as protocol from "../../protocol";
 import * as t from "runtypes";
 
@@ -15,8 +16,8 @@ export const createBackend = () => {
     }),
   );
 
-  const factory = common
-    .withDataValidation(tPlugin.plainValidator(t.Undefined))
+  const factory = apiCall
+    .createAPICallFactory(someMethodToInvokeHTTPEndpoint)
     .withHeaders({
       // Key: functionality IDs used by protocol
       // Value: callback implementing functionality
@@ -93,4 +94,14 @@ export const createBackend = () => {
     connectThings,
     authenticated,
   };
+};
+
+// This simulates library like e.g. got
+export const someMethodToInvokeHTTPEndpoint = (
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _: common.HTTPInvocationArguments,
+): Promise<unknown> => {
+  throw new Error(
+    "This exists only to simulate signature of some way of invoking HTTP endpoint in the client.",
+  );
 };
