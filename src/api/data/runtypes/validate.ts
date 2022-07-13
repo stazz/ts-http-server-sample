@@ -1,4 +1,4 @@
-import type * as data from "../../core/data-server";
+import * as data from "../../core/data-server";
 import * as t from "runtypes";
 import type * as error from "./error";
 import * as utils from "./utils";
@@ -15,6 +15,23 @@ export const plainValidator =
   ): data.DataValidator<unknown, TData, error.ValidationError> =>
   (input) =>
     utils.transformLibraryResultToModelResult(validation.validate(input));
+
+export const encoderValidator = <TOutput, TSerialized>({
+  validation,
+  transform,
+}: Encoder<TOutput, TSerialized>): data.DataValidator<
+  TOutput,
+  TSerialized,
+  error.ValidationError
+> => {
+  return data.transitiveDataValidation(
+    plainValidator(validation),
+    (validated) => ({
+      error: "none",
+      data: transform(validated),
+    }),
+  );
+};
 
 export function encoder<TOutput>(
   validation: Decoder<TOutput>,

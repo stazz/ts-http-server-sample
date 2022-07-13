@@ -54,5 +54,5 @@ export interface DataThing {
   property: string;
 }
 
-export type ID = string; // Really a UUID
+export type ID = string; // TODO use a class here. Branded types do not go well with generic non-brand-aware code.
 export type TimestampISO = protocol.Encoded<Date, string>; // Really ISO-formatted timestamp
