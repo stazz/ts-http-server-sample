@@ -1,4 +1,4 @@
-# Generic REST API Endpoint Specification Server Utilities
+# Generic REST API Endpoint Specification Core - Server Utilities
 The code in this folder contains commonly used utility methods, which are used by implementations running REST API based on `AppEndpoint`s defined in [core module](../core).
 The following functions are exported:
 - `checkURLPathNameForHandler` to check whether any `AppEndpoint` matches given URL pathname,

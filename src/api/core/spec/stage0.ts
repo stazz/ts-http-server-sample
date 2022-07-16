@@ -1,33 +1,45 @@
-import * as core from "../core";
-import * as md from "../metadata";
-import * as common from "./common";
+import * as ep from "../endpoint";
+import type * as data from "../data-server";
+import type * as md from "../metadata";
+import type * as common from "./common";
 import { AppEndpointBuilderInitial } from ".";
 
-export const bindNecessaryTypes = <
+export const bindNecessaryTypes = <TContext, TState, TValidationError>(
+  getInitialState: (ctx: TContext) => TState,
+): AppEndpointBuilderProvider<
   TContext,
+  TContext,
+  TState,
   TValidationError,
   // eslint-disable-next-line @typescript-eslint/ban-types
->(): AppEndpointBuilderProvider<TContext, TContext, TValidationError, {}> =>
+  {}
+> =>
   new AppEndpointBuilderProvider(
     {
       validator: (ctx) => ({ error: "none", data: ctx }),
+      getState: getInitialState,
     },
     {},
   );
 
+// TODO use ContextHKT in these
 export class AppEndpointBuilderProvider<
   TContext,
   TRefinedContext,
+  TState,
   TValidationError,
   TMetadataProviders extends Record<
     string,
-    md.MetadataProvider<md.HKTArg, unknown, unknown, unknown, unknown, unknown>
+    // We must use 'any' as 2nd parameter, otherwise we won't be able to use AppEndpointBuilderProvider with specific TMetadataProviders type as parameter to functions.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    md.MetadataProvider<md.HKTArg, any, unknown, unknown, unknown, unknown>
   >,
 > {
   public constructor(
-    private readonly _contextTransform: core.ContextValidatorSpec<
+    private readonly _contextTransform: data.ContextValidatorSpec<
       TContext,
       TRefinedContext,
+      TState,
       TValidationError
     >,
     private readonly _mdProviders: TMetadataProviders,
@@ -36,9 +48,10 @@ export class AppEndpointBuilderProvider<
   public atURL(fragments: TemplateStringsArray): AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
+    TState,
     TValidationError,
     {}, // eslint-disable-line @typescript-eslint/ban-types
-    core.HttpMethod,
+    ep.HttpMethod,
     {
       [P in keyof TMetadataProviders]: ReturnType<
         TMetadataProviders[P]["getBuilder"]
@@ -51,6 +64,7 @@ export class AppEndpointBuilderProvider<
   ): URLDataNames<
     TContext,
     TRefinedContext,
+    TState,
     TValidationError,
     TArgs[number],
     {
@@ -66,9 +80,10 @@ export class AppEndpointBuilderProvider<
     | AppEndpointBuilderInitial<
         TContext,
         TRefinedContext,
+        TState,
         TValidationError,
         {}, // eslint-disable-line @typescript-eslint/ban-types
-        core.HttpMethod,
+        ep.HttpMethod,
         {
           [P in keyof TMetadataProviders]: ReturnType<
             TMetadataProviders[P]["getBuilder"]
@@ -78,6 +93,7 @@ export class AppEndpointBuilderProvider<
     | URLDataNames<
         TContext,
         TRefinedContext,
+        TState,
         TValidationError,
         TArgs[number],
         {
@@ -96,7 +112,7 @@ export class AppEndpointBuilderProvider<
             methods: {},
             // TODO fix this typing (may require extracting this method into class, as anonymous methods with method generic arguments don't behave well)
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            metadata: core.transformEntries(this._mdProviders, (md) =>
+            metadata: ep.transformEntries(this._mdProviders, (md) =>
               md.getBuilder(),
             ) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
             urlValidation: {
@@ -114,7 +130,7 @@ export class AppEndpointBuilderProvider<
         fragments,
         methods: {},
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        metadata: core.transformEntries(this._mdProviders, (md) =>
+        metadata: ep.transformEntries(this._mdProviders, (md) =>
           md.getBuilder(),
         ) as any, // eslint-disable-line @typescript-eslint/no-explicit-any
         urlValidation: undefined,
@@ -122,10 +138,11 @@ export class AppEndpointBuilderProvider<
     }
   }
 
-  public refineContext<TNewContext>(
-    transform: core.ContextValidatorSpec<
+  public refineContext<TNewContext, TNewState>(
+    transform: data.ContextValidatorSpec<
       TRefinedContext,
       TNewContext,
+      TNewState,
       TValidationError
     >,
     mdArgs: {
@@ -136,6 +153,7 @@ export class AppEndpointBuilderProvider<
   ): AppEndpointBuilderProvider<
     TContext,
     TNewContext,
+    TNewState,
     TValidationError,
     TMetadataProviders
   > {
@@ -152,7 +170,7 @@ export class AppEndpointBuilderProvider<
           }
         },
       },
-      core.transformEntries(this._mdProviders, (provider, key) =>
+      ep.transformEntries(this._mdProviders, (provider, key) =>
         provider.withRefinedContext(mdArgs[key]),
       ) as TMetadataProviders,
     );
@@ -168,6 +186,7 @@ export class AppEndpointBuilderProvider<
   ): AppEndpointBuilderProvider<
     TContext,
     TRefinedContext,
+    TState,
     TValidationError,
     TMetadataProviders & { [P in TMetadataKind]: TMetadataProvider }
   > {
@@ -214,7 +233,7 @@ export class AppEndpointBuilderProvider<
       ? TResult
       : never;
   } {
-    return core.transformEntries(this._mdProviders, (md, key) =>
+    return ep.transformEntries(this._mdProviders, (md, key) =>
       md.createFinalMetadata(
         mdArgs[key],
         endpoints.flatMap((ep) => ep[key]),
@@ -237,6 +256,7 @@ export class AppEndpointBuilderProvider<
 export interface URLDataNames<
   TContext,
   TRefinedContext,
+  TState,
   TValidationError,
   TNames extends string,
   TMetadataProviders extends Record<
@@ -246,7 +266,7 @@ export interface URLDataNames<
 > {
   validateURLData: <
     TValidation extends {
-      [P in TNames]: core.URLDataParameterValidatorSpec<
+      [P in TNames]: data.URLDataParameterValidatorSpec<
         unknown,
         TValidationError
       >;
@@ -256,11 +276,12 @@ export interface URLDataNames<
   ) => AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
+    TState,
     TValidationError,
     common.EndpointHandlerArgsWithURL<{
-      [P in TNames]: core.URLParameterDataType<TValidation[P]["validator"]>;
+      [P in TNames]: data.URLParameterDataType<TValidation[P]["validator"]>;
     }>,
-    core.HttpMethod,
+    ep.HttpMethod,
     TMetadataProviders
   >;
 }

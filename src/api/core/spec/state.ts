@@ -1,9 +1,11 @@
-import * as core from "../core";
+import * as ep from "../endpoint";
+import * as data from "../data-server";
 import * as md from "../metadata";
 
 export interface AppEndpointBuilderState<
   TContext,
   TRefinedContext,
+  TState,
   TValidationError,
   TMetadata extends Record<
     string,
@@ -13,18 +15,14 @@ export interface AppEndpointBuilderState<
   fragments: TemplateStringsArray;
   methods: Partial<
     Record<
-      core.HttpMethod,
-      StaticAppEndpointBuilderSpec<
-        TContext,
-        TRefinedContext,
-        TValidationError,
-        TMetadata
-      >
+      ep.HttpMethod,
+      StaticAppEndpointBuilderSpec<TContext, TValidationError, TMetadata>
     >
   >;
-  contextTransform: core.ContextValidatorSpec<
+  contextTransform: data.ContextValidatorSpec<
     TContext,
     TRefinedContext,
+    TState,
     TValidationError
   >;
   metadata: TMetadata;
@@ -33,7 +31,7 @@ export interface AppEndpointBuilderState<
         args: ReadonlyArray<string>;
         validation: Record<
           string,
-          core.URLDataParameterValidatorSpec<unknown, TValidationError>
+          data.URLDataParameterValidatorSpec<unknown, TValidationError>
         >;
       }
     | undefined;
@@ -41,20 +39,19 @@ export interface AppEndpointBuilderState<
 
 export interface StaticAppEndpointBuilderSpec<
   TContext,
-  TRefinedContext,
   TBodyError,
   TMetadata extends Record<
     string,
     md.MetadataBuilder<md.HKTArg, unknown, unknown>
   >,
 > {
-  builder: StaticAppEndpointBuilder<TContext, TRefinedContext, TBodyError>;
+  builder: StaticAppEndpointBuilder<TContext, TBodyError>;
   queryValidation?: Omit<
-    core.QueryValidatorSpec<unknown, TBodyError>,
+    data.QueryValidatorSpec<unknown, TBodyError>,
     "validator"
   >;
   inputValidation?: Omit<
-    core.DataValidatorRequestInputSpec<
+    data.DataValidatorRequestInputSpec<
       unknown,
       TBodyError,
       Record<string, unknown>
@@ -62,7 +59,7 @@ export interface StaticAppEndpointBuilderSpec<
     "validator"
   >;
   outputValidation: Omit<
-    core.DataValidatorResponseOutputSpec<
+    data.DataValidatorResponseOutputSpec<
       unknown,
       TBodyError,
       Record<string, unknown>
@@ -86,7 +83,7 @@ export interface StaticAppEndpointBuilderSpec<
   };
 }
 
-export type StaticAppEndpointBuilder<TContext, TRefinedContext, TBodyError> = (
+export type StaticAppEndpointBuilder<TContext, TBodyError> = (
   groupNamePrefix: string,
   // groups: Record<string, string>,
-) => core.StaticAppEndpointHandler<TContext, TRefinedContext, TBodyError>;
+) => ep.StaticAppEndpointHandler<TContext, TBodyError>;

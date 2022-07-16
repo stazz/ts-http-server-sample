@@ -5,7 +5,7 @@ import * as md from "../../core/metadata";
 // Maybe define own OpenAPI types at some point, altho probably no need, as these types can be modified with things like Omit and Pick.
 import type { OpenAPIV3_1 as openapi } from "openapi-types";
 
-interface OpenAPIArguments extends md.HKTArg {
+export interface OpenAPIArguments extends md.HKTArg {
   readonly type: OpenAPIArgumentsStatic &
     OpenAPIArgumentsURLData<this["_TURLData"]> &
     OpenAPIArgumentsQuery<this["_TQuery"]> &
@@ -30,17 +30,17 @@ interface OpenAPIParameterMedia<T> {
 }
 
 interface OpenAPIArgumentsURLData<TURLData> {
-  urlParameters: { [P in keyof TURLData]: OpenAPIParameterInput };
+  urlParameters: { [P in keyof TURLData]-?: OpenAPIParameterInput };
 }
 
 interface OpenAPIArgumentsQuery<TQuery> {
   queryParameters: {
-    [P in keyof TQuery]: OpenAPIParameterInput;
+    [P in keyof TQuery]-?: OpenAPIParameterInput;
   };
 }
 
 interface OpenAPIArgumentsInput<TBody> {
-  body: { [P in keyof TBody]: OpenAPIParameterMedia<TBody[P]> };
+  body: { [P in keyof TBody]-?: OpenAPIParameterMedia<TBody[P]> };
 }
 
 interface OpenAPIArgumentsOutput<TOutput> {
@@ -51,14 +51,14 @@ interface OpenAPIArgumentsOutput<TOutput> {
   };
 }
 
-interface OpenAPIContextArgs {
+export interface OpenAPIContextArgs {
   securitySchemes: Array<{
     name: string;
     scheme: openapi.SecuritySchemeObject;
   }>;
 }
 
-type OpenAPIPathItemArg = Omit<
+export type OpenAPIPathItemArg = Omit<
   openapi.PathItemObject,
   openapi.HttpMethods | "$ref" | "parameters"
 >;
@@ -68,15 +68,23 @@ export interface PathsObjectInfo {
   pathObject: openapi.PathItemObject;
 }
 
-// TODO - the argument would be callback to get JSON schema from data validator.
-export const createOpenAPIProvider = (): md.MetadataProvider<
+export type OpenAPIMetadataProvider = md.MetadataProvider<
   OpenAPIArguments,
   OpenAPIPathItemArg,
   PathsObjectInfo,
   OpenAPIContextArgs,
   openapi.InfoObject,
   openapi.Document
-> => {
+>;
+
+export type OpenAPIMetadataBuilder = md.MetadataBuilder<
+  OpenAPIArguments,
+  OpenAPIPathItemArg,
+  PathsObjectInfo
+>;
+
+// TODO - the argument would be callback to get JSON schema from data validator.
+export const createOpenAPIProvider = (): OpenAPIMetadataProvider => {
   const initialContextArgs: OpenAPIContextArgs = {
     securitySchemes: [],
   };
