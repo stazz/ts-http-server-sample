@@ -1,4 +1,4 @@
-import type * as core from "../api/core/core";
+import type * as core from "../api/core/endpoint";
 import type * as server from "../api/core/server";
 import type * as logging from "../logging";
 import type * as common from "./common";

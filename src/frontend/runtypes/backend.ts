@@ -5,8 +5,15 @@ import * as apiCall from "../../api/data-client/runtypes";
 import type * as protocol from "../../protocol";
 import * as t from "runtypes";
 
-const uuid = t.String.withConstraint((str) => true); // TODO
 export const createBackend = () => {
+  // This is RFC-adhering UUID regex. Relax if needed.
+  // Taken from https://stackoverflow.com/questions/7905929/how-to-test-valid-uuid-guid
+  const uuid = t.String.withConstraint(
+    (str) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.exec(
+        str,
+      ) != null,
+  );
   const thingData = t.Record({
     property: uuid,
   });
@@ -27,18 +34,21 @@ export const createBackend = () => {
   const getThings = factory.makeAPICall<protocol.APIGetThings>("GET", {
     method: tPlugin.plainValidator(t.Literal("GET")),
     url: "/api/thing",
-    query: tPlugin.encoderValidator(
-      tPlugin.encoder(
+    query: data.transitiveDataValidation(
+      tPlugin.plainValidator(
         t.Record({
           includeDeleted: t.Boolean.optional(),
           lastModified: t.InstanceOf(Date).optional(),
         }),
+      ),
+      ({ lastModified, ...q }) => ({
+        error: "none",
         // TODO "stripUndefineds" method.
-        ({ lastModified, ...q }) => ({
+        data: {
           lastModified: lastModified?.toISOString(),
           ...q,
-        }),
-      ),
+        },
+      }),
     ),
     response: tPlugin.plainValidator(t.Array(thingData)),
   });
@@ -81,7 +91,14 @@ export const createBackend = () => {
       tPlugin.plainValidator(
         t.Record({
           connected: t.Boolean,
-          connectedAt: t.String, // tt.DateFromISOString,
+          // Adopted (made Z and time offset spec mutually exclusive) from comment in here: https://stackoverflow.com/questions/3143070/javascript-regex-iso-datetime
+          // It's not 100% foolproof, but at least it stops other, non-ISO formats accepted by Date constructor
+          connectedAt: t.String.withConstraint(
+            (str) =>
+              /^[+-]?\d{4}(-[01]\d(-[0-3]\d(T[0-2]\d:[0-5]\d:?([0-5]\d(\.\d+)?)?(([+-][0-2]\d:[0-5]\d)|Z)?)?)?)?$/.exec(
+                str,
+              ) != null,
+          ),
         }),
       ),
       ({ connectedAt, ...r }) => {

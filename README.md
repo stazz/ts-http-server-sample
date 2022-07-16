@@ -1,29 +1,38 @@
 # Notes for issue #1
 - Compile-time safety
-- DRY (protocol.ts) = code sharing between BE and BE consumers
-- Server-agnostic REST API spec (as side effect)
-- 
-# Sample Project on Unopinionated and Typesafe HTTP Server
-This Git repository contains a sample TypeScript project to demonstrate one way of writing HTTP server exposing a set of configurable REST API endpoints.
+- DRY (protocol.ts) = code sharing between BE and FE (or other BE consumers)
+- Server-agnostic REST API spec, also useable in FE!
+- FE refers to data validation library only in one place (backend.ts)
+
+# Sample Project on Unopinionated and Typesafe HTTP Protocol Specification
+This Git repository contains a sample TypeScript project to demonstrate one way of writing HTTP backend and frontent, using configurable REST API endpoints.
 Since this is a sample, it is by no means a complete product, or final representation of such.
 
-Instead, it envisions a way on how REST APIs could be defined in TypeScript code, centralizing the various aspects (input/output validation, endpoint metadata, etc) into one place, and pushing as much checks as possible down to be compile-time checks.
-This enables <1second reaction time by IDE to any typos, or otherwise erroneus code put into the REST API specification.
+Instead, it envisions a way on how REST APIs could be defined in TypeScript code, centralizing the various aspects (input/output validation, endpoint metadata, etc) into one place (as per DRY principle), and pushing as much checks as possible down to be compile-time checks.
+This enables *<1second reaction time by IDE* to any typos, or otherwise erroneus code put into the REST API specification.
 
 ## Experimenting
 To get quick hands-on experience, feel free to clone this Git repo as a first step.
-
-This project uses Yarn as package manager, so then one should run the following to install all dependencies:
+To install the dependencies, and boot up a combination of HTTP server + data validation framework, use the following:
 ```sh
-yarn install --frozen-lockfile
+./run-server.sh <server library> <data validation library>
 ```
+The *server library* can be one of the following:
+- `koa`,
+- `express`, or
+- `fastify`.
+
+The *data validation library* can be one of the following:
+- `io-ts`,
+- `runtypes`, or
+- `zod`.
 
 Finally, open the project in your favourite IDE.
 
 So far, the IDE that has been tested is VSCode/VSCodium, having [ESLint extension](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) installed, and with the following file at path `.vscode/settings.json`:
 ```json
 {
-  "typescript.tsdk": "node_modules\\typescript\\lib",
+  "typescript.tsdk": "node_modules/typescript/lib",
   "editor.formatOnSave": true,
   "eslint.format.enable": true,
   "[typescript]": {
@@ -38,11 +47,12 @@ So far, the IDE that has been tested is VSCode/VSCodium, having [ESLint extensio
 }
 ```
 
-Once the repository is opened in IDE, good starting point is file `src/rest-endpoint.ts`.
-This file contains the code which fully specifies the REST API - its endpoints, the input and output they accept, the output they produce, and their OpenAPI metadata.
-Such code does not need to be in one file, however, for this sample, it is located in just one file.
+Once the repository is opened in IDE, good starting point is file `src/protocol.ts`.
+This file contains the code which fully specifies the REST API - its endpoints, the input they accept, the output they produce, etc.
+Both backend and frontend sample code ultimately depends on this one file.
+Notice that since this file is shared between both BE and FE, it has minimal set of dependencies.
 
-The following things are good experiments to do in `src/rest-endpoint.ts` to kick off full project exploration:
+The following things are good experiments to do in `src/protocol.ts` to kick off full project exploration:
 - On line `72` ( ``notAuthenticated.atURL`/${"id"}` ``), try change the literal `"id"` into other literal, like `"id_typoed"`.
   Observe immediate compile-time errors.
 - On same line, try to change the literal `"id"` into e.g. number `42` or even reference to some string variable.

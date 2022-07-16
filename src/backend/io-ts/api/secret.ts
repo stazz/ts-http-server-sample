@@ -11,8 +11,7 @@ import type * as protocol from "../../../protocol";
 
 export const accessSecret: types.EndpointSpec<
   protocol.APIAuthenticated,
-  typeof functionality.doAuthenticatedAction,
-  types.AuthenticatedState
+  typeof functionality.doAuthenticatedAction
 > = () => ({
   method: "GET",
   endpointHandler: ({ state: { username } }) =>

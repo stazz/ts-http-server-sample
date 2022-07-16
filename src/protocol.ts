@@ -1,6 +1,6 @@
 // Notice that these don't really need to implement ProtocolSpecXYYZ interfaces in api/core/protocol, as TS uses duck typing to check for type equality.
 // Specifying the types like this instead of implementing the interfaces is a bit more readable IMO.
-
+// However, we still need protocol.Encoded type to specify the association between e.g. Date encoded as ISO timestamp string.
 import type * as protocol from "./api/core/protocol";
 export interface APIGetThings {
   method: "GET";

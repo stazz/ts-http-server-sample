@@ -31,25 +31,22 @@ export type EndpointSpec<
   TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TFunctionality extends (...args: any) => any,
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  TState extends {} = Partial<AuthenticatedState>,
 > = (
   args: EndpointArgs,
 ) => TProtocolSpec["method"] extends ep.HttpMethodWithoutBody
-  ? MakeSpecWithoutBody<TProtocolSpec, TFunctionality, TState>
+  ? MakeSpecWithoutBody<TProtocolSpec, TFunctionality>
   : TProtocolSpec extends protocol.ProtocolSpecRequestBody<unknown>
-  ? MakeSpecWithBody<TProtocolSpec, TFunctionality, TState>
-  : MakeSpecWithoutBody<TProtocolSpec, TFunctionality, TState>;
+  ? MakeSpecWithBody<TProtocolSpec, TFunctionality>
+  : MakeSpecWithoutBody<TProtocolSpec, TFunctionality>;
 
 export type MakeSpecWithoutBody<
   TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TFunctionality extends (...args: any) => any,
-  TState extends Record<string, unknown> = Partial<AuthenticatedState>,
 > = TProtocolSpec extends protocol.ProtocolSpecQuery<infer TQuery>
   ? spec.BatchSpecificationWithQueryWithoutBody<
       unknown,
-      TState,
+      GetProtocolState<TProtocolSpec>,
       tPlugin.ValidationError,
       TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>
         ? spec.EndpointHandlerArgsWithURL<TURLData>
@@ -66,7 +63,7 @@ export type MakeSpecWithoutBody<
     >
   : spec.BatchSpecificationWithoutQueryWithoutBody<
       unknown,
-      TState,
+      GetProtocolState<TProtocolSpec>,
       tPlugin.ValidationError,
       TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>
         ? spec.EndpointHandlerArgsWithURL<TURLData>
@@ -86,11 +83,10 @@ export type MakeSpecWithBody<
     protocol.ProtocolSpecRequestBody<unknown>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TFunctionality extends (...args: any) => any,
-  TState extends Record<string, unknown> = Partial<AuthenticatedState>,
 > = TProtocolSpec extends protocol.ProtocolSpecQuery<infer TQuery>
   ? spec.BatchSpecificationWithQueryWithBody<
       unknown,
-      TState,
+      GetProtocolState<TProtocolSpec>,
       tPlugin.ValidationError,
       TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>
         ? spec.EndpointHandlerArgsWithURL<TURLData>
@@ -111,7 +107,7 @@ export type MakeSpecWithBody<
     >
   : spec.BatchSpecificationWithoutQueryWithBody<
       unknown,
-      TState,
+      GetProtocolState<TProtocolSpec>,
       tPlugin.ValidationError,
       TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>
         ? spec.EndpointHandlerArgsWithURL<TURLData>
@@ -129,3 +125,8 @@ export type MakeSpecWithBody<
         tPluginCommon.GetRuntime<TProtocolSpec["requestBody"]>
       >
     >;
+
+export type GetProtocolState<TProtocolSpec> =
+  TProtocolSpec extends protocol.ProtocolSpecHeaders<Record<string, "auth">>
+    ? AuthenticatedState
+    : common.State;

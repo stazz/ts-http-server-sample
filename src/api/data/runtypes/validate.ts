@@ -16,23 +16,6 @@ export const plainValidator =
   (input) =>
     utils.transformLibraryResultToModelResult(validation.validate(input));
 
-export const encoderValidator = <TOutput, TSerialized>({
-  validation,
-  transform,
-}: Encoder<TOutput, TSerialized>): data.DataValidator<
-  TOutput,
-  TSerialized,
-  error.ValidationError
-> => {
-  return data.transitiveDataValidation(
-    plainValidator(validation),
-    (validated) => ({
-      error: "none",
-      data: transform(validated),
-    }),
-  );
-};
-
 export function encoder<TOutput>(
   validation: Decoder<TOutput>,
 ): Encoder<TOutput, TOutput>;
