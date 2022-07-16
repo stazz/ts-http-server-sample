@@ -15,19 +15,6 @@ export const transformLibraryResultToModelResult = <TData>(
         errorInfo: [validationResult.error],
       };
 
-export const exceptionAsValidationError = (
-  input: unknown, // TODO maybe make ValidationError include optional 'value' property?
-  exception: unknown,
-): error.ValidationError => [
-  t.ZodError.create([
-    {
-      code: "custom",
-      path: [""],
-      message: `${exception}`,
-    },
-  ]),
-];
-
 export const maybeDescribe = <TType extends t.ZodType>(
   validation: TType,
   description: string | undefined,

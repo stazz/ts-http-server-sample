@@ -1,6 +1,6 @@
 import * as t from "io-ts";
 import * as data from "../../core/data-server";
-import type * as error from "./error";
+import * as error from "./error";
 import * as utils from "./utils";
 
 export type Decoder<TData, TInput = unknown> = t.Decoder<TInput, TData>;
@@ -25,7 +25,7 @@ export const plainValidatorEncoder =
         })
       : {
           error: "error",
-          errorInfo: utils.exceptionAsValidationError(
+          errorInfo: error.exceptionAsValidationError(
             input,
             new Error(
               "Given value for input was not what the validator needed.",

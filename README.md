@@ -27,6 +27,13 @@ The *data validation library* can be one of the following:
 - `runtypes`, or
 - `zod`.
 
+The `run-server.sh` script above uses Docker to install dependencies and execute the sample.
+If the Docker is missing from your system and you do not wish to install it, the equivalent of the above is achieved with these commands:
+```sh
+yarn install --frozen-lockfile
+yarn run server <server library> <data validation library>
+```
+
 Finally, open the project in your favourite IDE.
 
 So far, the IDE that has been tested is VSCode/VSCodium, having [ESLint extension](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) installed, and with the following file at path `.vscode/settings.json`:
@@ -49,22 +56,15 @@ So far, the IDE that has been tested is VSCode/VSCodium, having [ESLint extensio
 
 Once the repository is opened in IDE, good starting point is file `src/protocol.ts`.
 This file contains the code which fully specifies the REST API - its endpoints, the input they accept, the output they produce, etc.
-Both backend and frontend sample code ultimately depends on this one file.
+Both backend and frontend sample code ultimately depends on this one file - this file can be thought as a heart of this sample.
 Notice that since this file is shared between both BE and FE, it has minimal set of dependencies.
 
-The following things are good experiments to do in `src/protocol.ts` to kick off full project exploration:
-- On line `72` ( ``notAuthenticated.atURL`/${"id"}` ``), try change the literal `"id"` into other literal, like `"id_typoed"`.
-  Observe immediate compile-time errors.
-- On same line, try to change the literal `"id"` into e.g. number `42` or even reference to some string variable.
-  Observe immediate compile-time errors.
-- On line `75` ( `id: tPlugin.urlParameter(tPlugin.parameterString(idInBody), idRegex),` ), try change the property name from `id` to something else, like `id_typoed`.
-  Observe immediate compile-time errors.
-- On line `87` ( `.withoutBody(` ), try change the invoked method name to `withBody`.
-  Observe immediate compile-time errors (because `"GET"` handlers can not specify body).
-- On line `89` ( `({ url: { id }, query: { includeDeleted } }) =>` ), try to change the property name of the argument (`{ id }` into something else, like `{ id_typoed }`).
-  Observe immediate compile-time errors.
-- On line `92` ( `tPlugin.outputValidator(t.string)` ), try change the output type `t.string` to something else, like `t.number`, so that the line becomes `tPlugin.outputValidator(t.number)`.
-  Observe immediate compile-time errors.
+The following things are good experiments to do in `src/protocol.ts` to kick off full project exploration.
+Notice that when the list talks about observing compile-time errors in certain folders, it might require to open few files in those folders in the IDE on first time, for the IDE to show those errors.
+- On line `22` ( `id: ID`), try change the literal `id` into other literal, like `id_typoed`.
+  Observe immediate compile-time errors in both `src/backend` and `src/frontend` folders.
+- On same line, try to change the type `ID` into e.g. `number`.
+  Observe immediate compile-time errors in both `src/backend` and `src/frontend` folders.
 - Feel free to try similar things with other endpoints, and other places in the code.
   All folder in [source code folder](src) also contain `README.md` files for documentation.
 
@@ -96,6 +96,8 @@ Before delving deeper into the code, try starting the HTTP server with command `
 
 This should be quite good introduction to the project.
 Feel free to explore subfolders in `src` folder, read included `README.md` files, and play around with code to see which changes invoke immediate IDE compiler response.
+It is good idea to explore `backend` and `frontend` subfolders of the `src` first, as they give concrete examples on how the REST API can be implemented by backend, and how it is invoked by frontend.
+Other subfolders contain more generic things, which are easier to understand after first familiarizing oneself with the BE/FE -specific concrete code.
 
 ## Design Principles and How They Are Achieved
 This chapter talks on higher level about the motivation behind this sample, and the features that using this sample hopefully exposes.
@@ -108,19 +110,19 @@ The *robust*, *efficient*, and *trustworthy* terms here are more about writing c
 This is how this project achieves the goal:
 - The first principle is the most important of them all, and it relates closely to developer experience (and thus, how efficent, robust, etc the code will actually be).
   The language chosen is **compile-time typed**, allowing to define rules for data structures and function inputs and inputs.
-  Furthermore, as much as possible of parameters for specifying the rules (in this case, ruleset for defining customizable REST APIs) are pushed to compilation-time phase; one example of this are the `TArgs` type parameter of `atURL` function in `src/api/model/build.ts` captures the endpoint URL structure at compile-time (assuming the arguments are compile-time constants, as they almost always are in this case).
+  Furthermore, as much as possible of parameters for specifying the rules (in this case, ruleset for defining customizable REST APIs) are pushed to compilation-time phase; one example of this are the types in `src/protocol.ts`, from which stem almost everything else non-generic (not in `src/api` folder).
   On general level, following this principle allows to push down reaction time for bugs and errors from **days** in case of "discovered in production", past **hours** in case of "discovered in pipeline", and **down to almost-realtime** in case of "discovered by IDE compiler".
-- The various type definitions and functions in `src/api/core/core` and `src/api/core/spec` folders are designed to be "foolproof" in order to allow only correct way of using them.
-  For example, the `withBody` and `withoutBody` methods of `AppEndpointBuilder` interface in `src/api/core/spec/index.ts` clearly indicate how the endpoind will behave in regards to HTTP body, as opposed to having generic approach of one method returning one generic (base) type.
-  Furthermore, these methods further adher to previously mentioned principle, as they convey the expectations of endpoint towards the HTTP body to the compiler (via different return types), allowing further compile-time error checking.
+- The various type definitions and functions in `src/backend/*/types.ts` and `src/frontend/*/backend.ts` folders are designed to be "foolproof" in order to allow only correct way of using them.
+  For example, the `EndpointSpec` types in  `src/backend/*/types.ts` files make separation on whether they allow request body definition, depending on the HTTP method of the endpoint.
+  This allows checking of sanity of endpoint specification already at compile-time.
 - The type definitions and functions in `src/api/core` folder try to be as un-opinionated as possible - none of the files has any external dependencies apart from TS standard library.
   This agnosticism allows to shift the decisions and control about library decisions higher in the architectural layers, thus widening the selection of libraries to use, up to the highest level of design.
 - The type definitions and functions in `src/api/core` are also minimal, to avoid maintenance burden.
 - The minimalism and agnosticism allow for better *class decoupling*:
-    - The http-server/data-validation library dependencies are introduced in `src/data`, `src/metadata` and `src/server` folders as a glue between dependenless things in `src/api/core` folder, and actual libraries one decides to use.
+    - The http-server/data-validation library dependencies are introduced in `src/api/data`, `src/api/metadata` and `src/api/server` folders as a glue between dependenless things in `src/api/core` folder, and actual libraries one decides to use.
     - The actual code which *does* the business-specific things is in `lib` folder and its subfolders.
       It is **not aware of REST API** or much other things than the things it cares about, and thus it is **easily unit-testable**, and also **easily invokable** if e.g. published as a library to be consumed by 3rd party.
-    - The entrypoint file `src/index.ts` and REST API definition file `src/rest-endpoints.ts` are acting as highest architectural layer, seeing all of libraries that will actually be used (`koa` and `io-ts`, in this case), the generic REST API functionality in `src/api/core` folder, and the glue between generic REST API functionality and `koa` and `io-ts` library in `src/api/data/io-ts`, `src/api/server/koa` and `src/api/metadata/openapi` folders.
+    - The files placed directly in `src` folder are acting as highest architectural layer, seeing all of libraries that will actually be used.
       It has absolute control over both the REST API endpoints and which libraries are used, and change to those things will result changes only in these files.
 - Last but not least - the project strives to achieve good runtime performance.
   Part of that is already done by keeping things minimalistic and doing things in simple way when it is possible.
@@ -129,11 +131,26 @@ This is how this project achieves the goal:
 
 # Architecture Layers of This Project
 On a higher level, this project architectural layers can be described as following:
-- The *entrypoint* file `src/index.ts` and REST API specification file `src/rest-endpoints.ts` are inside the highest layer, and the layer is directly depending on *business logic* and *glue layer*.
+- The *entrypoint* file `src/index.ts` and REST API specification file `src/protocol.ts` are inside the highest layer, and the layer is directly depending on *business logic* and *glue layer*.
 - The *business logic* layer is in `src/lib` directory, and it is directly depending on busines-related libraries and such (e.g. DB lib, but not visible in this sample just yet).
   It is **not depending** on things like HTTP protcols, validating its own input/output, etc (however, it can be validating e.g. output from DB queries, via some ORM library or something else).
 - The *generic REST API layer* is in `src/api/core` directory, further decomposed into smaller modules, and does not have any library dependencies.
   It allows to describe REST API structure and behaviour in generic, yet fully compile-time-safe way.
-- The *glue layer* is in the subdirectories of `src/api/` directory, except `core` one, and it is directly depending on *generic REST API layer* and *libraries*.
+- The *glue layer* is in the subdirectories of `src/api` directory, except `core` one, and it is directly depending on *generic REST API layer* and *libraries*.
   Notice that currently that folder only has support for `koa` and `io-ts`, as this is just a PoC.
-- The *libraries* are defined in `package.json` and right now include `koa` and `io-ts`, and their peer dependencies.
+- The *backend demonstration layer* is in `src/backend/<data validation library>` folders, duplicated for each data validation library.
+  The layer demonstrates how to implement the backend using certain data validation library, and the specification in `src/protocol.ts`.
+  Notice that the layer is **agnostic to the HTTP server library used**.
+- The *frontend demonstration layer* is in `src/frontend/<data validation library>` folders, duplicated for each data validation library.
+  The layer demonstrates how to invoke backend API using certain data validation library, and the specification in `src/protocol.ts`.
+  Notice that the layer is **agnostic to HTTP invocation library used**.
+- The *libraries* are defined in `package.json` and right now include all necessary dependencies to run all the possible server and data validation library combinations.
+
+# Current known limitations and shortcomings
+- The full URL needs to be specified both in `src/backend/<data validation library>` and `src/frontend/<data validation library>` code, and as such, does not adher to DRY principle.
+  This needs further investigated how feasible it is to make URL specification more DRY.
+- There currently are not unit tests.
+  They will be worked on as part of #4.
+- The automatic OpenAPI JSON schema specification generation from validation objects is not yet implemented.
+  Thus the generated OpenAPI document right now is very short stub.
+  This will be addresed by #3.

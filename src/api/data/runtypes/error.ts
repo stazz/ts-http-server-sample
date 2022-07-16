@@ -21,3 +21,13 @@ const detailsToString = (details: string | t.Details): string =>
             ([key, detail]) => `${key}:${detailsToString(detail)}`,
           )
       ).join("\n  ");
+
+export const exceptionAsValidationError = (
+  input: unknown, // TODO maybe make ValidationError include optional 'value' property?
+  exception: unknown,
+): ValidationError => [
+  {
+    code: t.Failcode.CONTENT_INCORRECT,
+    message: `${exception}`,
+  },
+];

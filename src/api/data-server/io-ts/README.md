@@ -1,12 +1,10 @@
-# Generic REST API Endpoint Specification Data Validation - IO-TS library
-This folder contains code which implements the data validation layer specified by [core](../../core/core) module.
+# Generic REST API Endpoint Specification Data Validation for Backends - IO-TS library
+This folder contains code which implements the data validation layer specified by [core module](../../core/data-server).
 It does so by utilizing API exposed by [IO-TS](https://github.com/gcanti/io-ts) library.
 
 The exposed functions include:
-- `urlParameter` in `validate-string.ts` to create data validator for parameter within URL pathname,
-- `queryValidator` in `validate-string.ts` to create data validator for parameter within URL search portion,
-- `parameterString` and `parameterBoolean` in `string-parameters.ts` for quick shortcuts for most commonly used types of URL and query parameters,
-- `inputValidator` in `validate-body.ts` to create data validator for HTTP *request* body,
-- `outputValidator` in `validate-body.ts` to create data validator for HTTP *response* body,
-- `plainValidator` in `validate.ts` to create data validator for some other data, and
-- `getHumanReadableErrorMessage` in `error.ts` to extract human readable error message from IO-TS validation error object.
+- `urlParameter` in [validate-string.ts](./validate-string.ts) to create data validator for parameter within URL pathname,
+- `queryValidator` in [validate-string.ts](./validate-string.ts) to create data validator for parameter within URL search portion,
+- `parameterXYZ` functions in [string-parameters.ts](./string-parameters.ts) for quick shortcuts for most commonly used types of URL and query parameters,
+- `inputValidator` in [validate-body.ts](./validate-body.ts) to create data validator for HTTP *request* body, and
+- `outputValidator` in [validate-body.ts](./validate-body.ts) to create data validator for HTTP *response* body.

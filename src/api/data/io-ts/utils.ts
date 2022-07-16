@@ -14,14 +14,3 @@ export const transformLibraryResultToModelResult = <TData>(
         error: "error",
         errorInfo: validationResult.left,
       };
-
-export const exceptionAsValidationError = (
-  input: unknown,
-  exception: unknown,
-): error.ValidationError => [
-  {
-    value: input,
-    message: `${exception}`,
-    context: [],
-  },
-];

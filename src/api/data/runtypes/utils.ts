@@ -14,13 +14,3 @@ export const transformLibraryResultToModelResult = <TData>(
         error: "error",
         errorInfo: [data.omit(validationResult, "success")],
       };
-
-export const exceptionAsValidationError = (
-  input: unknown, // TODO maybe make ValidationError include optional 'value' property?
-  exception: unknown,
-): error.ValidationError => [
-  {
-    code: t.Failcode.CONTENT_INCORRECT,
-    message: `${exception}`,
-  },
-];

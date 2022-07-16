@@ -1,6 +1,6 @@
 import type * as backend from "./backend";
 
-const demontrateInvokingRestApi = async ({
+const invokeRestAPI = async ({
   getThings,
   createThing,
   getThing,
