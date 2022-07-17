@@ -1,18 +1,7 @@
 import * as protocol from "../../core/protocol";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export type GetRuntime<T> = T extends protocol.Encoded<infer TRuntime, infer _>
-  ? TRuntime
-  : T extends Array<infer U>
-  ? GetRuntimeArray<U>
-  : T extends object
-  ? GetRuntimeObject<T>
-  : T;
-export type GetRuntimeObject<T> = {
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  [P in keyof T]: T[P] extends Function ? T[P] : GetRuntime<T[P]>;
-};
-export type GetRuntimeArray<T> = Array<GetRuntime<T>>;
+export type GetRuntime<T> = protocol.RuntimeOf<T>;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export type GetEncoded<T> = T extends protocol.Encoded<infer _, infer TEncoded>
@@ -38,6 +27,5 @@ export type NonOptionalKeys<T> = {
 }[keyof T];
 
 export interface HKTEncoded extends protocol.HKTEncoded {
-  readonly typeRuntime: GetRuntime<this["_TRuntimeSpec"]>;
   readonly typeEncoded: GetEncoded<this["_TEncodedSpec"]>;
 }

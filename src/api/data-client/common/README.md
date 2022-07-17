@@ -2,7 +2,8 @@
 This small module contains some common type code used when handling data validation on frontend side.
 
 The exposed functionality is as follows:
-- [api-call-factory.ts](./api-call-factory.ts) exposes interface on how to create callback which invokes given HTTP endpoint, in typesafe manner,
+- [api-call.ts](./api-call.ts) exposes `APICall` interface which is generic callback type for invoking HTTP endpoints,
+- [api-call-factory.ts](./api-call-factory.ts) exposes interface on how to create `APICall` callbacks in typesafe manner,
 - [api-call-factory-factory.ts](api-call-factory-factory.ts) exposes function on how to create instances of interface defined above.
 
 The function exposed by [api-call-factory-factory.ts](api-call-factory-factory.ts) is not meant to be used directly by clients.

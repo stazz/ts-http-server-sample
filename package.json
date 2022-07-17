@@ -15,6 +15,7 @@
     "build": "yarn run tsc && yarn run lint",
     "server": "ts-node src 0.0.0.0 3000",
     "tsc": "tsc --project tsconfig.json",
+    "tsc-and-test": "yarn run tsc && yarn run test",
     "lint": "eslint ./src --ext .ts,.tsx",
     "test": "nyc ava"
   },
@@ -50,9 +51,6 @@
   "ava": {
     "files": [
       "dist/**/__test__/*.spec.js"
-    ],
-    "require": [
-      "./dist/__test__/beforeTests"
     ],
     "timeout": "10m",
     "verbose": true

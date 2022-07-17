@@ -1,5 +1,6 @@
 import type * as protocol from "../../core/protocol";
-import * as data from "../../core/data";
+import type * as data from "../../core/data";
+import type * as apiCall from "./api-call";
 
 // These 16 overloads are a bit fugly but oh well...
 export interface APICallFactory<
@@ -18,13 +19,12 @@ export interface APICallFactory<
   >(
     method: TProtocolSpec["method"],
     args: MakeAPICallArgs<
-      THKTEncoded,
       TProtocolSpec["method"],
       TProtocolSpec["responseBody"],
       TError
     > &
       MakeAPICallArgsURL,
-  ): APICall<THKTEncoded, void, TProtocolSpec["responseBody"], TError>;
+  ): apiCall.GetAPICall<TProtocolSpec, TError>;
 
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
@@ -36,14 +36,13 @@ export interface APICallFactory<
   >(
     method: TProtocolSpec["method"],
     args: MakeAPICallArgs<
-      THKTEncoded,
       TProtocolSpec["method"],
       TProtocolSpec["responseBody"],
       TError
     > &
       MakeAPICallArgsHeaders<TProtocolSpec["headers"]> &
       MakeAPICallArgsURL,
-  ): APICall<THKTEncoded, void, TProtocolSpec["responseBody"], TError>;
+  ): apiCall.GetAPICall<TProtocolSpec, TError>;
 
   // Overloads for 2-forms
   makeAPICall<
@@ -56,19 +55,13 @@ export interface APICallFactory<
   >(
     method: TProtocolSpec["method"],
     args: MakeAPICallArgs<
-      THKTEncoded,
       TProtocolSpec["method"],
       TProtocolSpec["responseBody"],
       TError
     > &
       MakeAPICallArgsURL &
       MakeAPICallArgsQuery<THKTEncoded, TProtocolSpec["query"], TError>,
-  ): APICall<
-    THKTEncoded,
-    { query: TProtocolSpec["query"] },
-    TProtocolSpec["responseBody"],
-    TError
-  >;
+  ): apiCall.GetAPICall<TProtocolSpec, TError>;
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
       protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
@@ -79,7 +72,6 @@ export interface APICallFactory<
   >(
     method: TProtocolSpec["method"],
     args: MakeAPICallArgs<
-      THKTEncoded,
       TProtocolSpec["method"],
       TProtocolSpec["responseBody"],
       TError
@@ -87,12 +79,7 @@ export interface APICallFactory<
       MakeAPICallArgsHeaders<TProtocolSpec["headers"]> &
       MakeAPICallArgsURL &
       MakeAPICallArgsQuery<THKTEncoded, TProtocolSpec["query"], TError>,
-  ): APICall<
-    THKTEncoded,
-    { query: TProtocolSpec["query"] },
-    TProtocolSpec["responseBody"],
-    TError
-  >;
+  ): apiCall.GetAPICall<TProtocolSpec, TError>;
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
       protocol.ProtocolSpecRequestBody<unknown> & {
@@ -103,19 +90,13 @@ export interface APICallFactory<
   >(
     method: TProtocolSpec["method"],
     args: MakeAPICallArgs<
-      THKTEncoded,
       TProtocolSpec["method"],
       TProtocolSpec["responseBody"],
       TError
     > &
       MakeAPICallArgsURL &
       MakeAPICallArgsBody<THKTEncoded, TProtocolSpec["requestBody"], TError>,
-  ): APICall<
-    THKTEncoded,
-    { body: TProtocolSpec["requestBody"] },
-    TProtocolSpec["responseBody"],
-    TError
-  >;
+  ): apiCall.GetAPICall<TProtocolSpec, TError>;
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
       protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
@@ -126,7 +107,6 @@ export interface APICallFactory<
   >(
     method: TProtocolSpec["method"],
     args: MakeAPICallArgs<
-      THKTEncoded,
       TProtocolSpec["method"],
       TProtocolSpec["responseBody"],
       TError
@@ -134,12 +114,7 @@ export interface APICallFactory<
       MakeAPICallArgsHeaders<TProtocolSpec["headers"]> &
       MakeAPICallArgsURL &
       MakeAPICallArgsBody<THKTEncoded, TProtocolSpec["requestBody"], TError>,
-  ): APICall<
-    THKTEncoded,
-    { body: TProtocolSpec["requestBody"] },
-    TProtocolSpec["responseBody"],
-    TError
-  >;
+  ): apiCall.GetAPICall<TProtocolSpec, TError>;
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
       protocol.ProtocolSpecURL<Record<string, unknown>> & {
@@ -150,18 +125,12 @@ export interface APICallFactory<
   >(
     method: TProtocolSpec["method"],
     args: MakeAPICallArgs<
-      THKTEncoded,
       TProtocolSpec["method"],
       TProtocolSpec["responseBody"],
       TError
     > &
-      MakeAPICallArgsURLData<THKTEncoded, TProtocolSpec["url"], TError>,
-  ): APICall<
-    THKTEncoded,
-    { url: TProtocolSpec["url"] },
-    TProtocolSpec["responseBody"],
-    TError
-  >;
+      MakeAPICallArgsURLData<TProtocolSpec["url"], TError>,
+  ): apiCall.GetAPICall<TProtocolSpec, TError>;
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
       protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
@@ -172,19 +141,13 @@ export interface APICallFactory<
   >(
     method: TProtocolSpec["method"],
     args: MakeAPICallArgs<
-      THKTEncoded,
       TProtocolSpec["method"],
       TProtocolSpec["responseBody"],
       TError
     > &
       MakeAPICallArgsHeaders<TProtocolSpec["headers"]> &
-      MakeAPICallArgsURLData<THKTEncoded, TProtocolSpec["url"], TError>,
-  ): APICall<
-    THKTEncoded,
-    { url: TProtocolSpec["url"] },
-    TProtocolSpec["responseBody"],
-    TError
-  >;
+      MakeAPICallArgsURLData<TProtocolSpec["url"], TError>,
+  ): apiCall.GetAPICall<TProtocolSpec, TError>;
 
   // Overloads for 3-forms
   makeAPICall<
@@ -197,7 +160,6 @@ export interface APICallFactory<
   >(
     method: TProtocolSpec["method"],
     args: MakeAPICallArgs<
-      THKTEncoded,
       TProtocolSpec["method"],
       TProtocolSpec["responseBody"],
       TError
@@ -205,12 +167,7 @@ export interface APICallFactory<
       MakeAPICallArgsURL &
       MakeAPICallArgsQuery<THKTEncoded, TProtocolSpec["query"], TError> &
       MakeAPICallArgsBody<THKTEncoded, TProtocolSpec["requestBody"], TError>,
-  ): APICall<
-    THKTEncoded,
-    { query: TProtocolSpec["query"]; body: TProtocolSpec["requestBody"] },
-    TProtocolSpec["responseBody"],
-    TError
-  >;
+  ): apiCall.GetAPICall<TProtocolSpec, TError>;
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
       protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
@@ -221,7 +178,6 @@ export interface APICallFactory<
   >(
     method: TProtocolSpec["method"],
     args: MakeAPICallArgs<
-      THKTEncoded,
       TProtocolSpec["method"],
       TProtocolSpec["responseBody"],
       TError
@@ -230,12 +186,7 @@ export interface APICallFactory<
       MakeAPICallArgsURL &
       MakeAPICallArgsQuery<THKTEncoded, TProtocolSpec["query"], TError> &
       MakeAPICallArgsBody<THKTEncoded, TProtocolSpec["requestBody"], TError>,
-  ): APICall<
-    THKTEncoded,
-    { query: TProtocolSpec["query"]; body: TProtocolSpec["requestBody"] },
-    TProtocolSpec["responseBody"],
-    TError
-  >;
+  ): apiCall.GetAPICall<TProtocolSpec, TError>;
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
       protocol.ProtocolSpecQuery<Record<string, unknown>> &
@@ -246,19 +197,13 @@ export interface APICallFactory<
   >(
     method: TProtocolSpec["method"],
     args: MakeAPICallArgs<
-      THKTEncoded,
       TProtocolSpec["method"],
       TProtocolSpec["responseBody"],
       TError
     > &
-      MakeAPICallArgsURLData<THKTEncoded, TProtocolSpec["url"], TError> &
+      MakeAPICallArgsURLData<TProtocolSpec["url"], TError> &
       MakeAPICallArgsQuery<THKTEncoded, TProtocolSpec["query"], TError>,
-  ): APICall<
-    THKTEncoded,
-    { query: TProtocolSpec["query"]; url: TProtocolSpec["url"] },
-    TProtocolSpec["responseBody"],
-    TError
-  >;
+  ): apiCall.GetAPICall<TProtocolSpec, TError>;
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
       protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
@@ -269,20 +214,14 @@ export interface APICallFactory<
   >(
     method: TProtocolSpec["method"],
     args: MakeAPICallArgs<
-      THKTEncoded,
       TProtocolSpec["method"],
       TProtocolSpec["responseBody"],
       TError
     > &
       MakeAPICallArgsHeaders<TProtocolSpec["headers"]> &
-      MakeAPICallArgsURLData<THKTEncoded, TProtocolSpec["url"], TError> &
+      MakeAPICallArgsURLData<TProtocolSpec["url"], TError> &
       MakeAPICallArgsQuery<THKTEncoded, TProtocolSpec["query"], TError>,
-  ): APICall<
-    THKTEncoded,
-    { query: TProtocolSpec["query"]; url: TProtocolSpec["url"] },
-    TProtocolSpec["responseBody"],
-    TError
-  >;
+  ): apiCall.GetAPICall<TProtocolSpec, TError>;
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
       protocol.ProtocolSpecRequestBody<unknown> &
@@ -293,19 +232,13 @@ export interface APICallFactory<
   >(
     method: TProtocolSpec["method"],
     args: MakeAPICallArgs<
-      THKTEncoded,
       TProtocolSpec["method"],
       TProtocolSpec["responseBody"],
       TError
     > &
-      MakeAPICallArgsURLData<THKTEncoded, TProtocolSpec["url"], TError> &
+      MakeAPICallArgsURLData<TProtocolSpec["url"], TError> &
       MakeAPICallArgsBody<THKTEncoded, TProtocolSpec["requestBody"], TError>,
-  ): APICall<
-    THKTEncoded,
-    { body: TProtocolSpec["requestBody"]; url: TProtocolSpec["url"] },
-    TProtocolSpec["responseBody"],
-    TError
-  >;
+  ): apiCall.GetAPICall<TProtocolSpec, TError>;
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
       protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
@@ -318,20 +251,14 @@ export interface APICallFactory<
   >(
     method: TProtocolSpec["method"],
     args: MakeAPICallArgs<
-      THKTEncoded,
       TProtocolSpec["method"],
       TProtocolSpec["responseBody"],
       TError
     > &
       MakeAPICallArgsHeaders<TProtocolSpec["headers"]> &
-      MakeAPICallArgsURLData<THKTEncoded, TProtocolSpec["url"], TError> &
+      MakeAPICallArgsURLData<TProtocolSpec["url"], TError> &
       MakeAPICallArgsBody<THKTEncoded, TProtocolSpec["requestBody"], TError>,
-  ): APICall<
-    THKTEncoded,
-    { body: TProtocolSpec["requestBody"]; url: TProtocolSpec["url"] },
-    TProtocolSpec["responseBody"],
-    TError
-  >;
+  ): apiCall.GetAPICall<TProtocolSpec, TError>;
 
   // Overloads for 4-form
   makeAPICall<
@@ -346,24 +273,14 @@ export interface APICallFactory<
   >(
     method: TProtocolSpec["method"],
     args: MakeAPICallArgs<
-      THKTEncoded,
       TProtocolSpec["method"],
       TProtocolSpec["responseBody"],
       TError
     > &
-      MakeAPICallArgsURLData<THKTEncoded, TProtocolSpec["url"], TError> &
+      MakeAPICallArgsURLData<TProtocolSpec["url"], TError> &
       MakeAPICallArgsQuery<THKTEncoded, TProtocolSpec["query"], TError> &
       MakeAPICallArgsBody<THKTEncoded, TProtocolSpec["requestBody"], TError>,
-  ): APICall<
-    THKTEncoded,
-    {
-      query: TProtocolSpec["query"];
-      body: TProtocolSpec["requestBody"];
-      url: TProtocolSpec["url"];
-    },
-    TProtocolSpec["responseBody"],
-    TError
-  >;
+  ): apiCall.GetAPICall<TProtocolSpec, TError>;
   makeAPICall<
     TProtocolSpec extends protocol.ProtocolSpecCore<string, unknown> &
       protocol.ProtocolSpecHeaders<Record<string, THeaders>> &
@@ -373,59 +290,20 @@ export interface APICallFactory<
   >(
     method: TProtocolSpec["method"],
     args: MakeAPICallArgs<
-      THKTEncoded,
       TProtocolSpec["method"],
       TProtocolSpec["responseBody"],
       TError
     > &
       MakeAPICallArgsHeaders<TProtocolSpec["headers"]> &
-      MakeAPICallArgsURLData<THKTEncoded, TProtocolSpec["url"], TError> &
+      MakeAPICallArgsURLData<TProtocolSpec["url"], TError> &
       MakeAPICallArgsQuery<THKTEncoded, TProtocolSpec["query"], TError> &
       MakeAPICallArgsBody<THKTEncoded, TProtocolSpec["requestBody"], TError>,
-  ): APICall<
-    THKTEncoded,
-    {
-      query: TProtocolSpec["query"];
-      body: TProtocolSpec["requestBody"];
-      url: TProtocolSpec["url"];
-    },
-    TProtocolSpec["responseBody"],
-    TError
-  >;
+  ): apiCall.GetAPICall<TProtocolSpec, TError>;
 }
 
-export type APICall<
-  THKTEncoded extends protocol.HKTEncoded,
-  TArgs,
-  TReturnType,
-  TError,
-> = (args: protocol.RuntimeOf<THKTEncoded, TArgs>) => Promise<
-  | data.DataValidatorResult<
-      protocol.RuntimeOf<THKTEncoded, TReturnType>,
-      TError
-    >
-  | {
-      error: "error-input";
-      errorInfo: Partial<{
-        [P in "method" | "url" | "query" | "body"]: data.GetError<
-          data.DataValidatorResultError<TError>
-        >;
-      }>;
-    }
->;
-
-export interface MakeAPICallArgs<
-  THKTEncoded extends protocol.HKTEncoded,
-  TMethod,
-  TResponse,
-  TError,
-> {
+export interface MakeAPICallArgs<TMethod, TResponse, TError> {
   method: data.DataValidator<unknown, TMethod, TError>;
-  response: data.DataValidator<
-    unknown,
-    protocol.RuntimeOf<THKTEncoded, TResponse>,
-    TError
-  >;
+  response: data.DataValidator<unknown, protocol.RuntimeOf<TResponse>, TError>;
 }
 
 export interface MakeAPICallArgsHeaders<
@@ -438,16 +316,8 @@ export interface MakeAPICallArgsURL {
   url: string;
 }
 
-export interface MakeAPICallArgsURLData<
-  THKTEncoded extends protocol.HKTEncoded,
-  TURLData,
-  TError,
-> {
-  url: data.DataValidator<
-    protocol.RuntimeOf<THKTEncoded, TURLData>,
-    string,
-    TError
-  >;
+export interface MakeAPICallArgsURLData<TURLData, TError> {
+  url: data.DataValidator<protocol.RuntimeOf<TURLData>, string, TError>;
 }
 
 export interface MakeAPICallArgsQuery<
@@ -456,7 +326,7 @@ export interface MakeAPICallArgsQuery<
   TError,
 > {
   query: data.DataValidator<
-    protocol.RuntimeOf<THKTEncoded, TQueryData>,
+    protocol.RuntimeOf<TQueryData>,
     protocol.EncodedOf<THKTEncoded, TQueryData>,
     TError
   >;
@@ -468,7 +338,7 @@ export interface MakeAPICallArgsBody<
   TError,
 > {
   body: data.DataValidator<
-    protocol.RuntimeOf<THKTEncoded, TBodyData>,
+    protocol.RuntimeOf<TBodyData>,
     protocol.EncodedOf<THKTEncoded, TBodyData>,
     TError
   >;

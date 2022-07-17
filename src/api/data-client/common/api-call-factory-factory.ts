@@ -1,6 +1,7 @@
 import type * as protocol from "../../core/protocol";
 import * as data from "../../core/data";
-import type * as apiCall from "./api-call-factory";
+import type * as apiCall from "./api-call";
+import type * as apiCallFactory from "./api-call-factory";
 
 export const createAPICallFactory = <THKTEncoded extends protocol.HKTEncoded>(
   callHttpEndpoint: CallHTTPEndpoint,
@@ -14,7 +15,7 @@ export const createAPICallFactory = <THKTEncoded extends protocol.HKTEncoded>(
   ) => {
     withHeaders: <THeaders extends Record<string, HeaderProvider>>(
       headers: THeaders,
-    ) => apiCall.APICallFactory<
+    ) => apiCallFactory.APICallFactory<
       THKTEncoded,
       keyof THeaders & string,
       TValidationError
@@ -34,36 +35,35 @@ export const createAPICallFactory = <THKTEncoded extends protocol.HKTEncoded>(
             url,
             ...rest
           }:
-            | (apiCall.MakeAPICallArgs<
-                THKTEncoded,
+            | (apiCallFactory.MakeAPICallArgs<
                 TProtocolSpec["method"],
                 TProtocolSpec["responseBody"],
                 DataValidatorError<typeof undefinedValidator>
               > &
                 (
-                  | apiCall.MakeAPICallArgsURL
-                  | apiCall.MakeAPICallArgsURLData<
-                      THKTEncoded,
+                  | apiCallFactory.MakeAPICallArgsURL
+                  | apiCallFactory.MakeAPICallArgsURLData<
                       unknown,
                       DataValidatorError<typeof undefinedValidator>
                     >
                 )) &
                 // eslint-disable-next-line @typescript-eslint/ban-types
                 (| {}
-                  | apiCall.MakeAPICallArgsHeaders<Record<string, string>>
-                  | apiCall.MakeAPICallArgsQuery<
+                  | apiCallFactory.MakeAPICallArgsHeaders<
+                      Record<string, string>
+                    >
+                  | apiCallFactory.MakeAPICallArgsQuery<
                       THKTEncoded,
                       Record<string, unknown>,
                       DataValidatorError<typeof undefinedValidator>
                     >
-                  | apiCall.MakeAPICallArgsBody<
+                  | apiCallFactory.MakeAPICallArgsBody<
                       THKTEncoded,
                       unknown,
                       DataValidatorError<typeof undefinedValidator>
                     >
                 ),
         ): apiCall.APICall<
-          THKTEncoded,
           Partial<Record<"method" | "url" | "query" | "body", unknown>> | void,
           TProtocolSpec["responseBody"],
           DataValidatorError<typeof undefinedValidator>
@@ -110,7 +110,8 @@ export const createAPICallFactory = <THKTEncoded extends protocol.HKTEncoded>(
           return async (args) => {
             const validatedArgs = componentValidations.getOutputs({
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ...((args ?? {}) as object & { url: any }),
+              ...(args ?? {}),
+              url: args ? args.url : undefined,
             });
             switch (validatedArgs.error) {
               case "none": {

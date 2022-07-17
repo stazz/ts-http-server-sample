@@ -1,7 +1,7 @@
 import * as process from "process";
 import type * as serverModuleApi from "./module-api/server";
 import type * as restModuleApi from "./module-api/rest";
-import * as net from "net";
+import * as utils from "./utils";
 
 const main = async (
   host: string,
@@ -42,7 +42,7 @@ const main = async (
         ).join(", ")}.`,
       ).default.createEndpoints,
     );
-    await listenAsync(instance, port, host);
+    await utils.listenAsync(instance, port, host);
     exitCode = 0;
   } catch (e) {
     // eslint-disable-next-line no-console
@@ -67,18 +67,3 @@ const doThrow = <T>(value: T | undefined, msg: string) => {
 
 const args = process.argv.slice(2);
 void main(args[0], parseInt(args[1]), args[2], args[3]);
-
-const listenAsync = (
-  server: serverModuleApi.ServerCreationResult,
-  port: number,
-  host: string,
-) =>
-  server instanceof net.Server
-    ? new Promise<void>((resolve, reject) => {
-        try {
-          server.listen(port, host, () => resolve());
-        } catch (e) {
-          reject(e);
-        }
-      })
-    : server.customListen(port, host);
