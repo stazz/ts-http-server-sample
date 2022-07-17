@@ -52,7 +52,7 @@ export type MakeSpecWithoutBody<
         ? spec.EndpointHandlerArgsWithURL<TURLData>
         : // eslint-disable-next-line @typescript-eslint/ban-types
           {},
-      tPluginCommon.GetRuntime<TQuery>,
+      protocol.RuntimeOf<TQuery>,
       TMetadataProviders,
       TProtocolSpec["method"],
       ReturnType<TFunctionality>,
@@ -92,7 +92,7 @@ export type MakeSpecWithBody<
         ? spec.EndpointHandlerArgsWithURL<TURLData>
         : // eslint-disable-next-line @typescript-eslint/ban-types
           {},
-      tPluginCommon.GetRuntime<TQuery>,
+      protocol.RuntimeOf<TQuery>,
       TMetadataProviders,
       TProtocolSpec["method"],
       ReturnType<TFunctionality>,
@@ -100,9 +100,9 @@ export type MakeSpecWithBody<
         ReturnType<TFunctionality>,
         tPluginCommon.GetEncoded<TProtocolSpec["responseBody"]>
       >,
-      tPluginCommon.GetRuntime<TProtocolSpec["requestBody"]>,
+      protocol.RuntimeOf<TProtocolSpec["requestBody"]>,
       tPlugin.InputValidatorSpec<
-        tPluginCommon.GetRuntime<TProtocolSpec["requestBody"]>
+        protocol.RuntimeOf<TProtocolSpec["requestBody"]>
       >
     >
   : spec.BatchSpecificationWithoutQueryWithBody<
@@ -120,9 +120,9 @@ export type MakeSpecWithBody<
         ReturnType<TFunctionality>,
         tPluginCommon.GetEncoded<TProtocolSpec["responseBody"]>
       >,
-      tPluginCommon.GetRuntime<TProtocolSpec["requestBody"]>,
+      protocol.RuntimeOf<TProtocolSpec["requestBody"]>,
       tPlugin.InputValidatorSpec<
-        tPluginCommon.GetRuntime<TProtocolSpec["requestBody"]>
+        protocol.RuntimeOf<TProtocolSpec["requestBody"]>
       >
     >;
 

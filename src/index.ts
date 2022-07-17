@@ -1,6 +1,5 @@
 import * as process from "process";
-import type * as serverModuleApi from "./module-api/server";
-import type * as restModuleApi from "./module-api/rest";
+import * as utils from "./utils";
 
 const main = async (
   host: string,
@@ -10,39 +9,27 @@ const main = async (
 ) => {
   let exitCode = 1;
   try {
-    const allowedServers: Record<
-      string,
-      { default: serverModuleApi.ServerModule }
-    > = {
-      express: await import("./server/express"),
-      fastify: await import("./server/fastify"),
-      koa: await import("./server/koa"),
-    };
+    const { allowedServers, allowedDataValidations } =
+      utils.loadServersAndDataValidations();
 
-    const allowedDataValidations: Record<
-      string,
-      { default: restModuleApi.RESTAPISpecificationModule }
-    > = {
-      ["io-ts"]: await import("./backend/io-ts"),
-      runtypes: await import("./backend/runtypes"),
-      zod: await import("./backend/zod"),
-    };
-
-    await doThrow(
-      allowedServers[server],
-      `The first argument must be one of ${Object.keys(allowedServers).join(
-        ", ",
-      )}.`,
-    ).default.startServer(
-      host,
-      port,
-      doThrow(
-        allowedDataValidations[dataValidation],
-        `The first argument must be one of ${Object.keys(
-          allowedDataValidations,
-        ).join(", ")}.`,
+    const instance = (
+      await doThrow(
+        allowedServers[server],
+        `The first argument must be one of ${Object.keys(allowedServers).join(
+          ", ",
+        )}.`,
+      )
+    ).default.createServer(
+      (
+        await doThrow(
+          allowedDataValidations[dataValidation],
+          `The first argument must be one of ${Object.keys(
+            allowedDataValidations,
+          ).join(", ")}.`,
+        )
       ).default.createEndpoints,
     );
+    await utils.listenAsync(instance, host, port);
     exitCode = 0;
   } catch (e) {
     // eslint-disable-next-line no-console

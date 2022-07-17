@@ -15,7 +15,7 @@ const uuidRegex =
   /[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}/i;
 
 const serverModule: moduleApi.ServerModule = {
-  startServer: async (host, port, createEndpoints) => {
+  createServer: (createEndpoints) => {
     const { api, events } = createEndpoints(
       serverPlugin.getStateFromContext,
       serverPlugin.validateContextState,
@@ -44,12 +44,17 @@ const serverModule: moduleApi.ServerModule = {
         onRequest: auth.setUsernameFromBasicAuth(),
       },
     );
-    await instance
-      // Start on given port
-      .listen({
-        port,
-        host,
-      });
+
+    return {
+      server: instance.server,
+      customListen: (port, host) =>
+        instance
+          // Start on given port
+          .listen({
+            port,
+            host,
+          }),
+    };
   },
 };
 

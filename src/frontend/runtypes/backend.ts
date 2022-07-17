@@ -5,7 +5,7 @@ import * as apiCall from "../../api/data-client/runtypes";
 import type * as protocol from "../../protocol";
 import * as t from "runtypes";
 
-export const createBackend = () => {
+export const createBackend = (invokeHTTPEndpoint: common.CallHTTPEndpoint) => {
   // This is RFC-adhering UUID regex. Relax if needed.
   // Taken from https://stackoverflow.com/questions/7905929/how-to-test-valid-uuid-guid
   const uuid = t.String.withConstraint(
@@ -23,13 +23,11 @@ export const createBackend = () => {
     }),
   );
 
-  const factory = apiCall
-    .createAPICallFactory(someMethodToInvokeHTTPEndpoint)
-    .withHeaders({
-      // Key: functionality IDs used by protocol
-      // Value: callback implementing functionality
-      auth: () => `Basic ${Buffer.from("secret:secret").toString("base64")}`,
-    });
+  const factory = apiCall.createAPICallFactory(invokeHTTPEndpoint).withHeaders({
+    // Key: functionality IDs used by protocol
+    // Value: callback implementing functionality
+    auth: () => `Basic ${Buffer.from("secret:secret").toString("base64")}`,
+  });
 
   const getThings = factory.makeAPICall<protocol.APIGetThings>("GET", {
     method: tPlugin.plainValidator(t.Literal("GET")),
@@ -43,7 +41,6 @@ export const createBackend = () => {
       ),
       ({ lastModified, ...q }) => ({
         error: "none",
-        // TODO "stripUndefineds" method.
         data: {
           lastModified: lastModified?.toISOString(),
           ...q,
@@ -138,14 +135,4 @@ export const createBackend = () => {
     connectThings,
     authenticated,
   };
-};
-
-// This simulates library like e.g. got
-export const someMethodToInvokeHTTPEndpoint = (
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _: common.HTTPInvocationArguments,
-): Promise<unknown> => {
-  throw new Error(
-    "This exists only to simulate signature of some way of invoking HTTP endpoint in the client.",
-  );
 };
