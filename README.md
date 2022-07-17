@@ -98,6 +98,7 @@ This should be quite good introduction to the project.
 Feel free to explore subfolders in `src` folder, read included `README.md` files, and play around with code to see which changes invoke immediate IDE compiler response.
 It is good idea to explore `backend` and `frontend` subfolders of the `src` first, as they give concrete examples on how the REST API can be implemented by backend, and how it is invoked by frontend.
 Other subfolders contain more generic things, which are easier to understand after first familiarizing oneself with the BE/FE -specific concrete code.
+The [file containing tests for all servers and data validation frameworks](./src/__test__/index.spec.ts) is also very good place to see how things work on a higher level.
 
 ## Design Principles and How They Are Achieved
 This chapter talks on higher level about the motivation behind this sample, and the features that using this sample hopefully exposes.
@@ -149,8 +150,8 @@ On a higher level, this project architectural layers can be described as followi
 # Current known limitations and shortcomings
 - The full URL needs to be specified both in `src/backend/<data validation library>` and `src/frontend/<data validation library>` code, and as such, does not adher to DRY principle.
   This needs further investigated how feasible it is to make URL specification more DRY.
-- There currently are not unit tests.
-  They will be worked on as part of #4.
+- Adding new optional query parameters to protocol types does not cause compilation errors.
+  Not sure if that is a feature or a bug.
 - The automatic OpenAPI JSON schema specification generation from validation objects is not yet implemented.
   Thus the generated OpenAPI document right now is very short stub.
   This will be addresed by #3.
