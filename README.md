@@ -60,11 +60,15 @@ Notice that when the list talks about observing compile-time errors in certain f
   Observe immediate compile-time errors in both `src/backend` and `src/frontend` folders.
 - On same line, try to change the type `ID` into e.g. `number`.
   Observe immediate compile-time errors in both `src/backend` and `src/frontend` folders.
-- TODO add auth header to protocol spec -> notice compile-time errors
+- Insert new line after line `28` (`responseBody: string;`).
+  Make the line content the following: `headers: { Authorization: "auth" };`, thus making that endpoint requiring authentication.
+  Observe immediate compile-time errors in both `src/backend` and `src/frontend` folders.
+- On line `48` (`headers: { Authorization: "auth" };`), try to remove the whole line, thus making that API endpoint unauthenticated.
+  Observe immediate compile-time errors in both `src/backend` and `src/frontend` folders.
 - Feel free to try similar things with other endpoints, and other places in the code.
   All folder in [source code folder](src) also contain `README.md` files for documentation.
 
-Before delving deeper into the code, try starting the HTTP server with command `yarn run server`, and after seeing message `Koa server started`, try the following `curl` commands:
+Before delving deeper into the code, try starting the HTTP server with command `./scripts/run-server.sh koa io-ts`, and after seeing message `Started server "koa" running on 0.0.0.0:3000 using data validation "io-ts".`, try the following `curl` commands:
 - `curl -v http://localhost:3000/api/thing/00000000-0000-0000-0000-000000000000` to test endpoint in `src/lib/query.ts`.
   There should be no errors, and the returned value should be same ID as in URL.
 - `curl -v -X PUT -H 'Content-Type: application/json' -d'{"property":"00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing` to test endpoint in `src/lib/create.ts`.
