@@ -1,4 +1,6 @@
-NODE_VERSION="${1-16}"
-if [ -n "$(echo "$1" | grep --color=never -E '^[0-9]+$')" ]; then
+NODE_VERSION="${1}"
+if [ -n "$(echo "${NODE_VERSION}" | grep --color=never -E '^[0-9]+$')" ]; then
   shift
+else
+  NODE_VERSION='16'
 fi

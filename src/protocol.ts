@@ -45,9 +45,7 @@ export interface APIConnectThings {
 export interface APIAuthenticated {
   method: "GET";
   responseBody: undefined;
-  headers: {
-    Authorization: "auth";
-  };
+  headers: { Authorization: "auth" };
 }
 
 export interface DataThing {
