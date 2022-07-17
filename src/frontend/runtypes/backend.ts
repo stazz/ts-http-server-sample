@@ -41,7 +41,6 @@ export const createBackend = (invokeHTTPEndpoint: common.CallHTTPEndpoint) => {
       ),
       ({ lastModified, ...q }) => ({
         error: "none",
-        // TODO "stripUndefineds" method.
         data: {
           lastModified: lastModified?.toISOString(),
           ...q,

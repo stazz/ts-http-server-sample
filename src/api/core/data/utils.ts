@@ -20,8 +20,6 @@ export const omit = <T, TKey extends keyof T>(
   ...keys: ReadonlyArray<TKey>
 ) => {
   return Object.fromEntries(
-    Object.entries(obj)
-      .filter(([key]) => keys.indexOf(key as TKey) < 0)
-      .map(([key, value]) => [key, value] as const),
+    Object.entries(obj).filter(([key]) => keys.indexOf(key as TKey) < 0),
   ) as Omit<T, TKey>;
 };

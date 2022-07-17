@@ -39,13 +39,13 @@ export const createBackend = (invokeHTTPEndpoint: common.CallHTTPEndpoint) => {
       tPlugin.plainValidator(
         t.object({
           includeDeleted: t.boolean().optional(),
-          lastModified: t.instanceof(Date),
+          lastModified: t.instanceof(Date).optional(),
         }),
       ),
       ({ lastModified, ...q }) => ({
         error: "none",
         data: {
-          lastModified: lastModified.toISOString(),
+          lastModified: lastModified?.toISOString(),
           ...q,
         },
       }),

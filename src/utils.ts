@@ -1,13 +1,15 @@
 import type * as serverModuleApi from "./module-api/server";
+import type * as restModuleApi from "./module-api/rest";
 import * as net from "net";
 
-// This function used to be in index.ts, but since it is also used by tests, needed to be moved here.
+// These functions used to be in index.ts, but since it is also used by tests, needed to be moved here.
 // If tests include index.ts, it will try to execute its main entrypoint.
 // This is exported because it is used in test
+
 export const listenAsync = (
   server: serverModuleApi.ServerCreationResult,
-  port: number,
   host: string,
+  port: number,
 ) =>
   server instanceof net.Server
     ? new Promise<void>((resolve, reject) => {
@@ -18,3 +20,27 @@ export const listenAsync = (
         }
       })
     : server.customListen(port, host);
+
+export const loadServersAndDataValidations = () => {
+  const allowedServers: Record<
+    string,
+    Promise<{ default: serverModuleApi.ServerModule }>
+  > = {
+    express: import("./server/express"),
+    fastify: import("./server/fastify"),
+    koa: import("./server/koa"),
+  };
+
+  const allowedDataValidations: Record<
+    string,
+    Promise<{ default: restModuleApi.RESTAPISpecificationModule }>
+  > = {
+    ["io-ts"]: import("./backend/io-ts"),
+    runtypes: import("./backend/runtypes"),
+    zod: import("./backend/zod"),
+  };
+  return {
+    allowedServers,
+    allowedDataValidations,
+  };
+};

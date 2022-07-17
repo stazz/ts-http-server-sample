@@ -16,11 +16,13 @@ export const createCallHTTPEndpoint: (
         : undefined;
     const searchParams = query
       ? new URLSearchParams(
-          Object.entries(query).flatMap<[string, string]>(([qKey, qValue]) =>
-            Array.isArray(qValue)
-              ? qValue.map<[string, string]>((value) => [qKey, `${value}`])
-              : [[qKey, `${qValue}`]],
-          ),
+          Object.entries(query)
+            .filter(([, value]) => value !== undefined)
+            .flatMap<[string, string]>(([qKey, qValue]) =>
+              Array.isArray(qValue)
+                ? qValue.map<[string, string]>((value) => [qKey, `${value}`])
+                : [[qKey, `${qValue}`]],
+            ),
         )
       : undefined;
     const { body: responseBody, statusCode } = await got.got(

@@ -34,6 +34,7 @@
   },
   "type": "module",
   "devDependencies": {
+    "@ava/get-port": "2.0.0",
     "@types/koa": "2.13.4",
     "@types/node": "16.11.7",
     "@typescript-eslint/eslint-plugin": "5.30.6",
