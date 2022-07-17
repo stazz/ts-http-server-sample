@@ -1,6 +1,6 @@
 #!/bin/sh
 
-NODE_VERSION="${1-16}"
+. 'scripts/preamble.sh'
 
 docker run \
   --rm \
