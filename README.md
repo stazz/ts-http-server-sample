@@ -9,7 +9,8 @@ This enables *<1second reaction time by IDE* to any typos, or otherwise erroneus
 To get quick hands-on experience, feel free to clone this Git repo as a first step.
 To install the dependencies, and boot up a combination of HTTP server + data validation framework, use the following:
 ```sh
-./run-server.sh <server library> <data validation library>
+cd <this git repo root>
+./scripts/run-server.sh <server library> <data validation library>
 ```
 The *server library* can be one of the following:
 - `koa`,
@@ -21,7 +22,7 @@ The *data validation library* can be one of the following:
 - `runtypes`, or
 - `zod`.
 
-The `run-server.sh` script above uses Docker to install dependencies and execute the sample.
+The `scripts/run-server.sh` script above uses Docker to install dependencies and execute the sample.
 If the Docker is missing from your system and you do not wish to install it, the equivalent of the above is achieved with these commands:
 ```sh
 yarn install --frozen-lockfile

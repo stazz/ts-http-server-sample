@@ -37,8 +37,10 @@ const testInvokingBackend = test.macro(
       server instanceof net.Server ? server : server.server,
     );
     try {
+      // Start the server
       await utils.listenAsync(server, port, host);
-      c.deepEqual("", "");
+
+      // Perform tests on the server
       assertSuccessfulResult(
         c,
         await backend.getThings({
@@ -50,6 +52,7 @@ const testInvokingBackend = test.macro(
       );
     } finally {
       try {
+        // Close the server
         await destroyServer();
       } catch (e) {
         // eslint-disable-next-line no-console

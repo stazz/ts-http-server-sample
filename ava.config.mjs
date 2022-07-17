@@ -1,4 +1,5 @@
 export default {
+  cache: false, // We run Ava in non-coverage mode with 'ro' modifier for Docker volume
   extensions: {
     ts: "module"
   },
