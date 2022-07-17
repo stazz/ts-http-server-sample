@@ -14,6 +14,7 @@ import * as frontendIoTs from "../frontend/io-ts/backend";
 import * as net from "net";
 
 import * as destroy from "./destroy";
+import * as invoke from "./invokeHTTP";
 
 const testInvokingBackend = test.macro(
   async (
@@ -62,13 +63,14 @@ const testInvokingBackend = test.macro(
 
 const host = "127.0.0.1";
 const port = 1000;
+const invokeHTTPEndpoint = invoke.createCallHTTPEndpoint(host, port);
 
 test(
   "ExpressJS and IO-TS",
   testInvokingBackend,
   serverExpress.default,
   backendIoTs.default,
-  frontendIoTs.createBackend(null!),
+  frontendIoTs.createBackend(invokeHTTPEndpoint),
 );
 
 const assertSuccessfulResult = <TResult>(
