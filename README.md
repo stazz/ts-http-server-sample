@@ -1,9 +1,3 @@
-# Notes for issue #1
-- Compile-time safety
-- DRY (protocol.ts) = code sharing between BE and FE (or other BE consumers)
-- Server-agnostic REST API spec, also useable in FE!
-- FE refers to data validation library only in one place (backend.ts)
-
 # Sample Project on Unopinionated and Typesafe HTTP Protocol Specification
 This Git repository contains a sample TypeScript project to demonstrate one way of writing HTTP backend and frontent, using configurable REST API endpoints.
 Since this is a sample, it is by no means a complete product, or final representation of such.
@@ -65,6 +59,7 @@ Notice that when the list talks about observing compile-time errors in certain f
   Observe immediate compile-time errors in both `src/backend` and `src/frontend` folders.
 - On same line, try to change the type `ID` into e.g. `number`.
   Observe immediate compile-time errors in both `src/backend` and `src/frontend` folders.
+- TODO add auth header to protocol spec -> notice compile-time errors
 - Feel free to try similar things with other endpoints, and other places in the code.
   All folder in [source code folder](src) also contain `README.md` files for documentation.
 

@@ -6,7 +6,7 @@ import type * as common from "./common";
 export class ValidationChainer<
   TValidators extends Record<
     string,
-    common.DataValidator<unknown, unknown, unknown, unknown>
+    common.DataValidator<any, unknown, unknown, unknown>
   >,
 > {
   public constructor(private readonly _state: TValidators) {}

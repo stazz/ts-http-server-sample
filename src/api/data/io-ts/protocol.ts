@@ -27,3 +27,8 @@ export type GetEncodedObject<T> = {
   [P in keyof T]: T[P] extends Function ? T[P] : GetEncoded<T[P]>;
 };
 export type GetEncodedArray<T> = Array<GetEncoded<T>>;
+
+export interface HKTEncoded extends protocol.HKTEncoded {
+  readonly typeRuntime: GetRuntime<this["_TRuntimeSpec"]>;
+  readonly typeEncoded: GetEncoded<this["_TEncodedSpec"]>;
+}
