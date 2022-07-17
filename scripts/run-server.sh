@@ -4,7 +4,7 @@
 
 docker run \
   --rm \
-  -it \
+  -t \
   --volume "$(pwd):$(pwd):rw" \
   --entrypoint yarn \
   --workdir "$(pwd)" \
@@ -15,7 +15,7 @@ docker run \
 
 docker run \
   --rm \
-  -it \
+  -t \
   --volume "$(pwd):$(pwd):ro" \
   --publish 127.0.0.1:3000:3000 \
   --entrypoint yarn \

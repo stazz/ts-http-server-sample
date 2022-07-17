@@ -25,24 +25,28 @@ export const createCallHTTPEndpoint: (
             ),
         )
       : undefined;
-    const { body: responseBody, statusCode } = await got.got(
-      new URL(`http://${host}:${port}${url}`),
-      {
-        method: method as got.Method,
-        body,
-        searchParams,
-        headers: {
-          ...headers,
-          ...(body === undefined
-            ? {}
-            : {
-                ["Content-Type"]: "application/json",
-                ["Content-Length"]: `${body.byteLength}`,
-                ["Content-Encoding"]: encoding,
-              }),
-        },
+    const urlObject = new URL(`http://${host}:${port}${url}`);
+    if (urlObject.pathname != url) {
+      throw new Error(
+        `Attempted to provide something else than pathname as URL: ${url}`,
+      );
+    }
+    const { body: responseBody, statusCode } = await got.got({
+      url: urlObject,
+      method: method as got.Method,
+      body,
+      searchParams,
+      headers: {
+        ...headers,
+        ...(body === undefined
+          ? {}
+          : {
+              ["Content-Type"]: "application/json",
+              ["Content-Length"]: `${body.byteLength}`,
+              ["Content-Encoding"]: encoding,
+            }),
       },
-    );
+    });
     if (statusCode >= 200 && statusCode < 300) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return responseBody.length > 0 ? JSON.parse(responseBody) : undefined;

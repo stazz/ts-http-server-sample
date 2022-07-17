@@ -89,48 +89,6 @@ for (const [serverID, server] of Object.entries(allowedServers)) {
   }
 }
 
-const assertSuccessfulResult = async <
-  TEndpointName extends keyof AllAPICalls,
-  TOmitProps extends keyof coreProtocol.RuntimeOf<
-    AllAPIDefinitions[TEndpointName]["responseBody"]
-  > = never,
->(
-  c: ExecutionContext,
-  apiCalls: AllAPICalls,
-  endpointName: TEndpointName,
-  input: coreProtocol.RuntimeOf<Parameters<AllAPICalls[TEndpointName]>>[0],
-  expectedResult: coreProtocol.RuntimeOf<
-    AllAPIDefinitions[TEndpointName]["responseBody"]
-  >,
-  omitProps: Array<TOmitProps> = [],
-) => {
-  c.like(
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
-    await apiCalls[endpointName](input as any),
-    {
-      error: "none",
-      data:
-        // If we always call .omit, we will end up in situation with expectedResult being array and data we pass being object.
-        omitProps.length > 0
-          ? // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
-            data.omit(expectedResult, ...(omitProps as Array<any>))
-          : expectedResult,
-    },
-    `Endpoint "${endpointName}" failed.`,
-  );
-};
-
-const zeroUUID = "00000000-0000-0000-0000-000000000000";
-
-type AllAPIDefinitions = {
-  getThings: protocol.APIGetThings;
-  getThing: protocol.APIGetThing;
-  createThing: protocol.APICreateThing;
-  connectThings: protocol.APIConnectThings;
-  authenticated: protocol.APIAuthenticated;
-};
-type AllAPICalls = feCommon.GetAPICalls<AllAPIDefinitions, unknown>;
-
 const runTestsForSuccessfulResults = async (
   c: ExecutionContext,
   apiCalls: AllAPICalls,
@@ -203,3 +161,45 @@ const runTestsForSuccessfulResults = async (
     undefined,
   );
 };
+
+const assertSuccessfulResult = async <
+  TEndpointName extends keyof AllAPICalls,
+  TOmitProps extends keyof coreProtocol.RuntimeOf<
+    AllAPIDefinitions[TEndpointName]["responseBody"]
+  > = never,
+>(
+  c: ExecutionContext,
+  apiCalls: AllAPICalls,
+  endpointName: TEndpointName,
+  input: coreProtocol.RuntimeOf<Parameters<AllAPICalls[TEndpointName]>>[0],
+  expectedResult: coreProtocol.RuntimeOf<
+    AllAPIDefinitions[TEndpointName]["responseBody"]
+  >,
+  omitProps: Array<TOmitProps> = [],
+) => {
+  c.like(
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+    await apiCalls[endpointName](input as any),
+    {
+      error: "none",
+      data:
+        // If we always call .omit, we will end up in situation with expectedResult being array and data we pass being object.
+        omitProps.length > 0
+          ? // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+            data.omit(expectedResult, ...(omitProps as Array<any>))
+          : expectedResult,
+    },
+    `Endpoint "${endpointName}" failed.`,
+  );
+};
+
+const zeroUUID = "00000000-0000-0000-0000-000000000000";
+
+type AllAPIDefinitions = {
+  getThings: protocol.APIGetThings;
+  getThing: protocol.APIGetThing;
+  createThing: protocol.APICreateThing;
+  connectThings: protocol.APIConnectThings;
+  authenticated: protocol.APIAuthenticated;
+};
+type AllAPICalls = feCommon.GetAPICalls<AllAPIDefinitions, unknown>;
