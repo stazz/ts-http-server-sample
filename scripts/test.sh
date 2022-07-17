@@ -4,10 +4,11 @@
 
 docker run \
   --rm \
-  -it \
+  -t \
   --volume "$(pwd):$(pwd):${1-ro}" \
   --entrypoint yarn \
   --workdir "$(pwd)" \
+  --env CI=true \
   "node:${NODE_VERSION}-alpine" \
   run \
   test

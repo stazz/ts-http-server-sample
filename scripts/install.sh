@@ -4,7 +4,7 @@
 
 docker run \
   --rm \
-  -it \
+  -t \
   --volume "$(pwd):$(pwd):rw" \
   --entrypoint yarn \
   --workdir "$(pwd)" \
