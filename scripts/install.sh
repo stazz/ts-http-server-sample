@@ -8,7 +8,7 @@ docker run \
   --volume "$(pwd):$(pwd):rw" \
   --entrypoint yarn \
   --workdir "$(pwd)" \
-  "node:${NODE_VERSION}-alpine" \
+  "node:${NODE_VERSION}" \
   install \
   --ignore-scripts \
   "$@"

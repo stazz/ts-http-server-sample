@@ -1,5 +1,6 @@
 import * as process from "process";
 import * as utils from "./utils";
+import * as logging from "./logging";
 
 const main = async (
   host: string,
@@ -19,8 +20,8 @@ const main = async (
           ", ",
         )}.`,
       )
-    ).default.createServer(
-      (
+    ).default.createServer({
+      createEndpoints: (
         await doThrow(
           allowedDataValidations[dataValidation],
           `The first argument must be one of ${Object.keys(
@@ -28,7 +29,16 @@ const main = async (
           ).join(", ")}.`,
         )
       ).default.createEndpoints,
-    );
+      createEvents: ({ getHumanReadableErrorMessage, getMethodAndUrl }) =>
+        logging
+          .logServerEvents(
+            getMethodAndUrl,
+            ({ username }) =>
+              `(user: ${username === undefined ? "none" : `"${username}"`})`,
+            getHumanReadableErrorMessage,
+          )
+          .createEventEmitter(),
+    });
     await utils.listenAsync(instance, host, port);
     exitCode = 0;
   } catch (e) {

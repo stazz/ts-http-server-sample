@@ -19,7 +19,9 @@ const testInvokingBackend = test.macro(
   async (
     c,
     serverModule: Promise<{ default: serverModuleApi.ServerModule }>,
-    restModule: Promise<{ default: restModuleApi.RESTAPISpecificationModule }>,
+    restModule: Promise<{
+      default: restModuleApi.RESTAPISpecificationModule<unknown>;
+    }>,
     beModule: Promise<{
       createBackend: (invokeHttp: feCommon.CallHTTPEndpoint) => AllAPICalls;
     }>,
@@ -28,9 +30,10 @@ const testInvokingBackend = test.macro(
     c.plan(5);
 
     // Create server
-    const server = (await serverModule).default.createServer(
-      (await restModule).default.createEndpoints,
-    );
+    const server = (await serverModule).default.createServer({
+      createEndpoints: (await restModule).default.createEndpoints,
+      // TODO use "createEvents" property here to create event emitter which pushes all events to array
+    });
     // Create callback to stop server
     const destroyServer = destroy.createDestroyCallback(
       server instanceof net.Server ? server : server.server,

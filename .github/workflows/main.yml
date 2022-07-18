@@ -34,6 +34,6 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: Run tests
         run: |
-          ls -al
           ./scripts/install.sh '${{ matrix.node-version }}' --frozen-lockfile
+          export CI=true # Will be used by Ava
           ./scripts/test.sh '${{ matrix.node-version }}'

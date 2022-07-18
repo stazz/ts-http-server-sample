@@ -1,24 +1,15 @@
-// Import code to create REST API endpoints
 import type * as server from "./api/core/server";
+import type * as serverModule from "./module-api/server";
 import * as evt from "@data-heaving/common";
 
-export type GetMethodAndURL<TContext extends server.HKTContext> = <TState>(
-  this: void,
-  context: server.HKTContextKind<TContext, TState>,
-) => { method: string; url: string };
-
-export const logServerEvents = <
-  TContext extends server.HKTContext,
-  TState,
-  TValidationError,
->(
-  getMethodAndUrl: GetMethodAndURL<TContext>,
-  getStateString: (state: TState) => string,
+export const logServerEvents = <TContext, TValidationError>(
+  getMethodAndUrl: serverModule.GetMethodAndURL<TContext>,
+  getStateString: (state: serverModule.State) => string,
   getValidationErrorMessage: (this: void, error: TValidationError) => string,
   builder?: evt.EventEmitterBuilder<
     server.VirtualRequestProcessingEvents<
-      server.HKTContextKind<TContext, TState>,
-      TState,
+      TContext,
+      serverModule.State,
       TValidationError
     >
   >,

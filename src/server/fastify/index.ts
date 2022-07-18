@@ -15,20 +15,22 @@ const uuidRegex =
   /[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}/i;
 
 const serverModule: moduleApi.ServerModule = {
-  createServer: (createEndpoints) => {
-    const { api, events } = createEndpoints(
+  createServer: ({ createEndpoints, createEvents }) => {
+    const { api, getHumanReadableErrorMessage } = createEndpoints(
       serverPlugin.getStateFromContext,
       serverPlugin.validateContextState,
       uuidRegex,
-      ({ req }) => ({
-        method: req.method ?? "<no method>",
-        url: req.originalUrl ?? req.url ?? "<no url>",
-      }),
     );
     const performFunctionality = serverPlugin.createRoute(
       api,
       {},
-      events.createEventEmitter(),
+      createEvents?.({
+        getHumanReadableErrorMessage,
+        getMethodAndUrl: ({ req }) => ({
+          method: req.method ?? "<no method>",
+          url: req.originalUrl ?? req.url ?? "<no url>",
+        }),
+      }),
     );
 
     // Create Fastify app
@@ -47,6 +49,8 @@ const serverModule: moduleApi.ServerModule = {
 
     return {
       server: instance.server,
+      // Using listen on returned "server" object causes internal Fastify errors
+      // So pass on custom listen callback.
       customListen: (port, host) =>
         instance
           // Start on given port
