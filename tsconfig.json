@@ -18,7 +18,13 @@
   "include": [
     "src/**/*"
   ],
-  "exclude": [],
+  "exclude": [
+    // Otherwise tsc will produce error:
+    // node_modules/@ava/get-port/dist/source/index.d.ts:1:23 - error TS1452: 'resolution-mode' assertions are only supported when `moduleResolution` is `node16` or `nodenext`.
+    // 
+    // 1 /// <reference types="node" resolution-mode="require"/>
+    "src/**/__test__/*"
+  ],
   "ts-node": {
     "esm": true
   },
