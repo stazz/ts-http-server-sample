@@ -1,3 +1,4 @@
+import type * as data from "../../core/data";
 import * as t from "zod";
 
 export type ValidationError = Array<t.ZodError<unknown>>;
@@ -17,3 +18,11 @@ export const exceptionAsValidationError = (
     },
   ]),
 ];
+
+export const createErrorObject = (
+  errorInfo: ValidationError,
+): data.DataValidatorResultError => ({
+  error: "error",
+  errorInfo,
+  getHumanReadableMessage: () => getHumanReadableErrorMessage(errorInfo),
+});

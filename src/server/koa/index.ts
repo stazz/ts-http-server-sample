@@ -18,7 +18,7 @@ const uuidRegex =
 
 const serverModule: moduleApi.ServerModule = {
   createServer: ({ createEndpoints, createEvents }) => {
-    const { api, getHumanReadableErrorMessage } = createEndpoints(
+    const { api } = createEndpoints(
       serverPlugin.getStateFromContext,
       serverPlugin.validateContextState,
       uuidRegex,
@@ -33,7 +33,6 @@ const serverModule: moduleApi.ServerModule = {
           serverPlugin.createMiddleware(
             api,
             createEvents?.({
-              getHumanReadableErrorMessage,
               getMethodAndUrl: (ctx) => ({
                 method: ctx.method,
                 url: ctx.originalUrl,

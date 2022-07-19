@@ -13,7 +13,6 @@ export class AppEndpointBuilderInitial<
   TContext,
   TRefinedContext,
   TState,
-  TValidationError,
   TArgsURL,
   TAllowedMethods extends ep.HttpMethod,
   TMetadataProviders extends Record<
@@ -28,7 +27,6 @@ export class AppEndpointBuilderInitial<
       TContext,
       TRefinedContext,
       TState,
-      TValidationError,
       TMetadataProviders
     >,
   ) {}
@@ -39,7 +37,6 @@ export class AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
     TState,
-    TValidationError,
     TArgsURL,
     TMethods,
     common.EndpointHandlerArgs<TRefinedContext, TState>,
@@ -51,7 +48,6 @@ export class AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
     TState,
-    TValidationError,
     TArgsURL,
     TMethods,
     common.EndpointHandlerArgs<TRefinedContext, TState>,
@@ -59,16 +55,11 @@ export class AppEndpointBuilderInitial<
   >;
   public forMethod<TMethods extends TAllowedMethods, TQuery>(
     method: TMethods & ep.HttpMethodWithoutBody,
-    query: data.QueryValidatorSpec<
-      TQuery,
-      keyof TQuery & string,
-      TValidationError
-    >,
+    query: data.QueryValidatorSpec<TQuery, keyof TQuery & string>,
   ): AppEndpointBuilderForMethods<
     TContext,
     TRefinedContext,
     TState,
-    TValidationError,
     TArgsURL,
     TMethods,
     common.EndpointHandlerArgs<TRefinedContext, TState> &
@@ -77,16 +68,11 @@ export class AppEndpointBuilderInitial<
   >;
   public forMethod<TMethods extends TAllowedMethods, TQuery>(
     method: TMethods & ep.HttpMethodWithBody,
-    query: data.QueryValidatorSpec<
-      TQuery,
-      keyof TQuery & string,
-      TValidationError
-    >,
+    query: data.QueryValidatorSpec<TQuery, keyof TQuery & string>,
   ): AppEndpointBuilderForMethodsAndBody<
     TContext,
     TRefinedContext,
     TState,
-    TValidationError,
     TArgsURL,
     TMethods,
     common.EndpointHandlerArgs<TRefinedContext, TState> &
@@ -95,15 +81,12 @@ export class AppEndpointBuilderInitial<
   >;
   forMethod<TMethods extends TAllowedMethods, TQuery>(
     method: TMethods,
-    query?:
-      | data.QueryValidatorSpec<TQuery, keyof TQuery & string, TValidationError>
-      | undefined,
+    query?: data.QueryValidatorSpec<TQuery, keyof TQuery & string> | undefined,
   ):
     | AppEndpointBuilderForMethods<
         TContext,
         TRefinedContext,
         TState,
-        TValidationError,
         TArgsURL,
         TMethods,
         | common.EndpointHandlerArgs<TRefinedContext, TState>
@@ -114,7 +97,6 @@ export class AppEndpointBuilderInitial<
         TContext,
         TRefinedContext,
         TState,
-        TValidationError,
         TArgsURL,
         TMethods,
         | common.EndpointHandlerArgs<TRefinedContext, TState>
@@ -126,15 +108,12 @@ export class AppEndpointBuilderInitial<
 
   private _forMethod<TMethods extends TAllowedMethods, TQuery>(
     method: TMethods,
-    query?:
-      | data.QueryValidatorSpec<TQuery, keyof TQuery & string, TValidationError>
-      | undefined,
+    query?: data.QueryValidatorSpec<TQuery, keyof TQuery & string> | undefined,
   ):
     | AppEndpointBuilderForMethods<
         TContext,
         TRefinedContext,
         TState,
-        TValidationError,
         TArgsURL,
         TMethods,
         | common.EndpointHandlerArgs<TRefinedContext, TState>
@@ -145,7 +124,6 @@ export class AppEndpointBuilderInitial<
         TContext,
         TRefinedContext,
         TState,
-        TValidationError,
         TArgsURL,
         TMethods,
         | common.EndpointHandlerArgs<TRefinedContext, TState>
@@ -166,7 +144,6 @@ export class AppEndpointBuilderInitial<
     }
 
     const queryInfo: common.QueryInfo<
-      TValidationError,
       common.EndpointHandlerArgsWithQuery<TQuery>
     > = {
       getEndpointArgs: (q) =>
@@ -200,7 +177,6 @@ export class AppEndpointBuilderInitial<
     spec: BatchSpecificationWithoutQueryWithoutBody<
       TRefinedContext,
       TState,
-      TValidationError,
       TArgsURL,
       TMetadataProviders,
       TMethod,
@@ -211,7 +187,6 @@ export class AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
     TState,
-    TValidationError,
     TArgsURL,
     Omit<TAllowedMethods, TMethod> & ep.HttpMethod,
     TMetadataProviders
@@ -225,7 +200,6 @@ export class AppEndpointBuilderInitial<
     spec: BatchSpecificationWithQueryWithoutBody<
       TRefinedContext,
       TState,
-      TValidationError,
       TArgsURL,
       TQuery,
       TMetadataProviders,
@@ -237,7 +211,6 @@ export class AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
     TState,
-    TValidationError,
     TArgsURL,
     Omit<TAllowedMethods, TMethod> & ep.HttpMethod,
     TMetadataProviders
@@ -252,7 +225,6 @@ export class AppEndpointBuilderInitial<
     spec: BatchSpecificationWithoutQueryWithBody<
       TRefinedContext,
       TState,
-      TValidationError,
       TArgsURL,
       TMetadataProviders,
       TMethod,
@@ -265,7 +237,6 @@ export class AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
     TState,
-    TValidationError,
     TArgsURL,
     Omit<TAllowedMethods, TMethod> & ep.HttpMethod,
     TMetadataProviders
@@ -281,7 +252,6 @@ export class AppEndpointBuilderInitial<
     spec: BatchSpecificationWithQueryWithBody<
       TRefinedContext,
       TState,
-      TValidationError,
       TArgsURL,
       TQuery,
       TMetadataProviders,
@@ -295,7 +265,6 @@ export class AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
     TState,
-    TValidationError,
     TArgsURL,
     Omit<TAllowedMethods, TMethod> & ep.HttpMethod,
     TMetadataProviders
@@ -312,7 +281,6 @@ export class AppEndpointBuilderInitial<
       | BatchSpecificationWithoutQueryWithoutBody<
           TRefinedContext,
           TState,
-          TValidationError,
           TArgsURL,
           TMetadataProviders,
           TMethod & ep.HttpMethodWithoutBody,
@@ -322,7 +290,6 @@ export class AppEndpointBuilderInitial<
       | BatchSpecificationWithQueryWithoutBody<
           TRefinedContext,
           TState,
-          TValidationError,
           TArgsURL,
           TQuery,
           TMetadataProviders,
@@ -333,7 +300,6 @@ export class AppEndpointBuilderInitial<
       | BatchSpecificationWithoutQueryWithBody<
           TRefinedContext,
           TState,
-          TValidationError,
           TArgsURL,
           TMetadataProviders,
           TMethod & ep.HttpMethodWithBody,
@@ -345,7 +311,6 @@ export class AppEndpointBuilderInitial<
       | BatchSpecificationWithQueryWithBody<
           TRefinedContext,
           TState,
-          TValidationError,
           TArgsURL,
           TQuery,
           TMetadataProviders,
@@ -359,7 +324,6 @@ export class AppEndpointBuilderInitial<
     TContext,
     TRefinedContext,
     TState,
-    TValidationError,
     TArgsURL,
     Omit<TAllowedMethods, TMethod> & ep.HttpMethod,
     TMetadataProviders
@@ -389,7 +353,6 @@ export class AppEndpointBuilderInitial<
 export type BatchSpecificationWithoutQueryWithoutBody<
   TRefinedContext,
   TState,
-  TValidationError,
   TArgsURL,
   TMetadataProviders extends Record<
     string,
@@ -403,7 +366,6 @@ export type BatchSpecificationWithoutQueryWithoutBody<
 } & common.EndpointSpecArgsWithoutBody<
   TRefinedContext,
   TState,
-  TValidationError,
   TArgsURL,
   // eslint-disable-next-line @typescript-eslint/ban-types
   {},
@@ -415,7 +377,6 @@ export type BatchSpecificationWithoutQueryWithoutBody<
 export type BatchSpecificationWithQueryWithoutBody<
   TRefinedContext,
   TState,
-  TValidationError,
   TArgsURL,
   TQueryData,
   TMetadataProviders extends Record<
@@ -427,15 +388,10 @@ export type BatchSpecificationWithQueryWithoutBody<
   TOutputContentTypes extends Record<string, unknown>,
 > = {
   method: TMethod;
-  query: data.QueryValidatorSpec<
-    TQueryData,
-    keyof TQueryData & string,
-    TValidationError
-  >;
+  query: data.QueryValidatorSpec<TQueryData, keyof TQueryData & string>;
 } & common.EndpointSpecArgsWithoutBody<
   TRefinedContext,
   TState,
-  TValidationError,
   TArgsURL,
   common.EndpointHandlerArgsWithQuery<TQueryData>,
   TMetadataProviders,
@@ -446,7 +402,6 @@ export type BatchSpecificationWithQueryWithoutBody<
 export type BatchSpecificationWithoutQueryWithBody<
   TRefinedContext,
   TState,
-  TValidationError,
   TArgsURL,
   TMetadataProviders extends Record<
     string,
@@ -462,7 +417,6 @@ export type BatchSpecificationWithoutQueryWithBody<
 } & common.EndpointSpecArgsWithBody<
   TRefinedContext,
   TState,
-  TValidationError,
   TArgsURL,
   // eslint-disable-next-line @typescript-eslint/ban-types
   {},
@@ -476,7 +430,6 @@ export type BatchSpecificationWithoutQueryWithBody<
 export type BatchSpecificationWithQueryWithBody<
   TRefinedContext,
   TState,
-  TValidationError,
   TArgsURL,
   TQueryData,
   TMetadataProviders extends Record<
@@ -490,15 +443,10 @@ export type BatchSpecificationWithQueryWithBody<
   TInputContentTypes extends Record<string, unknown>,
 > = {
   method: TMethod;
-  query: data.QueryValidatorSpec<
-    TQueryData,
-    keyof TQueryData & string,
-    TValidationError
-  >;
+  query: data.QueryValidatorSpec<TQueryData, keyof TQueryData & string>;
 } & common.EndpointSpecArgsWithBody<
   TRefinedContext,
   TState,
-  TValidationError,
   TArgsURL,
   common.EndpointHandlerArgsWithQuery<TQueryData>,
   TMetadataProviders,

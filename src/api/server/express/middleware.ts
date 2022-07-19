@@ -6,16 +6,12 @@ import { URL } from "url";
 import type * as express from "express";
 
 // Using given various endpoints, create ExpressJS middlewares.
-export const createMiddleware = <TState, TValidationError>(
+export const createMiddleware = <TState>(
   endpoints: Array<
-    ep.AppEndpoint<
-      ctx.Context<TState>,
-      TValidationError,
-      Record<string, unknown>
-    >
+    ep.AppEndpoint<ctx.Context<TState>, Record<string, unknown>>
   >,
   events:
-    | server.ServerEventEmitter<ctx.Context<TState>, TState, TValidationError>
+    | server.ServerEventEmitter<ctx.Context<TState>, TState>
     | undefined = undefined,
 ): // Notice that we must use this explicit form
 // If we use express.RequestHandler, we will get an error because of asyncness.

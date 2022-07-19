@@ -1,17 +1,13 @@
+import * as data from "./api/core/data";
 import type * as server from "./api/core/server";
 import type * as serverModule from "./module-api/server";
 import * as evt from "@data-heaving/common";
 
-export const logServerEvents = <TContext, TValidationError>(
+export const logServerEvents = <TContext>(
   getMethodAndUrl: serverModule.GetMethodAndURL<TContext>,
   getStateString: (state: serverModule.State) => string,
-  getValidationErrorMessage: (this: void, error: TValidationError) => string,
   builder?: evt.EventEmitterBuilder<
-    server.VirtualRequestProcessingEvents<
-      TContext,
-      serverModule.State,
-      TValidationError
-    >
+    server.VirtualRequestProcessingEvents<TContext, serverModule.State>
   >,
 ) => {
   if (!builder) {
@@ -25,7 +21,7 @@ export const logServerEvents = <TContext, TValidationError>(
       console.error(
         `Invalid body: ${method} ${url} ${getStateString(
           state,
-        )}, validation error:\n${getValidationErrorMessage(validationError)}`,
+        )}, validation error:\n${validationError.getHumanReadableMessage()}`,
       );
     },
   );
@@ -44,9 +40,7 @@ export const logServerEvents = <TContext, TValidationError>(
       console.error(
         `Invalid URL parameters supplied: ${method} ${url} ${getStateString(
           state,
-        )}.\n${validationError
-          .map((error) => getValidationErrorMessage(error))
-          .join("  \n")}`,
+        )}.\n${data.combineErrorObjects(validationError)}`,
       );
     },
   );
@@ -58,7 +52,7 @@ export const logServerEvents = <TContext, TValidationError>(
       console.error(
         `Invalid query supplied: ${method} ${url} ${getStateString(
           state,
-        )}.\n${getValidationErrorMessage(validationError)}`,
+        )}.\n${validationError.getHumanReadableMessage()}`,
       );
     },
   );
@@ -86,7 +80,7 @@ export const logServerEvents = <TContext, TValidationError>(
     console.error(
       `State validation failed for ${JSON.stringify(state)}.\n${
         validationError
-          ? getValidationErrorMessage(validationError)
+          ? validationError.getHumanReadableMessage()
           : "Protocol-related error"
       }`,
     );
@@ -99,7 +93,7 @@ export const logServerEvents = <TContext, TValidationError>(
       console.error(
         `Invalid response: ${method} ${url} ${getStateString(
           state,
-        )}, validation error:\n${getValidationErrorMessage(validationError)}`,
+        )}, validation error:\n${validationError.getHumanReadableMessage()}`,
       );
     },
   );

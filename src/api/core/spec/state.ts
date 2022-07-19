@@ -6,7 +6,6 @@ export interface AppEndpointBuilderState<
   TContext,
   TRefinedContext,
   TState,
-  TValidationError,
   TMetadata extends Record<
     string,
     md.MetadataBuilder<md.HKTArg, unknown, unknown>
@@ -14,56 +13,37 @@ export interface AppEndpointBuilderState<
 > {
   fragments: TemplateStringsArray;
   methods: Partial<
-    Record<
-      ep.HttpMethod,
-      StaticAppEndpointBuilderSpec<TContext, TValidationError, TMetadata>
-    >
+    Record<ep.HttpMethod, StaticAppEndpointBuilderSpec<TContext, TMetadata>>
   >;
   contextTransform: data.ContextValidatorSpec<
     TContext,
     TRefinedContext,
-    TState,
-    TValidationError
+    TState
   >;
   metadata: TMetadata;
   urlValidation:
     | {
         args: ReadonlyArray<string>;
-        validation: Record<
-          string,
-          data.URLDataParameterValidatorSpec<unknown, TValidationError>
-        >;
+        validation: Record<string, data.URLDataParameterValidatorSpec<unknown>>;
       }
     | undefined;
 }
 
 export interface StaticAppEndpointBuilderSpec<
   TContext,
-  TBodyError,
   TMetadata extends Record<
     string,
     md.MetadataBuilder<md.HKTArg, unknown, unknown>
   >,
 > {
-  builder: StaticAppEndpointBuilder<TContext, TBodyError>;
-  queryValidation?: Omit<
-    data.QueryValidatorSpec<unknown, string, TBodyError>,
-    "validator"
-  >;
+  builder: StaticAppEndpointBuilder<TContext>;
+  queryValidation?: Omit<data.QueryValidatorSpec<unknown, string>, "validator">;
   inputValidation?: Omit<
-    data.DataValidatorRequestInputSpec<
-      unknown,
-      TBodyError,
-      Record<string, unknown>
-    >,
+    data.DataValidatorRequestInputSpec<unknown, Record<string, unknown>>,
     "validator"
   >;
   outputValidation: Omit<
-    data.DataValidatorResponseOutputSpec<
-      unknown,
-      TBodyError,
-      Record<string, unknown>
-    >,
+    data.DataValidatorResponseOutputSpec<unknown, Record<string, unknown>>,
     "validator"
   >;
   mdArgs: {
@@ -83,7 +63,7 @@ export interface StaticAppEndpointBuilderSpec<
   };
 }
 
-export type StaticAppEndpointBuilder<TContext, TBodyError> = (
+export type StaticAppEndpointBuilder<TContext> = (
   groupNamePrefix: string,
   // groups: Record<string, string>,
-) => ep.StaticAppEndpointHandler<TContext, TBodyError>;
+) => ep.StaticAppEndpointHandler<TContext>;

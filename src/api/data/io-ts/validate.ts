@@ -9,26 +9,28 @@ export type Encoder<TOutput, TSerialized> = t.Encoder<TOutput, TSerialized>;
 export const plainValidator =
   <TInput, TData>(
     validation: Decoder<TData, TInput>,
-  ): data.DataValidator<TInput, TData, error.ValidationError> =>
+  ): data.DataValidator<TInput, TData> =>
   (input) =>
     utils.transformLibraryResultToModelResult(validation.decode(input));
 
 export const plainValidatorEncoder =
   <TOutput, TSerialized>(
     validation: Encoder<TOutput, TSerialized> & { is: t.Is<TOutput> },
-  ): data.DataValidator<TOutput, TSerialized, error.ValidationError> =>
+  ): data.DataValidator<TOutput, TSerialized> =>
   (input) =>
-    validation.is(input)
-      ? utils.transformLibraryResultToModelResult({
-          _tag: "Right",
-          right: validation.encode(input),
-        })
-      : {
-          error: "error",
-          errorInfo: error.exceptionAsValidationError(
-            input,
-            new Error(
-              "Given value for input was not what the validator needed.",
+    utils.transformLibraryResultToModelResult(
+      validation.is(input)
+        ? {
+            _tag: "Right",
+            right: validation.encode(input),
+          }
+        : {
+            _tag: "Left",
+            left: error.exceptionAsValidationError(
+              input,
+              new Error(
+                "Given value for input was not what the validator needed.",
+              ),
             ),
-          ),
-        };
+          },
+    );

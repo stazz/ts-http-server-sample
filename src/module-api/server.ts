@@ -6,23 +6,16 @@ import type * as server from "../api/core/server";
 export { State } from "./rest";
 
 export interface ServerModule {
-  createServer: <TValidationError>(input: {
-    createEndpoints: restApi.RESTAPISpecificationModule<TValidationError>["createEndpoints"];
+  createServer: (input: {
+    createEndpoints: restApi.RESTAPISpecificationModule["createEndpoints"];
     createEvents?: <TContext>(
       this: void,
       args: {
-        getHumanReadableErrorMessage: ReturnType<
-          restApi.RESTAPISpecificationModule<TValidationError>["createEndpoints"]
-        >["getHumanReadableErrorMessage"];
         getMethodAndUrl: GetMethodAndURL<TContext>;
       },
     ) =>
       | evts.EventEmitter<
-          server.VirtualRequestProcessingEvents<
-            TContext,
-            restApi.State,
-            unknown
-          >
+          server.VirtualRequestProcessingEvents<TContext, restApi.State>
         >
       | undefined;
   }) => ServerCreationResult;

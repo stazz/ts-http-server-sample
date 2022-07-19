@@ -1,34 +1,22 @@
 import * as ep from "../endpoint";
 
-export function atPrefix<
-  TContext,
-  TValidationError,
-  TMetadata extends Record<string, unknown>,
->(
+export function atPrefix<TContext, TMetadata extends Record<string, unknown>>(
   prefix: string,
-  ...endpoints: Array<ep.AppEndpoint<TContext, TValidationError, TMetadata>>
-): ep.AppEndpoint<TContext, TValidationError, TMetadata>;
-export function atPrefix<
-  TContext,
-  TValidationError,
-  TMetadata extends Record<string, unknown>,
->(
+  ...endpoints: Array<ep.AppEndpoint<TContext, TMetadata>>
+): ep.AppEndpoint<TContext, TMetadata>;
+export function atPrefix<TContext, TMetadata extends Record<string, unknown>>(
   prefix: string,
   regexpGroupNamePrefix: string,
-  ...endpoints: Array<ep.AppEndpoint<TContext, TValidationError, TMetadata>>
-): ep.AppEndpoint<TContext, TValidationError, TMetadata>;
-export function atPrefix<
-  TContext,
-  TValidationError,
-  TMetadata extends Record<string, unknown>,
->(
+  ...endpoints: Array<ep.AppEndpoint<TContext, TMetadata>>
+): ep.AppEndpoint<TContext, TMetadata>;
+export function atPrefix<TContext, TMetadata extends Record<string, unknown>>(
   prefix: string,
   endpointOrGroupNamePrefix:
-    | ep.AppEndpoint<TContext, TValidationError, TMetadata>
+    | ep.AppEndpoint<TContext, TMetadata>
     | string
     | undefined,
-  ...endpoints: Array<ep.AppEndpoint<TContext, TValidationError, TMetadata>>
-): ep.AppEndpoint<TContext, TValidationError, TMetadata> {
+  ...endpoints: Array<ep.AppEndpoint<TContext, TMetadata>>
+): ep.AppEndpoint<TContext, TMetadata> {
   const allEndpoints =
     typeof endpointOrGroupNamePrefix === "string" || !endpointOrGroupNamePrefix
       ? endpoints
@@ -80,14 +68,8 @@ export function atPrefix<
   };
 }
 
-const buildEndpoints = <
-  TContext,
-  TValidationError,
-  TMetadata extends Record<string, unknown>,
->(
-  endpoints: ReadonlyArray<
-    ep.AppEndpoint<TContext, TValidationError, TMetadata>
-  >,
+const buildEndpoints = <TContext, TMetadata extends Record<string, unknown>>(
+  endpoints: ReadonlyArray<ep.AppEndpoint<TContext, TMetadata>>,
   regExpGroupNamePrefix?: string,
 ) => {
   const isTopLevel = !regExpGroupNamePrefix;

@@ -17,9 +17,8 @@ export type HKTContextKind<F extends HKTContext, TState> = F extends {
 export type ContextValidatorFactory<TContext extends HKTContext> = <
   TInput,
   TData,
-  TError,
 >(
-  validator: data.DataValidator<TInput, TData, TError>,
+  validator: data.DataValidator<TInput, TData>,
   protocolErrorInfo?:
     | number
     | {
@@ -29,8 +28,7 @@ export type ContextValidatorFactory<TContext extends HKTContext> = <
 ) => data.ContextValidatorSpec<
   HKTContextKind<TContext, TInput>,
   HKTContextKind<TContext, TData>,
-  TData,
-  TError
+  TData
 >;
 
 export type GetStateFromContext<TContext extends HKTContext> = <TState>(

@@ -20,7 +20,7 @@ const testInvokingBackend = test.macro(
     c,
     serverModule: Promise<{ default: serverModuleApi.ServerModule }>,
     restModule: Promise<{
-      default: restModuleApi.RESTAPISpecificationModule<unknown>;
+      default: restModuleApi.RESTAPISpecificationModule;
     }>,
     beModule: Promise<{
       createBackend: (invokeHttp: feCommon.CallHTTPEndpoint) => AllAPICalls;
@@ -205,4 +205,4 @@ type AllAPIDefinitions = {
   connectThings: protocol.APIConnectThings;
   authenticated: protocol.APIAuthenticated;
 };
-type AllAPICalls = feCommon.GetAPICalls<AllAPIDefinitions, unknown>;
+type AllAPICalls = feCommon.GetAPICalls<AllAPIDefinitions>;

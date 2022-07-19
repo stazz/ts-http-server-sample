@@ -106,13 +106,9 @@ export const createBackend = (invokeHTTPEndpoint: common.CallHTTPEndpoint) => {
       ({ connectedAt, ...r }) => {
         const theDate = new Date(connectedAt);
         return isNaN(theDate.valueOf())
-          ? {
-              error: "error",
-              errorInfo: tPlugin.exceptionAsValidationError(
-                connectedAt,
-                theDate,
-              ),
-            }
+          ? tPlugin.createErrorObject(
+              tPlugin.exceptionAsValidationError(connectedAt, theDate),
+            )
           : {
               error: "none",
               data: {

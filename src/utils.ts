@@ -33,16 +33,16 @@ export const loadServersAndDataValidations = () => {
 
   const allowedDataValidations: Record<
     string,
-    Promise<{ default: restModuleApi.RESTAPISpecificationModule<unknown> }>
+    Promise<{ default: restModuleApi.RESTAPISpecificationModule }>
   > = {
     ["io-ts"]: import("./backend/io-ts") as Promise<{
-      default: restModuleApi.RESTAPISpecificationModule<unknown>;
+      default: restModuleApi.RESTAPISpecificationModule;
     }>,
     runtypes: import("./backend/runtypes") as Promise<{
-      default: restModuleApi.RESTAPISpecificationModule<unknown>;
+      default: restModuleApi.RESTAPISpecificationModule;
     }>,
     zod: import("./backend/zod") as Promise<{
-      default: restModuleApi.RESTAPISpecificationModule<unknown>;
+      default: restModuleApi.RESTAPISpecificationModule;
     }>,
   };
   return {

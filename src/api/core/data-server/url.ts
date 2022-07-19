@@ -1,20 +1,13 @@
 import type * as common from "../data";
 
-export interface URLDataParameterValidatorSpec<TData, TError> {
+export interface URLDataParameterValidatorSpec<TData> {
   regExp: RegExp;
-  validator: DataValidatorURL<TData, TError>;
+  validator: DataValidatorURL<TData>;
 }
 
-export type DataValidatorURL<TData, TError> = common.DataValidator<
-  string,
-  TData,
-  TError
->;
+export type DataValidatorURL<TData> = common.DataValidator<string, TData>;
 
-export type URLParameterDataType<T> = T extends DataValidatorURL<
-  infer U,
-  unknown
->
+export type URLParameterDataType<T> = T extends DataValidatorURL<infer U>
   ? U
   : never;
 

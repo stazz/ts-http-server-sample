@@ -5,7 +5,7 @@ import type * as common from "./common";
 export * from "./common";
 
 // Specify API for server and REST spec modules
-export interface RESTAPISpecificationModule<TValidationError> {
+export interface RESTAPISpecificationModule {
   createEndpoints: <TContextHKT extends server.HKTContext>(
     getStateFromContext: server.GetStateFromContext<TContextHKT>,
     contextValidatorFactory: server.ContextValidatorFactory<TContextHKT>,
@@ -15,14 +15,9 @@ export interface RESTAPISpecificationModule<TValidationError> {
     api: Array<
       core.AppEndpoint<
         server.HKTContextKind<TContextHKT, common.State>,
-        TValidationError,
         Record<string, unknown>
       >
     >;
-    getHumanReadableErrorMessage: (
-      this: void,
-      error: TValidationError,
-    ) => string;
   };
 }
 

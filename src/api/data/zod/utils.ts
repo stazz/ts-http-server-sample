@@ -1,19 +1,25 @@
 import type * as data from "../../core/data-server";
 import * as t from "zod";
-import type * as error from "./error";
+import * as error from "./error";
 
 export const transformLibraryResultToModelResult = <TData>(
   validationResult: t.SafeParseReturnType<unknown, TData>,
-): data.DataValidatorResult<TData, error.ValidationError> =>
-  validationResult.success
-    ? {
-        error: "none",
-        data: validationResult.data,
-      }
-    : {
-        error: "error",
-        errorInfo: [validationResult.error],
-      };
+): data.DataValidatorResult<TData> => {
+  if (validationResult.success) {
+    return {
+      error: "none",
+      data: validationResult.data,
+    };
+  } else {
+    const errorInfo = [validationResult.error];
+    return {
+      error: "error",
+      errorInfo,
+      getHumanReadableMessage: () =>
+        error.getHumanReadableErrorMessage(errorInfo),
+    };
+  }
+};
 
 export const maybeDescribe = <TType extends t.ZodType>(
   validation: TType,

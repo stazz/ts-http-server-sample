@@ -18,15 +18,14 @@ export interface EndpointHandlerArgsWithBody<TBody> {
   body: TBody;
 }
 
-export interface QueryInfo<TValidationError, TArgs> {
-  query?: data.QueryValidatorSpec<unknown, string, TValidationError>;
+export interface QueryInfo<TArgs> {
+  query?: data.QueryValidatorSpec<unknown, string>;
   getEndpointArgs: (query: unknown) => TArgs;
 }
 
 export interface EndpointSpecArgsWithoutBody<
   TRefinedContext,
   TState,
-  TValidationError,
   TArgsURL,
   TArgsQuery,
   TMetadataProviders extends Record<
@@ -40,11 +39,7 @@ export interface EndpointSpecArgsWithoutBody<
     TArgsURL & TArgsQuery & EndpointHandlerArgs<TRefinedContext, TState>,
     TOutput
   >;
-  output: data.DataValidatorResponseOutputSpec<
-    TOutput,
-    TValidationError,
-    TOutputContentTypes
-  >;
+  output: data.DataValidatorResponseOutputSpec<TOutput, TOutputContentTypes>;
   mdArgs: {
     [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
       infer TArg,
@@ -69,7 +64,6 @@ export interface EndpointSpecArgsWithoutBody<
 export interface EndpointSpecArgsWithBody<
   TRefinedContext,
   TState,
-  TValidationError,
   TArgsURL,
   TArgsQuery,
   TMetadataProviders extends Record<
@@ -88,16 +82,8 @@ export interface EndpointSpecArgsWithBody<
       EndpointHandlerArgsWithBody<TInput>,
     TOutput
   >;
-  input: data.DataValidatorRequestInputSpec<
-    TInput,
-    TValidationError,
-    TInputContentTypes
-  >;
-  output: data.DataValidatorResponseOutputSpec<
-    TOutput,
-    TValidationError,
-    TOutputContentTypes
-  >;
+  input: data.DataValidatorRequestInputSpec<TInput, TInputContentTypes>;
+  output: data.DataValidatorResponseOutputSpec<TOutput, TOutputContentTypes>;
   mdArgs: {
     [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
       infer TArg,

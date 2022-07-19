@@ -29,13 +29,12 @@ const main = async (
           ).join(", ")}.`,
         )
       ).default.createEndpoints,
-      createEvents: ({ getHumanReadableErrorMessage, getMethodAndUrl }) =>
+      createEvents: ({ getMethodAndUrl }) =>
         logging
           .logServerEvents(
             getMethodAndUrl,
             ({ username }) =>
               `(user: ${username === undefined ? "none" : `"${username}"`})`,
-            getHumanReadableErrorMessage,
           )
           .createEventEmitter(),
     });

@@ -20,10 +20,7 @@ export const validateContextState: server.ContextValidatorFactory<
         };
       default:
         return protocolErrorInfo === undefined
-          ? {
-              error: "error",
-              errorInfo: transformed.errorInfo,
-            }
+          ? transformed
           : {
               error: "protocol-error",
               statusCode:
