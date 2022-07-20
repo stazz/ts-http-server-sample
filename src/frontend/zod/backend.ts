@@ -106,8 +106,8 @@ export const createBackend = (invokeHTTPEndpoint: common.CallHTTPEndpoint) => {
       ({ connectedAt, ...r }) => {
         const theDate = new Date(connectedAt);
         return isNaN(theDate.valueOf())
-          ? tPlugin.createErrorObject(
-              tPlugin.exceptionAsValidationError(connectedAt, theDate),
+          ? data.exceptionAsValidationError(
+              `Not a valid ISO timestamp string "${connectedAt}".`,
             )
           : {
               error: "none",

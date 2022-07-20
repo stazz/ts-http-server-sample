@@ -20,9 +20,7 @@ export const inputValidator = <T>(
             data: JSON.parse(inputString) as unknown,
           };
         } catch (e) {
-          return common.createErrorObject(
-            common.exceptionAsValidationError(inputString, e),
-          );
+          return data.exceptionAsValidationError(e);
         }
       } else {
         // No body supplied -> appear as undefined
@@ -96,9 +94,7 @@ export function outputValidator<TOutput, TSerialized>(
             }
           : common.createErrorObject([result.error]);
       } catch (e) {
-        return common.createErrorObject(
-          common.exceptionAsValidationError(output, e),
-        );
+        return data.exceptionAsValidationError(e);
       }
     },
     validatorSpec: {

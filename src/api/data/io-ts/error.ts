@@ -11,17 +11,6 @@ export const getHumanReadableErrorMessage = (error: ValidationError) =>
 //   left: error,
 // }).join("  \n");
 
-export const exceptionAsValidationError = (
-  input: unknown,
-  exception: unknown,
-): ValidationError => [
-  {
-    value: input,
-    message: `${exception}`,
-    context: [],
-  },
-];
-
 export const createErrorObject = (
   errorInfo: ValidationError,
 ): data.DataValidatorResultError => ({

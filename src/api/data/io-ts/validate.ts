@@ -26,11 +26,13 @@ export const plainValidatorEncoder =
           }
         : {
             _tag: "Left",
-            left: error.exceptionAsValidationError(
-              input,
-              new Error(
-                "Given value for input was not what the validator needed.",
-              ),
-            ),
+            left: [
+              {
+                value: input,
+                message:
+                  "Given value for input was not what the validator needed.",
+                context: [],
+              },
+            ],
           },
     );

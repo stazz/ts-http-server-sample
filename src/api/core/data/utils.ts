@@ -33,3 +33,11 @@ export const combineErrorObjects = (
   getHumanReadableMessage: () =>
     errors.map((e) => e.getHumanReadableMessage()).join("\n"),
 });
+
+export const exceptionAsValidationError = (
+  exception: unknown,
+): common.DataValidatorResultError => ({
+  error: "error",
+  errorInfo: exception,
+  getHumanReadableMessage: () => `${exception}`,
+});
