@@ -14,6 +14,7 @@ import * as net from "net";
 
 import * as destroy from "./destroy";
 import * as invoke from "./invokeHTTP";
+import * as events from "./events";
 
 const testInvokingBackend = test.macro(
   async (
@@ -36,10 +37,23 @@ const testInvokingBackend = test.macro(
     const username = "test_user";
     const password = "test_password";
     // Create server
+    const loggedEvents: Array<events.LoggedEvents> = [];
     const server = (await serverModule).default.createServer({
       createEndpoints: (await restModule).default.createEndpoints,
       tryGetUsername: utils.tryGetUsernameFromBasicAuth(username, password),
-      // TODO use "createEvents" property here to create event emitter which pushes all events to array
+      createEvents: () =>
+        events.saveAllEventsToArray(loggedEvents, {
+          onSuccessfulInvocationStart: undefined,
+          onSuccessfulInvocationEnd: undefined,
+          onInvalidUrl: undefined,
+          onInvalidMethod: undefined,
+          onInvalidContext: undefined,
+          onInvalidUrlParameters: undefined,
+          onInvalidQuery: undefined,
+          onInvalidContentType: undefined,
+          onInvalidBody: undefined,
+          onInvalidResponse: undefined,
+        }),
     });
     // Create callback to stop server
     const destroyServer = destroy.createDestroyCallback(
@@ -63,7 +77,7 @@ const testInvokingBackend = test.macro(
       await utils.listenAsync(server, host, port);
 
       // Perform tests on the server
-      await runTestsForSuccessfulResults(c, backend);
+      await runTestsForSuccessfulResults(c, backend, loggedEvents, []);
     } finally {
       try {
         // Shut down the server
@@ -106,6 +120,8 @@ for (const [serverID, server] of Object.entries(allowedServers)) {
 const runTestsForSuccessfulResults = async (
   c: ExecutionContext,
   apiCalls: AllAPICalls,
+  loggedEvents: Array<events.LoggedEvents>,
+  expectedEventsAtTheEnd: Array<events.LoggedEvents>,
 ) => {
   await assertSuccessfulResult(
     c,
@@ -174,6 +190,8 @@ const runTestsForSuccessfulResults = async (
     undefined,
     undefined,
   );
+
+  c.deepEqual(loggedEvents, expectedEventsAtTheEnd);
 };
 
 const assertSuccessfulResult = async <

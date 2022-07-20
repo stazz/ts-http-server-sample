@@ -36,4 +36,4 @@ jobs:
         run: |
           ./scripts/install.sh '${{ matrix.node-version }}' --frozen-lockfile
           export CI=true # Will be used by Ava
-          ./scripts/test.sh '${{ matrix.node-version }}'
+          ./scripts/test.sh '${{ matrix.node-version }}' 'coverage'

@@ -13,6 +13,18 @@ export const logServerEvents = <TContext>(
   if (!builder) {
     builder = new evt.EventEmitterBuilder();
   }
+  builder.addEventListener("onSuccessfulInvocationStart", ({ state, ctx }) => {
+    const { method, url } = getMethodAndUrl(ctx);
+    // eslint-disable-next-line no-console
+    console.info(`Starting invoking ${method} ${url} ${getStateString(state)}`);
+  });
+  builder.addEventListener("onSuccessfulInvocationEnd", ({ state, ctx }) => {
+    const { method, url } = getMethodAndUrl(ctx);
+    // eslint-disable-next-line no-console
+    console.info(
+      `Completed invoking ${method} ${url} ${getStateString(state)}`,
+    );
+  });
   builder.addEventListener(
     "onInvalidBody",
     ({ state, ctx, validationError }) => {
