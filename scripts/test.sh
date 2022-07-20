@@ -5,7 +5,7 @@
 docker run \
   --rm \
   -t \
-  --volume "$(pwd):$(pwd):${1-ro}" \
+  --volume "$(pwd):$(pwd):${1-rw}" \
   --entrypoint yarn \
   --workdir "$(pwd)" \
   --env CI \
