@@ -14,7 +14,7 @@
   "scripts": {
     "build": "yarn run tsc && yarn run lint",
     "server": "NODE_OPTIONS='--experimental-specifier-resolution=node' ts-node src 0.0.0.0 3000",
-    "tsc": "tsc --project tsconfig.json",
+    "tsc": "tsc --project tsconfig.build.json",
     "lint": "eslint ./src --ext .ts,.tsx",
     "test": "ava"
   },

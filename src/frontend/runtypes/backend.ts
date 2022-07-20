@@ -5,7 +5,12 @@ import * as apiCall from "../../api/data-client/runtypes";
 import type * as protocol from "../../protocol";
 import * as t from "runtypes";
 
-export const createBackend = (invokeHTTPEndpoint: common.CallHTTPEndpoint) => {
+export const createBackend = <
+  THeaders extends Record<"auth", common.HeaderProvider>,
+>(
+  invokeHTTPEndpoint: common.CallHTTPEndpoint,
+  headers: THeaders,
+) => {
   // This is RFC-adhering UUID regex. Relax if needed.
   // Taken from https://stackoverflow.com/questions/7905929/how-to-test-valid-uuid-guid
   const uuid = t.String.withConstraint(
@@ -23,11 +28,9 @@ export const createBackend = (invokeHTTPEndpoint: common.CallHTTPEndpoint) => {
     }),
   );
 
-  const factory = apiCall.createAPICallFactory(invokeHTTPEndpoint).withHeaders({
-    // Key: functionality IDs used by protocol
-    // Value: callback implementing functionality
-    auth: () => `Basic ${Buffer.from("secret:secret").toString("base64")}`,
-  });
+  const factory = apiCall
+    .createAPICallFactory(invokeHTTPEndpoint)
+    .withHeaders(headers);
 
   const getThings = factory.makeAPICall<protocol.APIGetThings>("GET", {
     method: tPlugin.plainValidator(t.Literal("GET")),

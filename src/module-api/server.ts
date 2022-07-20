@@ -8,6 +8,7 @@ export { State } from "./rest";
 export interface ServerModule {
   createServer: (input: {
     createEndpoints: restApi.RESTAPISpecificationModule["createEndpoints"];
+    tryGetUsername: TryGetUsername;
     createEvents?: <TContext>(
       this: void,
       args: {
@@ -31,3 +32,8 @@ export type GetMethodAndURL<TContext> = (
   this: void,
   context: TContext,
 ) => { method: string; url: string };
+
+export type TryGetUsername = (
+  this: void,
+  getHeader: (headerName: string) => string | Array<string> | undefined,
+) => string | undefined | Promise<string | undefined>;

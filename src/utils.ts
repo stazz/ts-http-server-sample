@@ -50,3 +50,36 @@ export const loadServersAndDataValidations = () => {
     allowedDataValidations,
   };
 };
+
+export const tryGetUsernameFromBasicAuth =
+  (
+    expectedUsername: string,
+    expectedPassword: string,
+  ): serverModuleApi.TryGetUsername =>
+  (getHeader) => {
+    const authOrMany = getHeader("authorization") ?? "";
+    const auth = Array.isArray(authOrMany) ? authOrMany[0] : authOrMany;
+    const scheme = auth.substring(0, 6).toLowerCase();
+    let username: string | undefined;
+    if (scheme.startsWith("basic ")) {
+      try {
+        const authData = Buffer.from(
+          auth.substring(scheme.length),
+          "base64",
+        ).toString();
+        const idx = authData.indexOf(":");
+        if (idx > 0) {
+          if (
+            authData.substring(0, idx) === expectedUsername &&
+            authData.substring(idx + 1) === expectedPassword
+          ) {
+            username = authData.substring(0, idx);
+          }
+        }
+      } catch {
+        // Ignore, will return 403
+      }
+    }
+
+    return username;
+  };
