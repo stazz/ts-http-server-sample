@@ -1,26 +1,13 @@
-// Import code to create REST API endpoints
+import * as data from "./api/core/data";
 import type * as server from "./api/core/server";
+import type * as serverModule from "./module-api/server";
 import * as evt from "@data-heaving/common";
 
-export type GetMethodAndURL<TContext extends server.HKTContext> = <TState>(
-  this: void,
-  context: server.HKTContextKind<TContext, TState>,
-) => { method: string; url: string };
-
-export const logServerEvents = <
-  TContext extends server.HKTContext,
-  TState,
-  TValidationError,
->(
-  getMethodAndUrl: GetMethodAndURL<TContext>,
-  getStateString: (state: TState) => string,
-  getValidationErrorMessage: (this: void, error: TValidationError) => string,
+export const logServerEvents = <TContext>(
+  getMethodAndUrl: serverModule.GetMethodAndURL<TContext>,
+  getStateString: (state: serverModule.State) => string,
   builder?: evt.EventEmitterBuilder<
-    server.VirtualRequestProcessingEvents<
-      server.HKTContextKind<TContext, TState>,
-      TState,
-      TValidationError
-    >
+    server.VirtualRequestProcessingEvents<TContext, serverModule.State>
   >,
 ) => {
   if (!builder) {
@@ -34,7 +21,7 @@ export const logServerEvents = <
       console.error(
         `Invalid body: ${method} ${url} ${getStateString(
           state,
-        )}, validation error:\n${getValidationErrorMessage(validationError)}`,
+        )}, validation error:\n${validationError.getHumanReadableMessage()}`,
       );
     },
   );
@@ -53,9 +40,7 @@ export const logServerEvents = <
       console.error(
         `Invalid URL parameters supplied: ${method} ${url} ${getStateString(
           state,
-        )}.\n${validationError
-          .map((error) => getValidationErrorMessage(error))
-          .join("  \n")}`,
+        )}.\n${data.combineErrorObjects(validationError)}`,
       );
     },
   );
@@ -67,7 +52,7 @@ export const logServerEvents = <
       console.error(
         `Invalid query supplied: ${method} ${url} ${getStateString(
           state,
-        )}.\n${getValidationErrorMessage(validationError)}`,
+        )}.\n${validationError.getHumanReadableMessage()}`,
       );
     },
   );
@@ -95,7 +80,7 @@ export const logServerEvents = <
     console.error(
       `State validation failed for ${JSON.stringify(state)}.\n${
         validationError
-          ? getValidationErrorMessage(validationError)
+          ? validationError.getHumanReadableMessage()
           : "Protocol-related error"
       }`,
     );
@@ -108,7 +93,7 @@ export const logServerEvents = <
       console.error(
         `Invalid response: ${method} ${url} ${getStateString(
           state,
-        )}, validation error:\n${getValidationErrorMessage(validationError)}`,
+        )}, validation error:\n${validationError.getHumanReadableMessage()}`,
       );
     },
   );

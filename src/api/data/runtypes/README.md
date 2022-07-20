@@ -3,7 +3,6 @@ This folder contains code which implement the data validation layer specified by
 This code locks on to specific data validation library: [Runtypes](https://github.com/pelotom/runtypes).
 
 - `getHumanReadableErrorMessage` function in [error.ts](./error.ts) allows transformation of Runtypes-specific error object into string message.
-- `exceptionAsValidationError` function in [error.ts](./error.ts) allows creation of Runtypes-specific error object from e.g. exception.
 - `GetRuntime` and `GetEncoded` types in [protocol.ts](./protocol.ts) allow convertion of `Encoded` types to their runtime and encoded formats.
   The definition of `Encoded` is in [protocol module](../../core/protocol/).
 - `plainValidator` and `encoder` functions in [validate.ts](./validate.ts) allow creation of `DataValidator` types from Runtypes `Runtype`s.

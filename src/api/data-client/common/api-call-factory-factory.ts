@@ -6,20 +6,12 @@ import type * as apiCallFactory from "./api-call-factory";
 export const createAPICallFactory = <THKTEncoded extends protocol.HKTEncoded>(
   callHttpEndpoint: CallHTTPEndpoint,
 ): {
-  withUndefinedValidator: <TValidationError>(
-    undefinedValidator: data.DataValidator<
-      unknown,
-      undefined,
-      TValidationError
-    >,
+  withUndefinedValidator: (
+    undefinedValidator: data.DataValidator<unknown, undefined>,
   ) => {
     withHeaders: <THeaders extends Record<string, HeaderProvider>>(
       headers: THeaders,
-    ) => apiCallFactory.APICallFactory<
-      THKTEncoded,
-      keyof THeaders & string,
-      TValidationError
-    >;
+    ) => apiCallFactory.APICallFactory<THKTEncoded, keyof THeaders & string>;
   };
 } => {
   return {
@@ -37,15 +29,11 @@ export const createAPICallFactory = <THKTEncoded extends protocol.HKTEncoded>(
           }:
             | (apiCallFactory.MakeAPICallArgs<
                 TProtocolSpec["method"],
-                TProtocolSpec["responseBody"],
-                DataValidatorError<typeof undefinedValidator>
+                TProtocolSpec["responseBody"]
               > &
                 (
                   | apiCallFactory.MakeAPICallArgsURL
-                  | apiCallFactory.MakeAPICallArgsURLData<
-                      unknown,
-                      DataValidatorError<typeof undefinedValidator>
-                    >
+                  | apiCallFactory.MakeAPICallArgsURLData<unknown>
                 )) &
                 // eslint-disable-next-line @typescript-eslint/ban-types
                 (| {}
@@ -54,19 +42,13 @@ export const createAPICallFactory = <THKTEncoded extends protocol.HKTEncoded>(
                     >
                   | apiCallFactory.MakeAPICallArgsQuery<
                       THKTEncoded,
-                      Record<string, unknown>,
-                      DataValidatorError<typeof undefinedValidator>
+                      Record<string, unknown>
                     >
-                  | apiCallFactory.MakeAPICallArgsBody<
-                      THKTEncoded,
-                      unknown,
-                      DataValidatorError<typeof undefinedValidator>
-                    >
+                  | apiCallFactory.MakeAPICallArgsBody<THKTEncoded, unknown>
                 ),
         ): apiCall.APICall<
           Partial<Record<"method" | "url" | "query" | "body", unknown>> | void,
-          TProtocolSpec["responseBody"],
-          DataValidatorError<typeof undefinedValidator>
+          TProtocolSpec["responseBody"]
         > => {
           const validatedMethod = method(methodValue);
           if (validatedMethod.error !== "none") {
@@ -109,7 +91,6 @@ export const createAPICallFactory = <THKTEncoded extends protocol.HKTEncoded>(
             .withInput("body", "body" in rest ? rest.body : undefined);
           return async (args) => {
             const validatedArgs = componentValidations.getOutputs({
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               ...(args ?? {}),
               url: args ? args.url : undefined,
             });

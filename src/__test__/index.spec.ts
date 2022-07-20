@@ -19,18 +19,28 @@ const testInvokingBackend = test.macro(
   async (
     c,
     serverModule: Promise<{ default: serverModuleApi.ServerModule }>,
-    restModule: Promise<{ default: restModuleApi.RESTAPISpecificationModule }>,
+    restModule: Promise<{
+      default: restModuleApi.RESTAPISpecificationModule;
+    }>,
     beModule: Promise<{
-      createBackend: (invokeHttp: feCommon.CallHTTPEndpoint) => AllAPICalls;
+      createBackend: <THeaders extends Record<"auth", feCommon.HeaderProvider>>(
+        invokeHttp: feCommon.CallHTTPEndpoint,
+        headers: THeaders,
+      ) => AllAPICalls;
     }>,
   ) => {
     // Expect this amount of assertions.
     c.plan(5);
 
+    // For authenticated endpoint, use basic auth with the following username and pw
+    const username = "test_user";
+    const password = "test_password";
     // Create server
-    const server = (await serverModule).default.createServer(
-      (await restModule).default.createEndpoints,
-    );
+    const server = (await serverModule).default.createServer({
+      createEndpoints: (await restModule).default.createEndpoints,
+      tryGetUsername: utils.tryGetUsernameFromBasicAuth(username, password),
+      // TODO use "createEvents" property here to create event emitter which pushes all events to array
+    });
     // Create callback to stop server
     const destroyServer = destroy.createDestroyCallback(
       server instanceof net.Server ? server : server.server,
@@ -42,6 +52,10 @@ const testInvokingBackend = test.macro(
     // Create object used by FE to invoke BE endpoints
     const backend = (await beModule).createBackend(
       invoke.createCallHTTPEndpoint(host, port),
+      {
+        auth: () =>
+          `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`,
+      },
     );
 
     try {
@@ -202,4 +216,4 @@ type AllAPIDefinitions = {
   connectThings: protocol.APIConnectThings;
   authenticated: protocol.APIAuthenticated;
 };
-type AllAPICalls = feCommon.GetAPICalls<AllAPIDefinitions, unknown>;
+type AllAPICalls = feCommon.GetAPICalls<AllAPIDefinitions>;

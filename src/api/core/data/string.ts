@@ -1,7 +1,6 @@
 import * as common from "./common";
 
-export type StringParameterTransform<TData, TError> = common.DataValidator<
+export type StringParameterTransform<TData> = common.DataValidator<
   string,
-  TData,
-  TError
+  TData
 >;

@@ -4,20 +4,12 @@ import * as server from "../../core/server";
 import * as koa from "koa";
 
 // Using given various endpoints, create Koa middlewares.
-export const createMiddleware = <TState, TValidationError>(
+export const createMiddleware = <TState>(
   endpoints: Array<
-    ep.AppEndpoint<
-      koa.ParameterizedContext<TState>,
-      TValidationError,
-      Record<string, unknown>
-    >
+    ep.AppEndpoint<koa.ParameterizedContext<TState>, Record<string, unknown>>
   >,
   events:
-    | server.ServerEventEmitter<
-        koa.ParameterizedContext<TState>,
-        TState,
-        TValidationError
-      >
+    | server.ServerEventEmitter<koa.ParameterizedContext<TState>, TState>
     | undefined = undefined,
 ): koa.Middleware<TState> => {
   // Combine given endpoints into top-level entrypoint

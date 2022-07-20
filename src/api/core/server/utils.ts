@@ -10,29 +10,18 @@ import * as u from "url";
 export type ServerEventEmitter<
   TContext,
   TState,
-  TValidationError,
   TEvents extends keyof evt.VirtualRequestProcessingEvents<
     TContext,
-    TState,
-    TValidationError
-  > = keyof evt.VirtualRequestProcessingEvents<
-    TContext,
-    TState,
-    TValidationError
-  >,
+    TState
+  > = keyof evt.VirtualRequestProcessingEvents<TContext, TState>,
 > = evtEmit.EventEmitter<
-  Pick<
-    evt.VirtualRequestProcessingEvents<TContext, TState, TValidationError>,
-    TEvents
-  >
+  Pick<evt.VirtualRequestProcessingEvents<TContext, TState>, TEvents>
 >;
 
 export const checkURLPathNameForHandler = <TContext, TState>(
   ctx: TContext,
   state: TState,
-  events:
-    | ServerEventEmitter<TContext, TState, unknown, "onInvalidUrl">
-    | undefined,
+  events: ServerEventEmitter<TContext, TState, "onInvalidUrl"> | undefined,
   url: u.URL | string,
   regExp: RegExp,
 ) => {
@@ -55,13 +44,11 @@ export const checkURLPathNameForHandler = <TContext, TState>(
     : undefined;
 };
 
-export const checkMethodForHandler = <TContext, TState, TValidationError>(
+export const checkMethodForHandler = <TContext, TState>(
   eventArgs: evt.EventArguments<TContext, TState>,
-  events:
-    | ServerEventEmitter<TContext, TState, TValidationError, "onInvalidMethod">
-    | undefined,
+  events: ServerEventEmitter<TContext, TState, "onInvalidMethod"> | undefined,
   method: ep.HttpMethod,
-  handler: ep.DynamicHandlerGetter<TContext, TValidationError>,
+  handler: ep.DynamicHandlerGetter<TContext>,
 ) => {
   const foundHandler = handler(method, eventArgs.groups);
   const foundSuccess = foundHandler.found === "handler";
@@ -73,18 +60,13 @@ export const checkMethodForHandler = <TContext, TState, TValidationError>(
   return foundHandler;
 };
 
-export const checkContextForHandler = <TContext, TState, TValidationError>(
+export const checkContextForHandler = <TContext, TState>(
   eventArgs: evt.EventArguments<TContext, TState>,
-  events:
-    | ServerEventEmitter<TContext, TState, TValidationError, "onInvalidContext">
-    | undefined,
+  events: ServerEventEmitter<TContext, TState, "onInvalidContext"> | undefined,
   {
     validator,
     getState,
-  }: ep.StaticAppEndpointHandler<
-    TContext,
-    TValidationError
-  >["contextValidator"],
+  }: ep.StaticAppEndpointHandler<TContext>["contextValidator"],
 ) => {
   const validationResult = validator(eventArgs.ctx);
   let validatedContextOrError:
@@ -108,7 +90,7 @@ export const checkContextForHandler = <TContext, TState, TValidationError>(
     const isProtocolError = validationResult.error === "protocol-error";
     events?.emit("onInvalidContext", {
       ...eventArgs,
-      validationError: isProtocolError ? undefined : validationResult.errorInfo,
+      validationError: isProtocolError ? undefined : validationResult,
     });
     validatedContextOrError = {
       result: "error",
@@ -122,30 +104,18 @@ export const checkContextForHandler = <TContext, TState, TValidationError>(
   return validatedContextOrError;
 };
 
-export const checkURLParametersForHandler = <
-  TContext,
-  TState,
-  TValidationError,
->(
+export const checkURLParametersForHandler = <TContext, TState>(
   eventArgs: evt.EventArguments<TContext, TState>,
   events:
-    | ServerEventEmitter<
-        TContext,
-        TState,
-        TValidationError,
-        "onInvalidUrlParameters"
-      >
+    | ServerEventEmitter<TContext, TState, "onInvalidUrlParameters">
     | undefined,
-  urlValidation: ep.StaticAppEndpointHandler<
-    TContext,
-    TValidationError
-  >["urlValidator"],
+  urlValidation: ep.StaticAppEndpointHandler<TContext>["urlValidator"],
 ) => {
   let url: Record<string, unknown> | undefined;
   let proceedToInvokeHandler: boolean;
   if (urlValidation) {
     url = {};
-    const errors: Array<TValidationError> = [];
+    const errors: Array<data.DataValidatorResultError> = [];
     for (const [groupName, { parameterName, validator }] of Object.entries(
       urlValidation,
     )) {
@@ -155,7 +125,7 @@ export const checkURLParametersForHandler = <
           url[parameterName] = validatorResult.data;
           break;
         default:
-          errors.push(validatorResult.errorInfo);
+          errors.push(validatorResult);
           break;
       }
     }
@@ -172,37 +142,26 @@ export const checkURLParametersForHandler = <
   return [proceedToInvokeHandler, url];
 };
 
-export const checkQueryForHandler = <TContext, TState, TValidationError>(
+export const checkQueryForHandler = <TContext, TState>(
   eventArgs: evt.EventArguments<TContext, TState>,
-  events:
-    | ServerEventEmitter<TContext, TState, TValidationError, "onInvalidQuery">
-    | undefined,
-  queryValidation: ep.StaticAppEndpointHandler<
-    TContext,
-    TValidationError
-  >["queryValidator"],
+  events: ServerEventEmitter<TContext, TState, "onInvalidQuery"> | undefined,
+  queryValidation: ep.StaticAppEndpointHandler<TContext>["queryValidator"],
   queryString: string,
   queryObject:
     | Record<string, string | Array<string> | undefined>
-    | (() => TValidationError),
+    | (() => data.DataValidatorResultError),
 ) => {
   let proceedToInvokeHandler: boolean;
   let query: unknown;
   if (queryValidation) {
-    let queryValidationResult: data.DataValidatorResult<
-      unknown,
-      TValidationError
-    >;
+    let queryValidationResult: data.DataValidatorResult<unknown>;
     switch (queryValidation.query) {
       case "string":
         queryValidationResult = queryValidation.validator(queryString);
         break;
       case "object":
         if (typeof queryObject === "function") {
-          queryValidationResult = {
-            error: "error",
-            errorInfo: queryObject(),
-          };
+          queryValidationResult = queryObject();
         } else {
           queryValidationResult = queryValidation.validator(queryObject);
         }
@@ -219,7 +178,7 @@ export const checkQueryForHandler = <TContext, TState, TValidationError>(
         proceedToInvokeHandler = false;
         events?.emit("onInvalidQuery", {
           ...eventArgs,
-          validationError: queryValidationResult.errorInfo,
+          validationError: queryValidationResult,
         });
     }
   } else {
@@ -230,20 +189,16 @@ export const checkQueryForHandler = <TContext, TState, TValidationError>(
   return [proceedToInvokeHandler, query];
 };
 
-export const checkBodyForHandler = async <TContext, TState, TValidationError>(
+export const checkBodyForHandler = async <TContext, TState>(
   eventArgs: evt.EventArguments<TContext, TState>,
   events:
     | ServerEventEmitter<
         TContext,
         TState,
-        TValidationError,
         "onInvalidBody" | "onInvalidContentType"
       >
     | undefined,
-  isBodyValid: ep.StaticAppEndpointHandler<
-    TContext,
-    TValidationError
-  >["bodyValidator"],
+  isBodyValid: ep.StaticAppEndpointHandler<TContext>["bodyValidator"],
   contentType: string,
   bodyStream: stream.Readable | undefined,
 ) => {
@@ -274,7 +229,7 @@ export const checkBodyForHandler = async <TContext, TState, TValidationError>(
         if (bodyValidationResult.error === "error") {
           events?.emit("onInvalidBody", {
             ...eventArgs,
-            validationError: bodyValidationResult.errorInfo,
+            validationError: bodyValidationResult,
           });
         } else {
           events?.emit("onInvalidContentType", {
@@ -292,24 +247,17 @@ export const checkBodyForHandler = async <TContext, TState, TValidationError>(
   return [proceedToInvokeHandler, body];
 };
 
-export const invokeHandler = <TContext, TState, TValidationError>(
+export const invokeHandler = <TContext, TState>(
   eventArgs: evt.EventArguments<TContext, TState>,
-  events:
-    | ServerEventEmitter<
-        TContext,
-        TState,
-        TValidationError,
-        "onInvalidResponse"
-      >
-    | undefined,
-  handler: ep.StaticAppEndpointHandler<TContext, TValidationError>["handler"],
+  events: ServerEventEmitter<TContext, TState, "onInvalidResponse"> | undefined,
+  handler: ep.StaticAppEndpointHandler<TContext>["handler"],
   ...handlerParameters: Parameters<typeof handler>
 ) => {
   const retVal = handler(...handlerParameters);
   if (retVal.error !== "none") {
     events?.emit("onInvalidResponse", {
       ...eventArgs,
-      validationError: retVal.errorInfo,
+      validationError: retVal,
     });
   }
   return retVal;

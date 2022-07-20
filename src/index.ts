@@ -1,5 +1,6 @@
 import * as process from "process";
 import * as utils from "./utils";
+import * as logging from "./logging";
 
 const main = async (
   host: string,
@@ -9,9 +10,11 @@ const main = async (
 ) => {
   let exitCode = 1;
   try {
+    // Load all supported servers and data validations
     const { allowedServers, allowedDataValidations } =
       utils.loadServersAndDataValidations();
 
+    // Create server, throw if not one of the supported ones
     const instance = (
       await doThrow(
         allowedServers[server],
@@ -19,8 +22,8 @@ const main = async (
           ", ",
         )}.`,
       )
-    ).default.createServer(
-      (
+    ).default.createServer({
+      createEndpoints: (
         await doThrow(
           allowedDataValidations[dataValidation],
           `The first argument must be one of ${Object.keys(
@@ -28,8 +31,21 @@ const main = async (
           ).join(", ")}.`,
         )
       ).default.createEndpoints,
-    );
+      createEvents: ({ getMethodAndUrl }) =>
+        logging
+          .logServerEvents(
+            getMethodAndUrl,
+            ({ username }) =>
+              `(user: ${username === undefined ? "none" : `"${username}"`})`,
+          )
+          .createEventEmitter(),
+      tryGetUsername: utils.tryGetUsernameFromBasicAuth("secret", "secret"),
+    });
+
+    // Start server
     await utils.listenAsync(instance, host, port);
+
+    // Signal that there has been no error
     exitCode = 0;
   } catch (e) {
     // eslint-disable-next-line no-console
@@ -40,7 +56,9 @@ const main = async (
     console.info(
       `Started server "${server}" running on ${host}:${port} using data validation "${dataValidation}".`,
     );
+    // Notice: in this case, no process.exit is called, but server is let to be running on the background
   } else {
+    // There was an error -> force process to exit, in case there is still something async running in the background
     process.exit(exitCode);
   }
 };

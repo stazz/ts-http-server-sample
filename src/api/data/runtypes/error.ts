@@ -1,3 +1,4 @@
+import type * as data from "../../core/data";
 import * as t from "runtypes";
 
 export type ValidationError = Array<Omit<t.Failure, "success">>;
@@ -22,12 +23,10 @@ const detailsToString = (details: string | t.Details): string =>
           )
       ).join("\n  ");
 
-export const exceptionAsValidationError = (
-  input: unknown, // TODO maybe make ValidationError include optional 'value' property?
-  exception: unknown,
-): ValidationError => [
-  {
-    code: t.Failcode.CONTENT_INCORRECT,
-    message: `${exception}`,
-  },
-];
+export const createErrorObject = (
+  errorInfo: ValidationError,
+): data.DataValidatorResultError => ({
+  error: "error",
+  errorInfo,
+  getHumanReadableMessage: () => getHumanReadableErrorMessage(errorInfo),
+});

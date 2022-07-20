@@ -5,7 +5,12 @@ import * as apiCall from "../../api/data-client/zod";
 import type * as protocol from "../../protocol";
 import * as t from "zod";
 
-export const createBackend = (invokeHTTPEndpoint: common.CallHTTPEndpoint) => {
+export const createBackend = <
+  THeaders extends Record<"auth", common.HeaderProvider>,
+>(
+  invokeHTTPEndpoint: common.CallHTTPEndpoint,
+  headers: THeaders,
+) => {
   // This is RFC-adhering UUID regex. Relax if needed.
   // Taken from https://stackoverflow.com/questions/7905929/how-to-test-valid-uuid-guid
   const uuid = t
@@ -26,11 +31,9 @@ export const createBackend = (invokeHTTPEndpoint: common.CallHTTPEndpoint) => {
     }),
   );
 
-  const factory = apiCall.createAPICallFactory(invokeHTTPEndpoint).withHeaders({
-    // Key: functionality IDs used by protocol
-    // Value: callback implementing functionality
-    auth: () => `Basic ${Buffer.from("secret:secret").toString("base64")}`,
-  });
+  const factory = apiCall
+    .createAPICallFactory(invokeHTTPEndpoint)
+    .withHeaders(headers);
 
   const getThings = factory.makeAPICall<protocol.APIGetThings>("GET", {
     method: tPlugin.plainValidator(t.literal("GET")),
@@ -106,13 +109,9 @@ export const createBackend = (invokeHTTPEndpoint: common.CallHTTPEndpoint) => {
       ({ connectedAt, ...r }) => {
         const theDate = new Date(connectedAt);
         return isNaN(theDate.valueOf())
-          ? {
-              error: "error",
-              errorInfo: tPlugin.exceptionAsValidationError(
-                connectedAt,
-                theDate,
-              ),
-            }
+          ? data.exceptionAsValidationError(
+              `Not a valid ISO timestamp string "${connectedAt}".`,
+            )
           : {
               error: "none",
               data: {

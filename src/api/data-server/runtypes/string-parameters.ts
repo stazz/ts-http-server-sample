@@ -2,33 +2,22 @@ import * as t from "runtypes";
 import * as data from "../../core/data";
 import * as common from "../../data/runtypes";
 
-export function parameterString(): data.StringParameterTransform<
-  string,
-  common.ValidationError
->;
+export function parameterString(): data.StringParameterTransform<string>;
 export function parameterString<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TDecoder extends t.Runtype<string>,
->(
-  customString: TDecoder,
-): data.StringParameterTransform<t.Static<TDecoder>, common.ValidationError>;
+>(customString: TDecoder): data.StringParameterTransform<t.Static<TDecoder>>;
 export function parameterString<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TDecoder extends t.Runtype<string>,
 >(
   customString?: TDecoder,
-): data.StringParameterTransform<
-  string | t.Static<TDecoder>,
-  common.ValidationError
-> {
+): data.StringParameterTransform<string | t.Static<TDecoder>> {
   return common.plainValidator(customString ?? t.String);
 }
 
 const TRUE = "true" as const;
-export const parameterBoolean = (): data.StringParameterTransform<
-  boolean,
-  common.ValidationError
-> =>
+export const parameterBoolean = (): data.StringParameterTransform<boolean> =>
   data.transitiveDataValidation(
     common.plainValidator(t.Union(t.Literal(TRUE), t.Literal("false"))),
     (str) => ({
@@ -37,36 +26,27 @@ export const parameterBoolean = (): data.StringParameterTransform<
     }),
   );
 
-export const parameterISOTimestamp = (): data.StringParameterTransform<
-  Date,
-  common.ValidationError
-> =>
+export const parameterISOTimestamp = (): data.StringParameterTransform<Date> =>
   data.transitiveDataValidation(common.plainValidator(t.String), (str) => {
     try {
       const d = new Date(str);
       return isNaN(d.getTime())
-        ? {
-            error: "error",
-            errorInfo: [
-              {
-                code: t.Failcode.CONSTRAINT_FAILED,
-                message: "Timestamp string was not ISO format",
-              },
-            ],
-          }
+        ? common.createErrorObject([
+            {
+              code: t.Failcode.CONSTRAINT_FAILED,
+              message: "Timestamp string was not ISO format",
+            },
+          ])
         : {
             error: "none",
             data: d,
           };
     } catch {
-      return {
-        error: "error",
-        errorInfo: [
-          {
-            code: t.Failcode.CONSTRAINT_FAILED,
-            message: "Timestamp string was not ISO format",
-          },
-        ],
-      };
+      return common.createErrorObject([
+        {
+          code: t.Failcode.CONSTRAINT_FAILED,
+          message: "Timestamp string was not ISO format",
+        },
+      ]);
     }
   });

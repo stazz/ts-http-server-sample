@@ -1,8 +1,7 @@
 export type DataValidator<
   TInput,
   TData,
-  TError,
-  ErrorTResponse = DataValidatorResultError<TError>,
+  ErrorTResponse = DataValidatorResultError,
 > = (
   this: void,
   data: TInput,
@@ -11,24 +10,24 @@ export type DataValidator<
 export type DataValidatorAsync<
   TInput,
   TData,
-  TError,
-  ErrorTResponse = DataValidatorResultError<TError>,
+  ErrorTResponse = DataValidatorResultError,
 > = (
   this: void,
   data: TInput,
 ) => Promise<DataValidatorResultSuccess<TData> | ErrorTResponse>;
 
-export type DataValidatorResult<TData, TError> =
+export type DataValidatorResult<TData> =
   | DataValidatorResultSuccess<TData>
-  | DataValidatorResultError<TError>;
+  | DataValidatorResultError;
 
 export interface DataValidatorResultSuccess<TData> {
   error: "none";
   data: TData;
 }
-export interface DataValidatorResultError<TError> {
+export interface DataValidatorResultError {
   error: "error";
-  errorInfo: TError;
+  errorInfo: unknown;
+  getHumanReadableMessage: () => string;
 }
 
 export type DataValidatorOutput<T> = T extends DataValidator<

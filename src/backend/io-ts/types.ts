@@ -45,7 +45,6 @@ export type MakeSpecWithoutBody<
   ? spec.BatchSpecificationWithQueryWithoutBody<
       unknown,
       GetProtocolState<TProtocolSpec>,
-      tPlugin.ValidationError,
       TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>
         ? spec.EndpointHandlerArgsWithURL<TURLData>
         : // eslint-disable-next-line @typescript-eslint/ban-types
@@ -62,7 +61,6 @@ export type MakeSpecWithoutBody<
   : spec.BatchSpecificationWithoutQueryWithoutBody<
       unknown,
       GetProtocolState<TProtocolSpec>,
-      tPlugin.ValidationError,
       TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>
         ? spec.EndpointHandlerArgsWithURL<TURLData>
         : // eslint-disable-next-line @typescript-eslint/ban-types
@@ -85,7 +83,6 @@ export type MakeSpecWithBody<
   ? spec.BatchSpecificationWithQueryWithBody<
       unknown,
       GetProtocolState<TProtocolSpec>,
-      tPlugin.ValidationError,
       TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>
         ? spec.EndpointHandlerArgsWithURL<TURLData>
         : // eslint-disable-next-line @typescript-eslint/ban-types
@@ -106,7 +103,6 @@ export type MakeSpecWithBody<
   : spec.BatchSpecificationWithoutQueryWithBody<
       unknown,
       GetProtocolState<TProtocolSpec>,
-      tPlugin.ValidationError,
       TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>
         ? spec.EndpointHandlerArgsWithURL<TURLData>
         : // eslint-disable-next-line @typescript-eslint/ban-types

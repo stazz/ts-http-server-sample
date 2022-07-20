@@ -14,15 +14,11 @@ export interface MetadataBuilder<
         string,
         {
           querySpec:
-            | Omit<
-                data.QueryValidatorSpec<unknown, string, unknown>,
-                "validator"
-              >
+            | Omit<data.QueryValidatorSpec<unknown, string>, "validator">
             | undefined;
           inputSpec:
             | Omit<
                 data.DataValidatorRequestInputSpec<
-                  unknown,
                   unknown,
                   Record<string, unknown>
                 >,
@@ -31,7 +27,6 @@ export interface MetadataBuilder<
             | undefined;
           outputSpec: Omit<
             data.DataValidatorResponseOutputSpec<
-              unknown,
               unknown,
               Record<string, unknown>
             >,
@@ -55,6 +50,6 @@ export type SingleEndpointResult<TEndpointMD> = (
 ) => TEndpointMD;
 
 export type URLParameterSpec = Omit<
-  data.URLDataParameterValidatorSpec<unknown, unknown>,
+  data.URLDataParameterValidatorSpec<unknown>,
   "validator"
 > & { name: string };

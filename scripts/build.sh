@@ -9,6 +9,5 @@ docker run \
   --entrypoint yarn \
   --workdir "$(pwd)" \
   "node:${NODE_VERSION}" \
-  install \
-  --ignore-scripts \
-  "$@"
+  run \
+  tsc

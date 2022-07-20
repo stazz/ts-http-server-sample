@@ -10,11 +10,7 @@ export const inputValidator = <T>(
   validation: common.Decoder<T>,
   strictContentType = false,
   opts?: rawbody.Options,
-): data.DataValidatorRequestInputSpec<
-  T,
-  common.ValidationError,
-  InputValidatorSpec<T>
-> => {
+): data.DataValidatorRequestInputSpec<T, InputValidatorSpec<T>> => {
   const jsonValidation = data.transitiveDataValidation(
     (inputString: string) => {
       if (inputString.length > 0) {
@@ -24,10 +20,7 @@ export const inputValidator = <T>(
             data: JSON.parse(inputString) as unknown,
           };
         } catch (e) {
-          return {
-            error: "error",
-            errorInfo: common.exceptionAsValidationError(inputString, e),
-          };
+          return data.exceptionAsValidationError(e);
         }
       } else {
         // No body supplied -> appear as undefined
@@ -65,7 +58,6 @@ export function outputValidator<TOutput>(
   validation: t.ZodType<TOutput>,
 ): data.DataValidatorResponseOutputSpec<
   TOutput,
-  common.ValidationError,
   OutputValidatorSpec<TOutput, TOutput>
 >;
 export function outputValidator<TOutput, TSerialized>(
@@ -73,7 +65,6 @@ export function outputValidator<TOutput, TSerialized>(
   transform: (output: TOutput) => TSerialized,
 ): data.DataValidatorResponseOutputSpec<
   TOutput,
-  common.ValidationError,
   OutputValidatorSpec<TOutput, TSerialized>
 >;
 export function outputValidator<TOutput, TSerialized>(
@@ -81,7 +72,6 @@ export function outputValidator<TOutput, TSerialized>(
   transform?: (output: TOutput) => TSerialized,
 ): data.DataValidatorResponseOutputSpec<
   TOutput,
-  common.ValidationError,
   OutputValidatorSpec<TOutput, TSerialized>
 > {
   const encoder: common.Encoder<TOutput, TSerialized> = transform
@@ -102,15 +92,9 @@ export function outputValidator<TOutput, TSerialized>(
                 output: JSON.stringify(encoder.transform(result.data)),
               },
             }
-          : {
-              error: "error",
-              errorInfo: [result.error],
-            };
+          : common.createErrorObject([result.error]);
       } catch (e) {
-        return {
-          error: "error",
-          errorInfo: common.exceptionAsValidationError(output, e),
-        };
+        return data.exceptionAsValidationError(e);
       }
     },
     validatorSpec: {

@@ -35,12 +35,51 @@ export const loadServersAndDataValidations = () => {
     string,
     Promise<{ default: restModuleApi.RESTAPISpecificationModule }>
   > = {
-    ["io-ts"]: import("./backend/io-ts"),
-    runtypes: import("./backend/runtypes"),
-    zod: import("./backend/zod"),
+    ["io-ts"]: import("./backend/io-ts") as Promise<{
+      default: restModuleApi.RESTAPISpecificationModule;
+    }>,
+    runtypes: import("./backend/runtypes") as Promise<{
+      default: restModuleApi.RESTAPISpecificationModule;
+    }>,
+    zod: import("./backend/zod") as Promise<{
+      default: restModuleApi.RESTAPISpecificationModule;
+    }>,
   };
   return {
     allowedServers,
     allowedDataValidations,
   };
 };
+
+export const tryGetUsernameFromBasicAuth =
+  (
+    expectedUsername: string,
+    expectedPassword: string,
+  ): serverModuleApi.TryGetUsername =>
+  (getHeader) => {
+    const authOrMany = getHeader("authorization") ?? "";
+    const auth = Array.isArray(authOrMany) ? authOrMany[0] : authOrMany;
+    const scheme = auth.substring(0, 6).toLowerCase();
+    let username: string | undefined;
+    if (scheme.startsWith("basic ")) {
+      try {
+        const authData = Buffer.from(
+          auth.substring(scheme.length),
+          "base64",
+        ).toString();
+        const idx = authData.indexOf(":");
+        if (idx > 0) {
+          if (
+            authData.substring(0, idx) === expectedUsername &&
+            authData.substring(idx + 1) === expectedPassword
+          ) {
+            username = authData.substring(0, idx);
+          }
+        }
+      } catch {
+        // Ignore, will return 403
+      }
+    }
+
+    return username;
+  };

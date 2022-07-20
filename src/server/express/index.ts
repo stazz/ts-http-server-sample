@@ -17,28 +17,31 @@ const uuidRegex =
   /[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}/i;
 
 const serverModule: moduleApi.ServerModule = {
-  createServer: (createEndpoints) => {
-    const { api, events } = createEndpoints(
+  createServer: ({ createEndpoints, tryGetUsername, createEvents }) => {
+    const { api } = createEndpoints(
       serverPlugin.getStateFromContext,
       serverPlugin.validateContextState,
       uuidRegex,
-      ({ req }) => ({
-        method: req.method,
-        url: req.originalUrl,
-      }),
     );
 
     return http.createServer(
       server
         .default()
         // First do auth (will modify context's state)
-        .use(auth.setUsernameFromBasicAuth())
+        .use(auth.setUsernameFromBasicAuth(tryGetUsername))
         // Then perform the REST API functionality
-        .use(serverPlugin.createMiddleware(api, events.createEventEmitter())),
+        .use(
+          serverPlugin.createMiddleware(
+            api,
+            createEvents?.({
+              getMethodAndUrl: ({ req }) => ({
+                method: req.method,
+                url: req.originalUrl,
+              }),
+            }),
+          ),
+        ),
     );
-
-    // Listen
-    // instance.listen(port, host, () => resolve());
   },
 };
 

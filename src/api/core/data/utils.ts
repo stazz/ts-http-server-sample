@@ -1,10 +1,10 @@
 import type * as common from "./common";
 
 export const transitiveDataValidation =
-  <TInput, TOutput, TIntermediate, TError>(
-    first: common.DataValidator<TInput, TIntermediate, TError>,
-    second: common.DataValidator<TIntermediate, TOutput, TError>,
-  ): common.DataValidator<TInput, TOutput, TError> =>
+  <TInput, TOutput, TIntermediate>(
+    first: common.DataValidator<TInput, TIntermediate>,
+    second: common.DataValidator<TIntermediate, TOutput>,
+  ): common.DataValidator<TInput, TOutput> =>
   (input) => {
     const intermediate = first(input);
     switch (intermediate.error) {
@@ -23,3 +23,21 @@ export const omit = <T, TKey extends keyof T>(
     Object.entries(obj).filter(([key]) => keys.indexOf(key as TKey) < 0),
   ) as Omit<T, TKey>;
 };
+
+// Adding monadic support for common.DataValidationResultError
+export const combineErrorObjects = (
+  errors: ReadonlyArray<common.DataValidatorResultError>,
+): common.DataValidatorResultError => ({
+  error: "error",
+  errorInfo: errors,
+  getHumanReadableMessage: () =>
+    errors.map((e) => e.getHumanReadableMessage()).join("\n"),
+});
+
+export const exceptionAsValidationError = (
+  exception: unknown,
+): common.DataValidatorResultError => ({
+  error: "error",
+  errorInfo: exception,
+  getHumanReadableMessage: () => `${exception}`,
+});

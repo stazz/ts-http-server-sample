@@ -1,3 +1,4 @@
+import type * as data from "../../core/data";
 import * as t from "io-ts";
 // import { PathReporter } from "io-ts/PathReporter";
 
@@ -10,16 +11,13 @@ export const getHumanReadableErrorMessage = (error: ValidationError) =>
 //   left: error,
 // }).join("  \n");
 
-export const exceptionAsValidationError = (
-  input: unknown,
-  exception: unknown,
-): ValidationError => [
-  {
-    value: input,
-    message: `${exception}`,
-    context: [],
-  },
-];
+export const createErrorObject = (
+  errorInfo: ValidationError,
+): data.DataValidatorResultError => ({
+  error: "error",
+  errorInfo,
+  getHumanReadableMessage: () => getHumanReadableErrorMessage(errorInfo),
+});
 
 // Right now, doing this breaks at runtime:
 // import { PathReporter } from "io-ts/PathReporter";

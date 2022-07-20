@@ -3,44 +3,48 @@ import type * as serverCore from "express-serve-static-core";
 import type * as moduleApi from "../../module-api/server";
 import * as serverPlugin from "../../api/server/express";
 
-export const setUsernameFromBasicAuth = (): server.RequestHandler<
+export const setUsernameFromBasicAuth = (
+  tryGetUsername: moduleApi.TryGetUsername,
+): server.RequestHandler<
   serverCore.ParamsDictionary,
   unknown,
   unknown,
   serverCore.Query,
   moduleApi.State
 > => {
+  const handler = asyncHandler(tryGetUsername);
   return (req, res, next) => {
-    const auth = req.get("authorization") ?? "";
-    const scheme = auth.substring(0, 6).toLowerCase();
-    let username: string | undefined;
-    if (scheme.startsWith("basic ")) {
-      try {
-        const authData = Buffer.from(
-          auth.substring(scheme.length),
-          "base64",
-        ).toString();
-        const idx = authData.indexOf(":");
-        if (idx > 0) {
-          // Hardcoded creds, just because of sample
-          if (
-            authData.substring(0, idx) === "secret" &&
-            authData.substring(idx + 1) === "secret"
-          ) {
-            username = authData.substring(0, idx);
-          }
-        }
-      } catch {
-        // Ignore, will return 403
-      }
-    }
-    if (username) {
-      const usernameConst = username;
-      serverPlugin.modifyState(
-        res,
-        (state) => (state.username = usernameConst),
-      );
-    }
-    next();
+    // At least typings for ExpressJS specify that handler must be void
+    // This why we do this little dance around return type
+    void handler([req, res, next]);
   };
 };
+
+const asyncHandler =
+  (tryGetUsername: moduleApi.TryGetUsername) =>
+  async ([req, res, next]: Parameters<
+    server.RequestHandler<
+      serverCore.ParamsDictionary,
+      unknown,
+      unknown,
+      serverCore.Query,
+      moduleApi.State
+    >
+  >) => {
+    try {
+      const username = await tryGetUsername((headerName) =>
+        req.get(headerName),
+      );
+
+      if (username) {
+        const usernameConst = username;
+        serverPlugin.modifyState(
+          res,
+          (state) => (state.username = usernameConst),
+        );
+      }
+      next();
+    } catch (e) {
+      next(e);
+    }
+  };

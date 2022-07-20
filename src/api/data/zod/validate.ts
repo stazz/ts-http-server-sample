@@ -1,6 +1,5 @@
 import type * as data from "../../core/data-server";
 import * as t from "zod";
-import type * as error from "./error";
 import * as utils from "./utils";
 
 export type Decoder<TData> = t.ZodType<TData>;
@@ -10,9 +9,7 @@ export type Encoder<TOutput, TSerialized> = {
 };
 
 export const plainValidator =
-  <TData>(
-    validation: Decoder<TData>,
-  ): data.DataValidator<unknown, TData, error.ValidationError> =>
+  <TData>(validation: Decoder<TData>): data.DataValidator<unknown, TData> =>
   (input) =>
     utils.transformLibraryResultToModelResult(validation.safeParse(input));
 

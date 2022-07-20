@@ -6,16 +6,19 @@ import type * as protocol from "../../protocol";
 import * as t from "io-ts";
 import * as tt from "io-ts-types";
 
-export const createBackend = (invokeHTTPEndpoint: common.CallHTTPEndpoint) => {
+export const createBackend = <
+  THeaders extends Record<"auth", common.HeaderProvider>,
+>(
+  invokeHTTPEndpoint: common.CallHTTPEndpoint,
+  headers: THeaders,
+) => {
   const thingData = t.type({
     property: tt.UUID,
   });
 
-  const factory = apiCall.createAPICallFactory(invokeHTTPEndpoint).withHeaders({
-    // Key: functionality IDs used by protocol
-    // Value: callback implementing functionality
-    auth: () => `Basic ${Buffer.from("secret:secret").toString("base64")}`,
-  });
+  const factory = apiCall
+    .createAPICallFactory(invokeHTTPEndpoint)
+    .withHeaders(headers);
 
   const getThings = factory.makeAPICall<protocol.APIGetThings>("GET", {
     method: tPlugin.plainValidator(t.literal("GET")),

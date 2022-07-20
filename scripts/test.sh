@@ -8,8 +8,8 @@ docker run \
   --volume "$(pwd):$(pwd):${1-ro}" \
   --entrypoint yarn \
   --workdir "$(pwd)" \
-  --env CI=true \
-  "node:${NODE_VERSION}-alpine" \
+  --env CI \
+  "node:${NODE_VERSION}" \
   run \
   test
 

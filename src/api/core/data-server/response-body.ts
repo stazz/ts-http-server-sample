@@ -3,17 +3,15 @@ import type * as stream from "stream";
 
 export interface DataValidatorResponseOutputSpec<
   TOutput,
-  TError,
   TValidatorSpec extends Record<string, unknown>,
 > {
-  validator: DataValidatorResponseOutput<TOutput, TError>;
+  validator: DataValidatorResponseOutput<TOutput>;
   validatorSpec: TValidatorSpec;
 }
 
-export type DataValidatorResponseOutput<TOutput, TError> = common.DataValidator<
+export type DataValidatorResponseOutput<TOutput> = common.DataValidator<
   TOutput,
-  DataValidatorResponseOutputSuccess,
-  TError
+  DataValidatorResponseOutputSuccess
 >;
 
 export type DataValidatorResponseOutputSuccess = {

@@ -8,17 +8,13 @@ import { URL } from "url";
 import { Readable } from "stream";
 
 // Using given various endpoints, create object which is able to handle the requests as Fastify route.
-export const createRoute = <TState, TValidationError>(
+export const createRoute = <TState>(
   endpoints: Array<
-    ep.AppEndpoint<
-      ctx.Context<TState>,
-      TValidationError,
-      Record<string, unknown>
-    >
+    ep.AppEndpoint<ctx.Context<TState>, Record<string, unknown>>
   >,
   initialState: TState,
   events:
-    | server.ServerEventEmitter<ctx.Context<TState>, TState, TValidationError>
+    | server.ServerEventEmitter<ctx.Context<TState>, TState>
     | undefined = undefined,
 ): FastifyRouteHandler => {
   // Combine given endpoints into top-level entrypoint

@@ -9,9 +9,6 @@ import * as openapi from "../../api/metadata/openapi";
 // This module will be dynamically loaded - agree on the shape of the module.
 import * as moduleApi from "../../module-api/rest";
 
-// Import logging related common code
-import * as logging from "../../logging";
-
 // Zod as data runtime validator
 import * as t from "zod";
 // Import plugin for Runtypes
@@ -25,15 +22,13 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
     getStateFromContext,
     contextValidatorFactory,
     idRegexParam,
-    getMethodAndUrl,
   ) => {
     const initial = spec.bindNecessaryTypes<
       server.HKTContextKind<
         moduleApi.GetContextHKT<typeof contextValidatorFactory>,
         moduleApi.State
       >,
-      moduleApi.State,
-      tPlugin.ValidationError
+      moduleApi.State
     >(getStateFromContext);
     const notAuthenticated = initial
       // All endpoints must specify enough metadata to be able to auto-generate OpenAPI specification
@@ -158,15 +153,6 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
 
     return {
       api: [notAuthenticatedAPI, authenticatedAPI, docs],
-      events: logging.logServerEvents<
-        moduleApi.GetContextHKT<typeof contextValidatorFactory>,
-        moduleApi.State,
-        tPlugin.ValidationError
-      >(
-        getMethodAndUrl,
-        ({ username }) => `(user: ${username})`,
-        tPlugin.getHumanReadableErrorMessage,
-      ),
     };
   },
 };

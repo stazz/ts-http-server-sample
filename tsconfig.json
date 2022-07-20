@@ -18,7 +18,6 @@
   "include": [
     "src/**/*"
   ],
-  "exclude": [],
   "ts-node": {
     "esm": true
   },

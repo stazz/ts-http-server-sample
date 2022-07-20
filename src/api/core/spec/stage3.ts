@@ -8,7 +8,6 @@ export class AppEndpointBuilder<
   TContext,
   TRefinedContext,
   TState,
-  TValidationError,
   TArgsURL,
   TAllowedMethods extends ep.HttpMethod,
   TMetadataProviders extends Record<
@@ -21,7 +20,6 @@ export class AppEndpointBuilder<
   TContext,
   TRefinedContext,
   TState,
-  TValidationError,
   TArgsURL,
   TAllowedMethods,
   TMetadataProviders
@@ -36,7 +34,6 @@ export class AppEndpointBuilder<
       : never;
   }): ep.AppEndpoint<
     TContext,
-    TValidationError,
     {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
         infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -88,7 +85,6 @@ export class AppEndpointBuilder<
 
 const checkMethodsForHandler = <
   TContext,
-  TValidationError,
   TMetadataProviders extends Record<
     string,
     md.MetadataBuilder<md.HKTArg, unknown, unknown>
@@ -97,13 +93,12 @@ const checkMethodsForHandler = <
   state: {
     [key: string]: state.StaticAppEndpointBuilderSpec<
       TContext,
-      TValidationError,
       TMetadataProviders
     >;
   },
   method: ep.HttpMethod,
   groupNamePrefix: string,
-): ep.DynamicHandlerResponse<TContext, TValidationError> =>
+): ep.DynamicHandlerResponse<TContext> =>
   method in state
     ? {
         found: "handler" as const,
@@ -117,10 +112,7 @@ const checkMethodsForHandler = <
 function* getURLItemsInOrder(
   fragments: TemplateStringsArray,
   names: ReadonlyArray<string>,
-  validation: Record<
-    string,
-    data.URLDataParameterValidatorSpec<unknown, unknown>
-  >,
+  validation: Record<string, data.URLDataParameterValidatorSpec<unknown>>,
 ) {
   for (const [idx, fragment] of fragments.entries()) {
     yield fragment;
@@ -140,10 +132,7 @@ function* getURLItemsInOrder(
 const buildURLRegExp = (
   fragments: TemplateStringsArray,
   names: ReadonlyArray<string>,
-  validation: Record<
-    string,
-    data.URLDataParameterValidatorSpec<unknown, unknown>
-  >,
+  validation: Record<string, data.URLDataParameterValidatorSpec<unknown>>,
   groupNamePrefix: string,
 ) => {
   return new RegExp(
@@ -164,7 +153,6 @@ const constructMDResults = <
   TContext,
   TRefinedContext,
   TState,
-  TValidationError,
   TMetadata extends Record<
     string,
     md.MetadataBuilder<md.HKTArg, unknown, unknown>
@@ -177,7 +165,6 @@ const constructMDResults = <
     TContext,
     TRefinedContext,
     TState,
-    TValidationError,
     TMetadata
   >,
   mdArgs: {

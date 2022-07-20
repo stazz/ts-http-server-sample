@@ -4,9 +4,9 @@ import * as common from "../../data/io-ts";
 import type * as q from "querystring";
 
 export const urlParameter = <T>(
-  validator: data.StringParameterTransform<T, common.ValidationError>,
+  validator: data.StringParameterTransform<T>,
   regExp?: RegExp,
-): data.URLDataParameterValidatorSpec<T, common.ValidationError> => ({
+): data.URLDataParameterValidatorSpec<T> => ({
   regExp: regExp ?? data.defaultParameterRegExp(),
   validator,
 });
@@ -15,10 +15,7 @@ export const queryValidator = <
   TRequired extends string,
   TOptional extends string,
   TValidation extends {
-    [P in TRequired | TOptional]: data.StringParameterTransform<
-      unknown,
-      common.ValidationError
-    >;
+    [P in TRequired | TOptional]: data.StringParameterTransform<unknown>;
   },
 >({
   required,
@@ -32,8 +29,7 @@ export const queryValidator = <
   { [P in TRequired]: data.DataValidatorOutput<TValidation[P]> } & {
     [P in TOptional]?: data.DataValidatorOutput<TValidation[P]>;
   },
-  TRequired | TOptional,
-  common.ValidationError
+  TRequired | TOptional
 > => {
   const initialValidator = common.plainValidator(
     t.exact(
@@ -46,10 +42,10 @@ export const queryValidator = <
   const paramValidators = validation;
   const finalValidator = data.transitiveDataValidation(
     initialValidator,
-    (data) => {
+    (qData) => {
       const finalResult: Record<string, unknown> = {};
-      const errors: common.ValidationError = [];
-      for (const [key, dataItemIter] of Object.entries(data)) {
+      const errors: Array<data.DataValidatorResultError> = [];
+      for (const [key, dataItemIter] of Object.entries(qData)) {
         // If data item is undefined, it means that it has passed initial validation.
         // The initial validation makes sure that only optional query parameters accept undefined value.
         // Therefore, we can just skip undefined ones here.
@@ -61,15 +57,12 @@ export const queryValidator = <
               finalResult[key] = paramValidationResult.data;
               break;
             default:
-              errors.push(...paramValidationResult.errorInfo);
+              errors.push(paramValidationResult);
           }
         }
       }
       return errors.length > 0
-        ? {
-            error: "error",
-            errorInfo: errors,
-          }
+        ? data.combineErrorObjects(errors)
         : {
             error: "none",
             data: finalResult,
@@ -83,8 +76,7 @@ export const queryValidator = <
         q.ParsedUrlQuery,
         { [P in TRequired]: data.DataValidatorOutput<TValidation[P]> } & {
           [P in TOptional]?: data.DataValidatorOutput<TValidation[P]>;
-        },
-        common.ValidationError
+        }
       >,
     },
     isParameterRequired: Object.fromEntries(
@@ -99,10 +91,7 @@ export interface QueryValidatorPropertySpec<
   TRequired extends string,
   TOptional extends string,
   TValidation extends {
-    [P in TRequired | TOptional]: data.StringParameterTransform<
-      unknown,
-      common.ValidationError
-    >;
+    [P in TRequired | TOptional]: data.StringParameterTransform<unknown>;
   },
 > {
   required: ReadonlyArray<TRequired>;

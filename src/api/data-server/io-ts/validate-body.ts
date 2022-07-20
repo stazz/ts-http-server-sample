@@ -9,11 +9,7 @@ export const inputValidator = <T>(
   validation: common.Decoder<T>,
   strictContentType = false,
   opts?: rawbody.Options,
-): data.DataValidatorRequestInputSpec<
-  T,
-  common.ValidationError,
-  InputValidatorSpec<T>
-> => {
+): data.DataValidatorRequestInputSpec<T, InputValidatorSpec<T>> => {
   const jsonValidation = data.transitiveDataValidation(
     (inputString: string) => {
       if (inputString.length > 0) {
@@ -23,10 +19,7 @@ export const inputValidator = <T>(
             data: JSON.parse(inputString) as unknown,
           };
         } catch (e) {
-          return {
-            error: "error",
-            errorInfo: common.exceptionAsValidationError(inputString, e),
-          };
+          return data.exceptionAsValidationError(e);
         }
       } else {
         // No body supplied -> appear as undefined
@@ -64,7 +57,6 @@ export const outputValidator = <TOutput, TSerialized>(
   validation: common.Encoder<TOutput, TSerialized>,
 ): data.DataValidatorResponseOutputSpec<
   TOutput,
-  common.ValidationError,
   OutputValidatorSpec<TOutput, TSerialized>
 > => ({
   validator: (output) => {
@@ -77,10 +69,7 @@ export const outputValidator = <TOutput, TSerialized>(
         },
       };
     } catch (e) {
-      return {
-        error: "error",
-        errorInfo: common.exceptionAsValidationError(output, e),
-      };
+      return data.exceptionAsValidationError(e);
     }
   },
   validatorSpec: {
