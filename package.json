@@ -13,10 +13,10 @@
   },
   "scripts": {
     "build": "yarn run tsc && yarn run lint",
-    "server": "NODE_OPTIONS='--experimental-specifier-resolution=node' ts-node src 0.0.0.0 3000",
+    "server": "ts-node src 0.0.0.0 3000",
     "tsc": "tsc --project tsconfig.build.json",
     "lint": "eslint ./src --ext .ts,.tsx",
-    "test": "ava"
+    "test": "c8 ava"
   },
   "dependencies": {
     "@data-heaving/common": "1.0.0",
@@ -40,11 +40,11 @@
     "@typescript-eslint/eslint-plugin": "5.30.6",
     "@typescript-eslint/parser": "5.30.6",
     "ava": "4.3.1",
+    "c8": "7.12.0",
     "eslint": "8.16.0",
     "eslint-config-prettier": "8.5.0",
     "eslint-plugin-prettier": "4.0.0",
     "got": "12.1.0",
-    "nyc": "15.1.0",
     "openapi-types": "12.0.0",
     "prettier": "2.6.2",
     "ts-node": "10.9.1",
