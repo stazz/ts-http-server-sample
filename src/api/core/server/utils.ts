@@ -249,12 +249,23 @@ export const checkBodyForHandler = async <TContext, TState>(
 
 export const invokeHandler = <TContext, TState>(
   eventArgs: evt.EventArguments<TContext, TState>,
-  events: ServerEventEmitter<TContext, TState, "onInvalidResponse"> | undefined,
+  events:
+    | ServerEventEmitter<
+        TContext,
+        TState,
+        | "onInvalidResponse"
+        | "onSuccessfulInvocationStart"
+        | "onSuccessfulInvocationEnd"
+      >
+    | undefined,
   handler: ep.StaticAppEndpointHandler<TContext>["handler"],
   ...handlerParameters: Parameters<typeof handler>
 ) => {
+  events?.emit("onSuccessfulInvocationStart", { ...eventArgs });
   const retVal = handler(...handlerParameters);
-  if (retVal.error !== "none") {
+  if (retVal.error === "none") {
+    events?.emit("onSuccessfulInvocationEnd", { ...eventArgs });
+  } else {
     events?.emit("onInvalidResponse", {
       ...eventArgs,
       validationError: retVal,
