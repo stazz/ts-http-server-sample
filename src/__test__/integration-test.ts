@@ -125,8 +125,6 @@ export const testEveryCombination = <TTestArg>(
           dataValidation,
           testArg,
         );
-
-        getTitle({ serverID, dataValidationID, testArg });
       }
     }
   }
