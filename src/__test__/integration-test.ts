@@ -9,19 +9,27 @@ import * as data from "../api/core/data";
 import * as coreProtocol from "../api/core/protocol";
 import type * as protocol from "../protocol";
 import * as utils from "../utils";
+import * as got from "got";
 
 import * as net from "net";
 
 import * as destroy from "./destroy";
-import * as invoke from "./invokeHTTP";
 import * as events from "./events";
 
-export const testEveryCombination = (
+export const testEveryCombination = <TTestArg>(
   test: ava.TestFn,
   assertionCount: number | undefined,
-  performTests: (data: {
+  getTestArgs: (arg: {
+    backendCreators: typeof backendCreators;
+  }) => Array<TTestArg>,
+  getTitle: (arg: {
+    serverID: string;
+    dataValidationID: string;
+    testArg: TTestArg;
+  }) => string,
+  performTests: (arg: {
     c: ava.ExecutionContext;
-    backend: AllAPICalls;
+    testArg: TTestArg;
     loggedEvents: Array<events.LoggedEvents>;
     username: string;
     password: string;
@@ -36,14 +44,7 @@ export const testEveryCombination = (
       restModule: Promise<{
         default: restModuleApi.RESTAPISpecificationModule;
       }>,
-      beModule: Promise<{
-        createBackend: <
-          THeaders extends Record<"auth", feCommon.HeaderProvider>,
-        >(
-          invokeHttp: feCommon.CallHTTPEndpoint,
-          headers: THeaders,
-        ) => AllAPICalls;
-      }>,
+      testArg: TTestArg,
     ) => {
       // Expect this amount of assertions.
       c.plan(1 + (assertionCount ?? 0));
@@ -78,17 +79,6 @@ export const testEveryCombination = (
       const host = "127.0.0.1";
       const port = await getPort();
 
-      // Create object used by FE to invoke BE endpoints
-      const backend = (await beModule).createBackend(
-        invoke.createCallHTTPEndpoint(host, port),
-        {
-          auth: () =>
-            `Basic ${Buffer.from(`${username}:${password}`).toString(
-              "base64",
-            )}`,
-        },
-      );
-
       let expectedEvents: Array<events.LoggedEvents> | undefined;
       try {
         // Start the server
@@ -96,7 +86,7 @@ export const testEveryCombination = (
 
         expectedEvents = await performTests({
           c,
-          backend,
+          testArg,
           loggedEvents,
           username,
           password,
@@ -124,19 +114,19 @@ export const testEveryCombination = (
   );
 
   for (const [serverID, server] of Object.entries(allowedServers)) {
-    for (const [dataValidationId, dataValidation] of Object.entries(
+    for (const [dataValidationID, dataValidation] of Object.entries(
       allowedDataValidations,
     )) {
-      for (const [backendCreatorID, backendCreator] of Object.entries(
-        backendCreators,
-      )) {
+      for (const testArg of getTestArgs({ backendCreators })) {
         test(
-          `Server: ${serverID}, BE data validation: ${dataValidationId}, FE data validation: ${backendCreatorID}`,
+          getTitle({ serverID, dataValidationID, testArg }),
           macro,
           server,
           dataValidation,
-          backendCreator,
+          testArg,
         );
+
+        getTitle({ serverID, dataValidationID, testArg });
       }
     }
   }
@@ -181,6 +171,26 @@ export const assertSuccessfulResult = async <
   );
 };
 
+export const assertUnsuccessfulResult = async (
+  c: ava.ExecutionContext,
+  invoker: feCommon.CallHTTPEndpoint,
+  args: feCommon.HTTPInvocationArguments,
+  expectedStatusCode: number,
+  validateResponseFurther?: (response: got.Response) => void,
+) => {
+  const httpError = await c.throwsAsync<got.HTTPError>(
+    async () => await invoker(args),
+    {
+      instanceOf: got.HTTPError,
+    },
+  );
+  if (httpError) {
+    const response = httpError.response;
+    c.deepEqual(response.statusCode, expectedStatusCode);
+    validateResponseFurther?.(response);
+  }
+};
+
 export const zeroUUID = "00000000-0000-0000-0000-000000000000";
 
 export type AllAPIDefinitions = {
@@ -192,3 +202,6 @@ export type AllAPIDefinitions = {
 };
 
 export type AllAPICalls = feCommon.GetAPICalls<AllAPIDefinitions>;
+
+export type BackendCreatorModule =
+  typeof backendCreators[keyof typeof backendCreators];

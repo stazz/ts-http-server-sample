@@ -47,10 +47,13 @@ export const createCallHTTPEndpoint: (
             }),
       },
     });
-    if (statusCode >= 200 && statusCode < 300) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return responseBody.length > 0 ? JSON.parse(responseBody) : undefined;
-    } else {
-      throw new Error(`Invalid response code: ${statusCode}`);
+
+    // Got will throw on any response which code is not >= 200 and < 300.
+    // So just verify that it is one of the OK or No Content.
+    if (statusCode !== 200 && statusCode !== 204) {
+      throw new Error(`Status code ${statusCode} was returned.`);
     }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return responseBody.length > 0 ? JSON.parse(responseBody) : undefined;
   };

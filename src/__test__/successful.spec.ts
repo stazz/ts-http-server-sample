@@ -1,16 +1,32 @@
 // This is less of a unit test and more of a integration test
 // But let's run this with AVA nevertheless.
 import test, { ExecutionContext } from "ava";
-import * as integrationTest from "./integration-test";
 import type * as events from "./events";
+import * as invoke from "./invokeHTTP";
+import * as integrationTest from "./integration-test";
 
-integrationTest.testEveryCombination(
+integrationTest.testEveryCombination<
+  [string, integrationTest.BackendCreatorModule]
+>(
   // AVA runtime
   test,
   // Expected amount of assertions by the actual test function
   5,
-  // Actual test function
-  async ({ c, backend }) => {
+  // Get the test additional arguments. We test each version of FE invocation interface creators.
+  ({ backendCreators }) => Object.entries(backendCreators),
+  // Get the title for one test
+  ({ serverID, dataValidationID, testArg: [backendCreatorID] }) =>
+    `Successful invocation test for: server "${serverID}", BE data validation "${dataValidationID}", FE data validation "${backendCreatorID}".`,
+  // Actual test function for one test
+  async ({ c, host, port, username, password, testArg: [, beModule] }) => {
+    // Create object for easy, typed invocation of backend
+    const backend = (await beModule).createBackend(
+      invoke.createCallHTTPEndpoint(host, port),
+      {
+        auth: () =>
+          `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`,
+      },
+    );
     await runTestsForSuccessfulResults(c, backend);
     return expectedEvents;
   },

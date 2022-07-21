@@ -88,8 +88,8 @@ Before delving deeper into the code, try starting the HTTP server with command `
   Notice also that the returned value is very limited, as this is just a sample, and not all aspects of OpenAPI specification are present in the returned value (but enough information exists already to generate them).
 - `curl -v http://localhost:3000/non-existing` to test how situation is handled when there are no suitable endpoints for URL.
   The response code should be `404`, and Koa server should have logged an error to stdout.
-- `curl -v -X POST -H 'Content-Type: application/json' -d'{"property":"00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing` to test correct endpoint, but wrong method.
-  The response code should be `405` and `Allowed` header should contain value `PUT`.
+- `curl -v -X PUT -H 'Content-Type: application/json' -d'{"property":"00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing` to test correct endpoint, but wrong method.
+  The response code should be `405` and `Allowed` header should contain value `POST,GET`.
   Koa server should have logged an error to stdout.
 - `curl -v -X PUT -H 'Content-Type: application/json' -d'{"invalid_property":"00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing` to test correct endpoint, but wrong body.
   The response code should be `422`, and Koa server should have logged an error to stdout.
