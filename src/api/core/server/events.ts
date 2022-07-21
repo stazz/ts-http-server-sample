@@ -29,7 +29,7 @@ export interface VirtualRequestProcessingEvents<TContext, TState> {
 export interface EventArguments<TContext, TState> {
   ctx: TContext;
   state: TState;
-  groups: Record<string, string>;
+  groups: Record<string, string | undefined>;
   regExp: RegExp;
 }
 

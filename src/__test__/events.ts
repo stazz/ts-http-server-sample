@@ -51,11 +51,15 @@ export type LoggedEvents<
   > = keyof server.VirtualRequestProcessingEvents<unknown, unknown>,
 > = {
   eventName: TKeys;
-  eventData: Omit<
-    server.VirtualRequestProcessingEvents<unknown, unknown>[TKeys],
+  eventData: OmitFromPropertyValues<
+    server.VirtualRequestProcessingEvents<unknown, unknown>,
     "ctx" | "regExp"
   >;
 };
+
+type OmitFromPropertyValues<T, TKeys extends string> = {
+  [P in keyof T]: Omit<T[P], TKeys>;
+}[keyof T];
 
 // JSON.parse(JSON.serialize(...)) converts undefineds to nulls (or omits them?) which may not be what we want...
 const deepCopyAssumeSimpleThings = <T>(obj: T): T => {

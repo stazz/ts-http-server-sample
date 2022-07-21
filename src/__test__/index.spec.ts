@@ -1,129 +1,26 @@
 // This is less of a unit test and more of a integration test
 // But let's run this with AVA nevertheless.
 import test, { ExecutionContext } from "ava";
-import getPort from "@ava/get-port";
-import type * as serverModuleApi from "../module-api/server";
-import type * as restModuleApi from "../module-api/rest";
-import * as feCommon from "../api/data-client/common";
-import * as data from "../api/core/data";
-import * as coreProtocol from "../api/core/protocol";
-import type * as protocol from "../protocol";
-import * as utils from "../utils";
+import * as integrationTest from "./integration-test";
+import type * as events from "./events";
 
-import * as net from "net";
-
-import * as destroy from "./destroy";
-import * as invoke from "./invokeHTTP";
-import * as events from "./events";
-
-const testInvokingBackend = test.macro(
-  async (
-    c,
-    serverModule: Promise<{ default: serverModuleApi.ServerModule }>,
-    restModule: Promise<{
-      default: restModuleApi.RESTAPISpecificationModule;
-    }>,
-    beModule: Promise<{
-      createBackend: <THeaders extends Record<"auth", feCommon.HeaderProvider>>(
-        invokeHttp: feCommon.CallHTTPEndpoint,
-        headers: THeaders,
-      ) => AllAPICalls;
-    }>,
-  ) => {
-    // Expect this amount of assertions.
-    c.plan(5);
-
-    // For authenticated endpoint, use basic auth with the following username and pw
-    const username = "test_user";
-    const password = "test_password";
-    // Create server
-    const loggedEvents: Array<events.LoggedEvents> = [];
-    const server = (await serverModule).default.createServer({
-      createEndpoints: (await restModule).default.createEndpoints,
-      tryGetUsername: utils.tryGetUsernameFromBasicAuth(username, password),
-      createEvents: () =>
-        events.saveAllEventsToArray(loggedEvents, {
-          onSuccessfulInvocationStart: undefined,
-          onSuccessfulInvocationEnd: undefined,
-          onInvalidUrl: undefined,
-          onInvalidMethod: undefined,
-          onInvalidContext: undefined,
-          onInvalidUrlParameters: undefined,
-          onInvalidQuery: undefined,
-          onInvalidContentType: undefined,
-          onInvalidBody: undefined,
-          onInvalidResponse: undefined,
-        }),
-    });
-    // Create callback to stop server
-    const destroyServer = destroy.createDestroyCallback(
-      server instanceof net.Server ? server : server.server,
-    );
-    // AVA runs tests in parallel -> use plugin to get whatever available port
-    const host = "127.0.0.1";
-    const port = await getPort();
-
-    // Create object used by FE to invoke BE endpoints
-    const backend = (await beModule).createBackend(
-      invoke.createCallHTTPEndpoint(host, port),
-      {
-        auth: () =>
-          `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`,
-      },
-    );
-
-    try {
-      // Start the server
-      await utils.listenAsync(server, host, port);
-
-      // Perform tests on the server
-      await runTestsForSuccessfulResults(c, backend, loggedEvents, []);
-    } finally {
-      try {
-        // Shut down the server
-        await destroyServer();
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error(
-          "Failed to destroy server, the test might become stuck...",
-        );
-      }
-    }
+integrationTest.testEveryCombination(
+  // AVA runtime
+  test,
+  // Expected amount of assertions by the actual test function
+  5,
+  // Actual test function
+  async ({ c, backend }) => {
+    await runTestsForSuccessfulResults(c, backend);
+    return expectedEvents;
   },
 );
 
-const { allowedServers, allowedDataValidations } =
-  utils.loadServersAndDataValidations();
-const backendCreators = {
-  ["io-ts"]: import("../frontend/io-ts/backend"),
-  runtypes: import("../frontend/runtypes/backend"),
-  zod: import("../frontend/zod/backend"),
-};
-for (const [serverID, server] of Object.entries(allowedServers)) {
-  for (const [dataValidationId, dataValidation] of Object.entries(
-    allowedDataValidations,
-  )) {
-    for (const [backendCreatorID, backendCreator] of Object.entries(
-      backendCreators,
-    )) {
-      test(
-        `Server: ${serverID}, BE data validation: ${dataValidationId}, FE data validation: ${backendCreatorID}`,
-        testInvokingBackend,
-        server,
-        dataValidation,
-        backendCreator,
-      );
-    }
-  }
-}
-
 const runTestsForSuccessfulResults = async (
   c: ExecutionContext,
-  apiCalls: AllAPICalls,
-  loggedEvents: Array<events.LoggedEvents>,
-  expectedEventsAtTheEnd: Array<events.LoggedEvents>,
+  apiCalls: integrationTest.AllAPICalls,
 ) => {
-  await assertSuccessfulResult(
+  await integrationTest.assertSuccessfulResult(
     c,
     apiCalls,
     "getThings",
@@ -135,43 +32,43 @@ const runTestsForSuccessfulResults = async (
     [],
   );
 
-  await assertSuccessfulResult(
+  await integrationTest.assertSuccessfulResult(
     c,
     apiCalls,
     "getThing",
     {
       url: {
-        id: zeroUUID,
+        id: integrationTest.zeroUUID,
       },
       query: {},
     },
-    zeroUUID,
+    integrationTest.zeroUUID,
   );
 
-  await assertSuccessfulResult(
+  await integrationTest.assertSuccessfulResult(
     c,
     apiCalls,
     "createThing",
     {
       body: {
-        property: zeroUUID,
+        property: integrationTest.zeroUUID,
       },
     },
     {
-      property: zeroUUID,
+      property: integrationTest.zeroUUID,
     },
   );
 
-  await assertSuccessfulResult(
+  await integrationTest.assertSuccessfulResult(
     c,
     apiCalls,
     "connectThings",
     {
       url: {
-        id: zeroUUID,
+        id: integrationTest.zeroUUID,
       },
       body: {
-        anotherThingId: zeroUUID,
+        anotherThingId: integrationTest.zeroUUID,
       },
     },
     {
@@ -183,55 +80,202 @@ const runTestsForSuccessfulResults = async (
     ["connectedAt"],
   );
 
-  await assertSuccessfulResult(
+  await integrationTest.assertSuccessfulResult(
     c,
     apiCalls,
     "authenticated",
     undefined,
     undefined,
   );
-
-  c.deepEqual(loggedEvents, expectedEventsAtTheEnd);
 };
 
-const assertSuccessfulResult = async <
-  TEndpointName extends keyof AllAPICalls,
-  TOmitProps extends keyof coreProtocol.RuntimeOf<
-    AllAPIDefinitions[TEndpointName]["responseBody"]
-  > = never,
->(
-  c: ExecutionContext,
-  apiCalls: AllAPICalls,
-  endpointName: TEndpointName,
-  input: coreProtocol.RuntimeOf<Parameters<AllAPICalls[TEndpointName]>>[0],
-  expectedResult: coreProtocol.RuntimeOf<
-    AllAPIDefinitions[TEndpointName]["responseBody"]
-  >,
-  omitProps: Array<TOmitProps> = [],
-) => {
-  c.like(
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
-    await apiCalls[endpointName](input as any),
-    {
-      error: "none",
-      data:
-        // If we always call .omit, we will end up in situation with expectedResult being array and data we pass being object.
-        omitProps.length > 0
-          ? // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
-            data.omit(expectedResult, ...(omitProps as Array<any>))
-          : expectedResult,
+const expectedEvents: Array<events.LoggedEvents> = [
+  {
+    eventName: "onSuccessfulInvocationStart",
+    eventData: {
+      groups: {
+        e_0: "/api/thing",
+        e_0_api_0: "/thing",
+        e_0_api_0_thing_0: "",
+        e_0_api_0_thing_1: undefined,
+        e_0_api_0_thing_1_id: undefined,
+        e_0_api_0_thing_2: undefined,
+        e_0_api_0_thing_2_id: undefined,
+        e_1: undefined,
+        e_1_api_0: undefined,
+        e_2: undefined,
+      },
+      state: {},
     },
-    `Endpoint "${endpointName}" failed.`,
-  );
-};
-
-const zeroUUID = "00000000-0000-0000-0000-000000000000";
-
-type AllAPIDefinitions = {
-  getThings: protocol.APIGetThings;
-  getThing: protocol.APIGetThing;
-  createThing: protocol.APICreateThing;
-  connectThings: protocol.APIConnectThings;
-  authenticated: protocol.APIAuthenticated;
-};
-type AllAPICalls = feCommon.GetAPICalls<AllAPIDefinitions>;
+  },
+  {
+    eventName: "onSuccessfulInvocationEnd",
+    eventData: {
+      groups: {
+        e_0: "/api/thing",
+        e_0_api_0: "/thing",
+        e_0_api_0_thing_0: "",
+        e_0_api_0_thing_1: undefined,
+        e_0_api_0_thing_1_id: undefined,
+        e_0_api_0_thing_2: undefined,
+        e_0_api_0_thing_2_id: undefined,
+        e_1: undefined,
+        e_1_api_0: undefined,
+        e_2: undefined,
+      },
+      state: {},
+    },
+  },
+  {
+    eventName: "onSuccessfulInvocationStart",
+    eventData: {
+      groups: {
+        e_0: "/api/thing/00000000-0000-0000-0000-000000000000",
+        e_0_api_0: "/thing/00000000-0000-0000-0000-000000000000",
+        e_0_api_0_thing_0: undefined,
+        e_0_api_0_thing_1: "/00000000-0000-0000-0000-000000000000",
+        e_0_api_0_thing_1_id: "00000000-0000-0000-0000-000000000000",
+        e_0_api_0_thing_2: undefined,
+        e_0_api_0_thing_2_id: undefined,
+        e_1: undefined,
+        e_1_api_0: undefined,
+        e_2: undefined,
+      },
+      state: {},
+    },
+  },
+  {
+    eventName: "onSuccessfulInvocationEnd",
+    eventData: {
+      groups: {
+        e_0: "/api/thing/00000000-0000-0000-0000-000000000000",
+        e_0_api_0: "/thing/00000000-0000-0000-0000-000000000000",
+        e_0_api_0_thing_0: undefined,
+        e_0_api_0_thing_1: "/00000000-0000-0000-0000-000000000000",
+        e_0_api_0_thing_1_id: "00000000-0000-0000-0000-000000000000",
+        e_0_api_0_thing_2: undefined,
+        e_0_api_0_thing_2_id: undefined,
+        e_1: undefined,
+        e_1_api_0: undefined,
+        e_2: undefined,
+      },
+      state: {},
+    },
+  },
+  {
+    eventName: "onSuccessfulInvocationStart",
+    eventData: {
+      groups: {
+        e_0: "/api/thing",
+        e_0_api_0: "/thing",
+        e_0_api_0_thing_0: "",
+        e_0_api_0_thing_1: undefined,
+        e_0_api_0_thing_1_id: undefined,
+        e_0_api_0_thing_2: undefined,
+        e_0_api_0_thing_2_id: undefined,
+        e_1: undefined,
+        e_1_api_0: undefined,
+        e_2: undefined,
+      },
+      state: {},
+    },
+  },
+  {
+    eventName: "onSuccessfulInvocationEnd",
+    eventData: {
+      groups: {
+        e_0: "/api/thing",
+        e_0_api_0: "/thing",
+        e_0_api_0_thing_0: "",
+        e_0_api_0_thing_1: undefined,
+        e_0_api_0_thing_1_id: undefined,
+        e_0_api_0_thing_2: undefined,
+        e_0_api_0_thing_2_id: undefined,
+        e_1: undefined,
+        e_1_api_0: undefined,
+        e_2: undefined,
+      },
+      state: {},
+    },
+  },
+  {
+    eventName: "onSuccessfulInvocationStart",
+    eventData: {
+      groups: {
+        e_0: "/api/thing/00000000-0000-0000-0000-000000000000/connectToAnotherThing",
+        e_0_api_0:
+          "/thing/00000000-0000-0000-0000-000000000000/connectToAnotherThing",
+        e_0_api_0_thing_0: undefined,
+        e_0_api_0_thing_1: undefined,
+        e_0_api_0_thing_1_id: undefined,
+        e_0_api_0_thing_2:
+          "/00000000-0000-0000-0000-000000000000/connectToAnotherThing",
+        e_0_api_0_thing_2_id: "00000000-0000-0000-0000-000000000000",
+        e_1: undefined,
+        e_1_api_0: undefined,
+        e_2: undefined,
+      },
+      state: {},
+    },
+  },
+  {
+    eventName: "onSuccessfulInvocationEnd",
+    eventData: {
+      groups: {
+        e_0: "/api/thing/00000000-0000-0000-0000-000000000000/connectToAnotherThing",
+        e_0_api_0:
+          "/thing/00000000-0000-0000-0000-000000000000/connectToAnotherThing",
+        e_0_api_0_thing_0: undefined,
+        e_0_api_0_thing_1: undefined,
+        e_0_api_0_thing_1_id: undefined,
+        e_0_api_0_thing_2:
+          "/00000000-0000-0000-0000-000000000000/connectToAnotherThing",
+        e_0_api_0_thing_2_id: "00000000-0000-0000-0000-000000000000",
+        e_1: undefined,
+        e_1_api_0: undefined,
+        e_2: undefined,
+      },
+      state: {},
+    },
+  },
+  {
+    eventName: "onSuccessfulInvocationStart",
+    eventData: {
+      groups: {
+        e_0: undefined,
+        e_0_api_0: undefined,
+        e_0_api_0_thing_0: undefined,
+        e_0_api_0_thing_1: undefined,
+        e_0_api_0_thing_1_id: undefined,
+        e_0_api_0_thing_2: undefined,
+        e_0_api_0_thing_2_id: undefined,
+        e_1: "/api/secret",
+        e_1_api_0: "/secret",
+        e_2: undefined,
+      },
+      state: {
+        username: "test_user",
+      },
+    },
+  },
+  {
+    eventName: "onSuccessfulInvocationEnd",
+    eventData: {
+      groups: {
+        e_0: undefined,
+        e_0_api_0: undefined,
+        e_0_api_0_thing_0: undefined,
+        e_0_api_0_thing_1: undefined,
+        e_0_api_0_thing_1_id: undefined,
+        e_0_api_0_thing_2: undefined,
+        e_0_api_0_thing_2_id: undefined,
+        e_1: "/api/secret",
+        e_1_api_0: "/secret",
+        e_2: undefined,
+      },
+      state: {
+        username: "test_user",
+      },
+    },
+  },
+];
