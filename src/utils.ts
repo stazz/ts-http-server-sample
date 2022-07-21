@@ -35,15 +35,9 @@ export const loadServersAndDataValidations = () => {
     string,
     Promise<{ default: restModuleApi.RESTAPISpecificationModule }>
   > = {
-    ["io-ts"]: import("./backend/io-ts") as Promise<{
-      default: restModuleApi.RESTAPISpecificationModule;
-    }>,
-    runtypes: import("./backend/runtypes") as Promise<{
-      default: restModuleApi.RESTAPISpecificationModule;
-    }>,
-    zod: import("./backend/zod") as Promise<{
-      default: restModuleApi.RESTAPISpecificationModule;
-    }>,
+    ["io-ts"]: import("./backend/io-ts"),
+    runtypes: import("./backend/runtypes"),
+    zod: import("./backend/zod"),
   };
   return {
     allowedServers,
