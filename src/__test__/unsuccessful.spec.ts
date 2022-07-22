@@ -10,7 +10,7 @@ integrationTest.testEveryCombination(
   // AVA runtime
   test,
   // Expected amount of assertions by the actual test function
-  13,
+  15,
   // Extra test arguments - unused in this case
   () => [undefined],
   // Title for single test
@@ -103,6 +103,15 @@ const runTestsForUnsuccessfulResults = async (
     },
     // TODO is 400 really a good thing at this point?
     400,
+  );
+  await integrationTest.assertUnsuccessfulResult(
+    c,
+    invoker,
+    {
+      method: "GET",
+      url: "/api/secret",
+    },
+    403,
   );
 };
 
@@ -197,6 +206,7 @@ const expectedEvents = (
     },
   },
   {
+    eventName: "onInvalidUrlParameters",
     eventData: {
       groups: {
         e_0: "/api/thing/invalid-uuid",
@@ -216,7 +226,26 @@ const expectedEvents = (
         errorInfo: errors[2],
       },
     },
-    eventName: "onInvalidUrlParameters",
+  },
+  {
+    eventName: "onInvalidContext",
+    eventData: {
+      groups: {
+        e_0: undefined,
+        e_0_api_0: undefined,
+        e_0_api_0_thing_0: undefined,
+        e_0_api_0_thing_1: undefined,
+        e_0_api_0_thing_1_id: undefined,
+        e_0_api_0_thing_2: undefined,
+        e_0_api_0_thing_2_id: undefined,
+        e_1: "/api/secret",
+        e_1_api_0: "/secret",
+        e_2: undefined,
+      },
+      state: {},
+      // Because this was authentication error and not error with context state being invalid, the validation error must be undefined
+      validationError: undefined,
+    },
   },
 ];
 
