@@ -33,9 +33,7 @@ export const saveEventsToArray = <
       builder.addEventListener(eventName, (arg) => {
         array.push({
           eventName,
-          eventData: deepCopyAssumeSimpleThings(
-            data.omit(arg, "ctx", "regExp"),
-          ),
+          eventData: deepCopySkipFunctions(data.omit(arg, "ctx", "regExp")),
         });
       });
     }
@@ -51,33 +49,57 @@ export type LoggedEvents<
   > = keyof server.VirtualRequestProcessingEvents<unknown, unknown>,
 > = {
   eventName: TKeys;
-  eventData: OmitFromPropertyValues<
+  eventData: EventData<
     server.VirtualRequestProcessingEvents<unknown, unknown>,
     "ctx" | "regExp"
   >;
 };
 
-type OmitFromPropertyValues<T, TKeys extends string> = {
-  [P in keyof T]: Omit<T[P], TKeys>;
+export type EventData<T, TKeys extends string> = {
+  [P in keyof T]: StripFunctions<Omit<T[P], TKeys>>;
 }[keyof T];
 
+// eslint-disable-next-line @typescript-eslint/ban-types
+export type StripFunctions<T> = T extends Function
+  ? never
+  : T extends Array<infer U>
+  ? StripFunctionsArray<U>
+  : T extends object
+  ? StripFunctionsObject<T>
+  : T;
+export type StripFunctionsObject<T> = {
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  [P in KeysOfNonFunctions<T>]: StripFunctions<T[P]>;
+};
+export type KeysOfNonFunctions<T> = {
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  [P in keyof T]: T[P] extends Function ? never : P;
+}[keyof T];
+export type StripFunctionsArray<T> = Array<StripFunctions<T>>;
+
 // JSON.parse(JSON.serialize(...)) converts undefineds to nulls (or omits them?) which may not be what we want...
-const deepCopyAssumeSimpleThings = <T>(obj: T): T => {
+export const deepCopySkipFunctions = <T>(obj: T): T => {
   let retVal: T;
   if (Array.isArray(obj)) {
-    retVal = obj.map((item: unknown) =>
-      deepCopyAssumeSimpleThings(item),
-    ) as unknown as T;
+    retVal = obj
+      .filter(isNotFunction)
+      .map((item: unknown) => deepCopySkipFunctions(item)) as unknown as T;
   } else if (typeof obj === "object") {
     retVal = (
       obj === null
         ? null
-        : ep.transformEntries(obj as Record<string, unknown>, (item) =>
-            deepCopyAssumeSimpleThings(item),
+        : Object.fromEntries(
+            Object.entries(obj)
+              .filter(([, item]) => isNotFunction(item))
+              .map(
+                ([key, item]) => [key, deepCopySkipFunctions(item)] as const,
+              ),
           )
     ) as T;
   } else {
-    retVal = obj;
+    retVal = (isNotFunction(obj) ? obj : undefined) as T;
   }
   return retVal;
 };
+
+const isNotFunction = (item: unknown) => typeof item !== "function";

@@ -91,7 +91,7 @@ Before delving deeper into the code, try starting the HTTP server with command `
 - `curl -v -X PUT -H 'Content-Type: application/json' -d'{"property":"00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing` to test correct endpoint, but wrong method.
   The response code should be `405` and `Allowed` header should contain value `POST,GET`.
   Koa server should have logged an error to stdout.
-- `curl -v -X PUT -H 'Content-Type: application/json' -d'{"invalid_property":"00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing` to test correct endpoint, but wrong body.
+- `curl -v -X POST -H 'Content-Type: application/json' -d'{"invalid_property":"00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing` to test correct endpoint, but wrong body.
   The response code should be `422`, and Koa server should have logged an error to stdout.
 
 This should be quite good introduction to the project.

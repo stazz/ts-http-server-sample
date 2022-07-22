@@ -17,7 +17,7 @@ const main = async (
     // Create server, throw if not one of the supported ones
     const instance = (
       await doThrow(
-        allowedServers[server],
+        allowedServers[server as keyof typeof allowedServers],
         `The first argument must be one of ${Object.keys(allowedServers).join(
           ", ",
         )}.`,
@@ -25,7 +25,9 @@ const main = async (
     ).default.createServer({
       createEndpoints: (
         await doThrow(
-          allowedDataValidations[dataValidation],
+          allowedDataValidations[
+            dataValidation as keyof typeof allowedDataValidations
+          ],
           `The first argument must be one of ${Object.keys(
             allowedDataValidations,
           ).join(", ")}.`,

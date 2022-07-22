@@ -37,7 +37,10 @@ export const createCallHTTPEndpoint: (
       body,
       searchParams,
       headers: {
-        ...headers,
+        // Notice that we allow overriding these specific headers with values in 'headers' below.
+        // This is only because this callback is used in tests, and they require such functionality.
+        // In reality, the spread of 'headers' should come first, and only then the headers related to body.
+        // Even better, we should delete the reserved header names if body is not specified.
         ...(body === undefined
           ? {}
           : {
@@ -45,6 +48,7 @@ export const createCallHTTPEndpoint: (
               ["Content-Length"]: `${body.byteLength}`,
               ["Content-Encoding"]: encoding,
             }),
+        ...headers,
       },
     });
 

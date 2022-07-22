@@ -35,15 +35,23 @@ export const testEveryCombination = <TTestArg>(
     password: string;
     host: string;
     port: number;
+    serverID: SupportedServers;
+    dataValidationID: SupportedBackendDataValidators;
   }) => Promise<Array<events.LoggedEvents>>,
 ) => {
   const macro = test.macro(
     async (
       c,
-      serverModule: Promise<{ default: serverModuleApi.ServerModule }>,
-      restModule: Promise<{
-        default: restModuleApi.RESTAPISpecificationModule;
-      }>,
+      [serverID, serverModule]: [
+        SupportedServers,
+        Promise<{ default: serverModuleApi.ServerModule }>,
+      ],
+      [dataValidationID, restModule]: [
+        SupportedBackendDataValidators,
+        Promise<{
+          default: restModuleApi.RESTAPISpecificationModule;
+        }>,
+      ],
       testArg: TTestArg,
     ) => {
       // Expect this amount of assertions.
@@ -92,6 +100,8 @@ export const testEveryCombination = <TTestArg>(
           password,
           host,
           port,
+          serverID,
+          dataValidationID,
         });
       } finally {
         try {
@@ -106,7 +116,8 @@ export const testEveryCombination = <TTestArg>(
       }
 
       if (expectedEvents !== undefined) {
-        c.deepEqual(loggedEvents, expectedEvents);
+        // Call the deep copy in order to strip functions
+        c.deepEqual(events.deepCopySkipFunctions(loggedEvents), expectedEvents);
       } else {
         throw new Error(`Most likely destroy server callback throwed.`);
       }
@@ -121,8 +132,8 @@ export const testEveryCombination = <TTestArg>(
         test(
           getTitle({ serverID, dataValidationID, testArg }),
           macro,
-          server,
-          dataValidation,
+          [serverID as SupportedServers, server],
+          [dataValidationID as SupportedBackendDataValidators, dataValidation],
           testArg,
         );
       }
@@ -203,3 +214,13 @@ export type AllAPICalls = feCommon.GetAPICalls<AllAPIDefinitions>;
 
 export type BackendCreatorModule =
   typeof backendCreators[keyof typeof backendCreators];
+
+// If we use 'keyof typeof allowedServers' here, we will get error:
+// Exported type alias 'SupportedServers' has or is using private name 'allowedServers'.
+// This is why we circumvent this via ReturnType of utils.loadServersAndDataValidations
+export type SupportedServers = keyof ReturnType<
+  typeof utils.loadServersAndDataValidations
+>["allowedServers"];
+export type SupportedBackendDataValidators = keyof ReturnType<
+  typeof utils.loadServersAndDataValidations
+>["allowedDataValidations"];

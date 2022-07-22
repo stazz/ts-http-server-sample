@@ -36,6 +36,7 @@ const runTestsForSuccessfulResults = async (
   c: ExecutionContext,
   apiCalls: integrationTest.AllAPICalls,
 ) => {
+  // Run these sequentially, to ensure correct event order of server events
   await integrationTest.assertSuccessfulResult(
     c,
     apiCalls,
