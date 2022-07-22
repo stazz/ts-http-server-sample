@@ -198,7 +198,11 @@ export const assertUnsuccessfulResult = async (
   );
   if (httpError) {
     const response = httpError.response;
-    c.deepEqual(response.statusCode, expectedStatusCode);
+    c.deepEqual(
+      response.statusCode,
+      expectedStatusCode,
+      `Endpoint ${args.method} ${args.url} failed`,
+    );
     validateResponseFurther?.(response);
   }
 };
