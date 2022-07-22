@@ -1,7 +1,7 @@
 # Source Code
 This folder contains all the source code used in this sample.
 The source code is further decomposed into the following folders:
-- [protocol.ts](./protocol.ts) file contains the types which encapsulate the definition of all endpoints of REST API of this sample, as simple TypeScript types.
+- [protocol.d.ts](./protocol.d.ts) file contains the types which encapsulate the definition of all endpoints of REST API of this sample, as simple TypeScript types.
   All of the non-generic code ultimately depends on this file.
 - [backend](./backend) folder contains code which implements REST API of this sample, using one data validation framework at a time,
 - [frontend](./frontend) folder contains code which implements invoking REST API of this sample, using one data validation framework at a time,

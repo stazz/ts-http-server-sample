@@ -7,7 +7,7 @@ import * as prefix from "../../api/core/prefix";
 import * as openapi from "../../api/metadata/openapi";
 
 // This module will be dynamically loaded - agree on the shape of the module.
-import * as moduleApi from "../../module-api/rest";
+import type * as moduleApi from "../../module-api/rest";
 
 // Runtypes as data runtime validator
 import * as t from "runtypes";
@@ -39,7 +39,7 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
       contextValidatorFactory(
         tPlugin.plainValidator(
           t.Record({
-            [moduleApi.USERNAME]: t.String,
+            username: t.String,
           }),
         ),
         403,

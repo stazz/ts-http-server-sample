@@ -49,12 +49,12 @@ So far, the IDE that has been tested is VSCode/VSCodium, having [ESLint extensio
 }
 ```
 
-Once the repository is opened in IDE, good starting point is file `src/protocol.ts`.
+Once the repository is opened in IDE, good starting point is file `src/protocol.d.ts`.
 This file contains the code which fully specifies the REST API - its endpoints, the input they accept, the output they produce, etc.
 Both backend and frontend sample code ultimately depends on this one file - this file can be thought as a heart of this sample.
 Notice that since this file is shared between both BE and FE, it has minimal set of dependencies.
 
-The following things are good experiments to do in `src/protocol.ts` to kick off full project exploration.
+The following things are good experiments to do in `src/protocol.d.ts` to kick off full project exploration.
 Notice that when the list talks about observing compile-time errors in certain folders, it might require to open few files in those folders in the IDE on first time, for the IDE to show those errors.
 - On line `22` ( `id: ID`), try change the literal `id` into other literal, like `id_typoed`.
   Observe immediate compile-time errors in both `src/backend` and `src/frontend` folders.
@@ -111,7 +111,7 @@ The *robust*, *efficient*, and *trustworthy* terms here are more about writing c
 This is how this project achieves the goal:
 - The first principle is the most important of them all, and it relates closely to developer experience (and thus, how efficent, robust, etc the code will actually be).
   The language chosen is **compile-time typed**, allowing to define rules for data structures and function inputs and inputs.
-  Furthermore, as much as possible of parameters for specifying the rules (in this case, ruleset for defining customizable REST APIs) are pushed to compilation-time phase; one example of this are the types in `src/protocol.ts`, from which stem almost everything else non-generic (not in `src/api` folder).
+  Furthermore, as much as possible of parameters for specifying the rules (in this case, ruleset for defining customizable REST APIs) are pushed to compilation-time phase; one example of this are the types in `src/protocol.d.ts`, from which stem almost everything else non-generic (not in `src/api` folder).
   On general level, following this principle allows to push down reaction time for bugs and errors from **days** in case of "discovered in production", past **hours** in case of "discovered in pipeline", and **down to almost-realtime** in case of "discovered by IDE compiler".
 - The various type definitions and functions in `src/backend/*/types.ts` and `src/frontend/*/backend.ts` folders are designed to be "foolproof" in order to allow only correct way of using them.
   For example, the `EndpointSpec` types in  `src/backend/*/types.ts` files make separation on whether they allow request body definition, depending on the HTTP method of the endpoint.
@@ -132,7 +132,7 @@ This is how this project achieves the goal:
 
 # Architecture Layers of This Project
 On a higher level, this project architectural layers can be described as following:
-- The *entrypoint* file `src/index.ts` and REST API specification file `src/protocol.ts` are inside the highest layer, and the layer is directly depending on *business logic* and *glue layer*.
+- The *entrypoint* file `src/index.ts` and REST API specification file `src/protocol.d.ts` are inside the highest layer, and the layer is directly depending on *business logic* and *glue layer*.
 - The *business logic* layer is in `src/lib` directory, and it is directly depending on busines-related libraries and such (e.g. DB lib, but not visible in this sample just yet).
   It is **not depending** on things like HTTP protcols, validating its own input/output, etc (however, it can be validating e.g. output from DB queries, via some ORM library or something else).
 - The *generic REST API layer* is in `src/api/core` directory, further decomposed into smaller modules, and does not have any library dependencies.
@@ -140,10 +140,10 @@ On a higher level, this project architectural layers can be described as followi
 - The *glue layer* is in the subdirectories of `src/api` directory, except `core` one, and it is directly depending on *generic REST API layer* and *libraries*.
   Notice that currently that folder only has support for `koa` and `io-ts`, as this is just a PoC.
 - The *backend demonstration layer* is in `src/backend/<data validation library>` folders, duplicated for each data validation library.
-  The layer demonstrates how to implement the backend using certain data validation library, and the specification in `src/protocol.ts`.
+  The layer demonstrates how to implement the backend using certain data validation library, and the specification in `src/protocol.d.ts`.
   Notice that the layer is **agnostic to the HTTP server library used**.
 - The *frontend demonstration layer* is in `src/frontend/<data validation library>` folders, duplicated for each data validation library.
-  The layer demonstrates how to invoke backend API using certain data validation library, and the specification in `src/protocol.ts`.
+  The layer demonstrates how to invoke backend API using certain data validation library, and the specification in `src/protocol.d.ts`.
   Notice that the layer is **agnostic to HTTP invocation library used**.
 - The *libraries* are defined in `package.json` and right now include all necessary dependencies to run all the possible server and data validation library combinations.
 

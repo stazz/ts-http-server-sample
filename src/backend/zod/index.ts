@@ -7,7 +7,7 @@ import * as prefix from "../../api/core/prefix";
 import * as openapi from "../../api/metadata/openapi";
 
 // This module will be dynamically loaded - agree on the shape of the module.
-import * as moduleApi from "../../module-api/rest";
+import type * as moduleApi from "../../module-api/rest";
 
 // Zod as data runtime validator
 import * as t from "zod";
@@ -41,7 +41,7 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
         tPlugin.plainValidator(
           t
             .object({
-              [moduleApi.USERNAME]: t.string(),
+              username: t.string(),
             })
             .describe("AuthenticatedState"),
         ),

@@ -4,7 +4,10 @@
     "src/**/*.*"
   ],
   "exclude": [
-    "src/__test__/**/*.*"
+    "src/__test__/**/*.*",
+    "**/*.d.ts",
+    "src/index.ts",
+    "src/frontend/*/index.ts"
   ],
   "reporter": [
     "text",

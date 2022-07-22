@@ -7,7 +7,7 @@ import * as prefix from "../../api/core/prefix";
 import * as openapi from "../../api/metadata/openapi";
 
 // This module will be dynamically loaded - agree on the shape of the module.
-import * as moduleApi from "../../module-api/rest";
+import type * as moduleApi from "../../module-api/rest";
 
 // IO-TS as data runtime validator
 import * as t from "io-ts";
@@ -40,7 +40,7 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
         tPlugin.plainValidator(
           t.type(
             {
-              [moduleApi.USERNAME]: t.string,
+              username: t.string,
             },
             "AuthenticatedState", // Friendly name for error messages
           ),

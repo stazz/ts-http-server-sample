@@ -1,4 +1,3 @@
-import * as data from "./api/core/data";
 import type * as server from "./api/core/server";
 import type * as serverModule from "./module-api/server";
 import * as evt from "@data-heaving/common";
@@ -52,7 +51,7 @@ export const logServerEvents = <TContext>(
       console.error(
         `Invalid URL parameters supplied: ${method} ${url} ${getStateString(
           state,
-        )}.\n${data.combineErrorObjects(validationError)}`,
+        )}.\n${validationError.getHumanReadableMessage()}`,
       );
     },
   );
