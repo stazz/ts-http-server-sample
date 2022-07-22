@@ -37,7 +37,10 @@ export const createCallHTTPEndpoint: (
       body,
       searchParams,
       headers: {
-        ...headers,
+        // Notice that we allow overriding these specific headers with values in 'headers' below.
+        // This is only because this callback is used in tests, and they require such functionality.
+        // In reality, the spread of 'headers' should come first, and only then the headers related to body.
+        // Even better, we should delete the reserved header names if body is not specified.
         ...(body === undefined
           ? {}
           : {
@@ -45,12 +48,16 @@ export const createCallHTTPEndpoint: (
               ["Content-Length"]: `${body.byteLength}`,
               ["Content-Encoding"]: encoding,
             }),
+        ...headers,
       },
     });
-    if (statusCode >= 200 && statusCode < 300) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return responseBody.length > 0 ? JSON.parse(responseBody) : undefined;
-    } else {
-      throw new Error(`Invalid response code: ${statusCode}`);
+
+    // Got will throw on any response which code is not >= 200 and < 300.
+    // So just verify that it is one of the OK or No Content.
+    if (statusCode !== 200 && statusCode !== 204) {
+      throw new Error(`Status code ${statusCode} was returned.`);
     }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return responseBody.length > 0 ? JSON.parse(responseBody) : undefined;
   };

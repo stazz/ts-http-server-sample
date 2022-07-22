@@ -1,4 +1,3 @@
-import * as data from "./api/core/data";
 import type * as server from "./api/core/server";
 import type * as serverModule from "./module-api/server";
 import * as evt from "@data-heaving/common";
@@ -13,6 +12,18 @@ export const logServerEvents = <TContext>(
   if (!builder) {
     builder = new evt.EventEmitterBuilder();
   }
+  builder.addEventListener("onSuccessfulInvocationStart", ({ state, ctx }) => {
+    const { method, url } = getMethodAndUrl(ctx);
+    // eslint-disable-next-line no-console
+    console.info(`Starting invoking ${method} ${url} ${getStateString(state)}`);
+  });
+  builder.addEventListener("onSuccessfulInvocationEnd", ({ state, ctx }) => {
+    const { method, url } = getMethodAndUrl(ctx);
+    // eslint-disable-next-line no-console
+    console.info(
+      `Completed invoking ${method} ${url} ${getStateString(state)}`,
+    );
+  });
   builder.addEventListener(
     "onInvalidBody",
     ({ state, ctx, validationError }) => {
@@ -40,7 +51,7 @@ export const logServerEvents = <TContext>(
       console.error(
         `Invalid URL parameters supplied: ${method} ${url} ${getStateString(
           state,
-        )}.\n${data.combineErrorObjects(validationError)}`,
+        )}.\n${validationError.getHumanReadableMessage()}`,
       );
     },
   );

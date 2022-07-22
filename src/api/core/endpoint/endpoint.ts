@@ -16,7 +16,7 @@ export interface AppEndpoint<
 
 export type DynamicHandlerGetter<TContext> = (
   method: method.HttpMethod,
-  groups: Record<string, string>,
+  groups: Record<string, string | undefined>,
 ) => DynamicHandlerResponse<TContext>;
 
 export type DynamicHandlerResponse<TContext> =

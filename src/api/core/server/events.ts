@@ -2,6 +2,8 @@ import type * as data from "../data";
 // This is 'virtual interface' -> instances of this interface are never meant to be created!
 // It is only used for typing purposes
 export interface VirtualRequestProcessingEvents<TContext, TState> {
+  onSuccessfulInvocationStart: EventArguments<TContext, TState>;
+  onSuccessfulInvocationEnd: EventArguments<TContext, TState>;
   // URL did not match combined regex
   onInvalidUrl: Omit<EventArguments<TContext, TState>, "groups">;
   // No handler for given HTTP method
@@ -11,7 +13,7 @@ export interface VirtualRequestProcessingEvents<TContext, TState> {
     ValidationErrorArgs<data.DataValidatorResultError | undefined>;
   // URL matched combined regex, but parameter validation failed
   onInvalidUrlParameters: EventArguments<TContext, TState> &
-    ValidationErrorArgs<Array<data.DataValidatorResultError>>;
+    ValidationErrorArgs;
   // Could not parse query string
   onInvalidQuery: EventArguments<TContext, TState> & ValidationErrorArgs;
   // No validator for body content type
@@ -27,7 +29,7 @@ export interface VirtualRequestProcessingEvents<TContext, TState> {
 export interface EventArguments<TContext, TState> {
   ctx: TContext;
   state: TState;
-  groups: Record<string, string>;
+  groups: Record<string, string | undefined>;
   regExp: RegExp;
 }
 

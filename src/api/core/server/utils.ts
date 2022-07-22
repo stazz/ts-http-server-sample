@@ -1,6 +1,6 @@
 import type * as evt from "./events";
 import type * as ep from "../endpoint";
-import type * as data from "../data-server";
+import * as data from "../data-server";
 
 import type * as evtEmit from "@data-heaving/common";
 
@@ -119,21 +119,30 @@ export const checkURLParametersForHandler = <TContext, TState>(
     for (const [groupName, { parameterName, validator }] of Object.entries(
       urlValidation,
     )) {
-      const validatorResult = validator(eventArgs.groups[groupName]);
-      switch (validatorResult.error) {
-        case "none":
-          url[parameterName] = validatorResult.data;
-          break;
-        default:
-          errors.push(validatorResult);
-          break;
+      const groupValue = eventArgs.groups[groupName];
+      if (groupValue === undefined) {
+        errors.push(
+          data.exceptionAsValidationError(
+            `No regexp match for group ${groupName}`,
+          ),
+        );
+      } else {
+        const validatorResult = validator(groupValue);
+        switch (validatorResult.error) {
+          case "none":
+            url[parameterName] = validatorResult.data;
+            break;
+          default:
+            errors.push(validatorResult);
+            break;
+        }
       }
     }
     proceedToInvokeHandler = errors.length === 0;
     if (!proceedToInvokeHandler) {
       events?.emit("onInvalidUrlParameters", {
         ...eventArgs,
-        validationError: errors,
+        validationError: data.combineErrorObjects(errors),
       });
     }
   } else {
@@ -249,12 +258,23 @@ export const checkBodyForHandler = async <TContext, TState>(
 
 export const invokeHandler = <TContext, TState>(
   eventArgs: evt.EventArguments<TContext, TState>,
-  events: ServerEventEmitter<TContext, TState, "onInvalidResponse"> | undefined,
+  events:
+    | ServerEventEmitter<
+        TContext,
+        TState,
+        | "onInvalidResponse"
+        | "onSuccessfulInvocationStart"
+        | "onSuccessfulInvocationEnd"
+      >
+    | undefined,
   handler: ep.StaticAppEndpointHandler<TContext>["handler"],
   ...handlerParameters: Parameters<typeof handler>
 ) => {
+  events?.emit("onSuccessfulInvocationStart", { ...eventArgs });
   const retVal = handler(...handlerParameters);
-  if (retVal.error !== "none") {
+  if (retVal.error === "none") {
+    events?.emit("onSuccessfulInvocationEnd", { ...eventArgs });
+  } else {
     events?.emit("onInvalidResponse", {
       ...eventArgs,
       validationError: retVal,

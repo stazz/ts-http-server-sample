@@ -23,7 +23,7 @@ export type GetEncodedObject<T> = {
 };
 export type GetEncodedArray<T> = Array<GetEncoded<T>>;
 export type NonOptionalKeys<T> = {
-  [k in keyof T]-?: undefined extends T[k] ? never : k;
+  [P in keyof T]-?: undefined extends T[P] ? never : P;
 }[keyof T];
 
 export interface HKTEncoded extends protocol.HKTEncoded {

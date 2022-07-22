@@ -7,7 +7,7 @@ import * as prefix from "../../api/core/prefix";
 import * as openapi from "../../api/metadata/openapi";
 
 // This module will be dynamically loaded - agree on the shape of the module.
-import * as moduleApi from "../../module-api/rest";
+import type * as moduleApi from "../../module-api/rest";
 
 // Zod as data runtime validator
 import * as t from "zod";
@@ -41,7 +41,7 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
         tPlugin.plainValidator(
           t
             .object({
-              [moduleApi.USERNAME]: t.string(),
+              username: t.string(),
             })
             .describe("AuthenticatedState"),
         ),
@@ -92,8 +92,8 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
         }),
       notAuthenticated.atURL`/${"id"}`
         .validateURLData({
-          // All parameters present in URL template string must be mentioned here, otherwise there will be compile-time error.
-          id: tPlugin.urlParameter(tPlugin.parameterString(idInBody), idRegex),
+          // Don't pass UUID regex to urlParameter, to make integration tests test also onInvalidUrlParameter event
+          id: tPlugin.urlParameter(tPlugin.parameterString(idInBody)),
         })
         .batchSpec(api.getThing(endpointArgs))
         .createEndpoint({

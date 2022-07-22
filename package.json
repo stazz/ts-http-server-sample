@@ -11,12 +11,14 @@
     "type": "git",
     "url": "https://github.com/stazz/server-ts-sample"
   },
+  "type": "module",
   "scripts": {
     "build": "yarn run tsc && yarn run lint",
     "server": "ts-node src 0.0.0.0 3000",
     "tsc": "tsc --project tsconfig.build.json",
     "lint": "eslint ./src --ext .ts,.tsx",
-    "test": "c8 ava"
+    "test:coverage": "c8 ava",
+    "test:run": "ava"
   },
   "dependencies": {
     "@data-heaving/common": "1.0.0",
@@ -32,7 +34,6 @@
     "runtypes": "6.5.1",
     "zod": "3.17.3"
   },
-  "type": "module",
   "devDependencies": {
     "@ava/get-port": "2.0.0",
     "@types/koa": "2.13.4",

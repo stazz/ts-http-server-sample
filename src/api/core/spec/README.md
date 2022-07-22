@@ -14,7 +14,7 @@ The code is structured as following:
   This class also allows to further specify method and optional URL query for methods not yet specified, and to go back to previous stage again.
   This way, multiple methods can be handled via same URL.
 - [common.ts](./common.ts) contains few exported common types.
-- [state.ts](./state.ts) contains non-exported types to handle internal state of classes involved in various stages.
+- [state.d.ts](./state.d.ts) contains non-exported types to handle internal state of classes involved in various stages.
 
 Notice that in order to avoid circular dependencies (class defined in [stage3.ts](./stage3.ts) extends class defined in [stage1.ts](./stage1.ts)), we import the classes used in stage files via [index.ts](./index.ts).
 This is the proposed solution of [this Medium post](https://medium.com/visual-development/how-to-fix-nasty-circular-dependency-issues-once-and-for-all-in-javascript-typescript-a04c987cf0de).

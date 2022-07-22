@@ -22,32 +22,29 @@ export const listenAsync = (
     : server.customListen(port, host);
 
 export const loadServersAndDataValidations = () => {
-  const allowedServers: Record<
-    string,
-    Promise<{ default: serverModuleApi.ServerModule }>
-  > = {
-    express: import("./server/express"),
-    fastify: import("./server/fastify"),
-    koa: import("./server/koa"),
-  };
-
-  const allowedDataValidations: Record<
-    string,
-    Promise<{ default: restModuleApi.RESTAPISpecificationModule }>
-  > = {
-    ["io-ts"]: import("./backend/io-ts") as Promise<{
-      default: restModuleApi.RESTAPISpecificationModule;
-    }>,
-    runtypes: import("./backend/runtypes") as Promise<{
-      default: restModuleApi.RESTAPISpecificationModule;
-    }>,
-    zod: import("./backend/zod") as Promise<{
-      default: restModuleApi.RESTAPISpecificationModule;
-    }>,
-  };
   return {
-    allowedServers,
-    allowedDataValidations,
+    allowedServers: {
+      express: import("./server/express") as Promise<{
+        default: serverModuleApi.ServerModule;
+      }>,
+      fastify: import("./server/fastify") as Promise<{
+        default: serverModuleApi.ServerModule;
+      }>,
+      koa: import("./server/koa") as Promise<{
+        default: serverModuleApi.ServerModule;
+      }>,
+    },
+    allowedDataValidations: {
+      ["io-ts"]: import("./backend/io-ts") as Promise<{
+        default: restModuleApi.RESTAPISpecificationModule;
+      }>,
+      runtypes: import("./backend/runtypes") as Promise<{
+        default: restModuleApi.RESTAPISpecificationModule;
+      }>,
+      zod: import("./backend/zod") as Promise<{
+        default: restModuleApi.RESTAPISpecificationModule;
+      }>,
+    },
   };
 };
 
