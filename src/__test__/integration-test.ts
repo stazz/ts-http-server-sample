@@ -23,8 +23,8 @@ export const testEveryCombination = <TTestArg>(
     backendCreators: typeof backendCreators;
   }) => Array<TTestArg>,
   getTitle: (arg: {
-    serverID: string;
-    dataValidationID: string;
+    serverID: SupportedServers;
+    dataValidationID: SupportedBackendDataValidators;
     testArg: TTestArg;
   }) => string,
   performTests: (arg: {
@@ -124,16 +124,19 @@ export const testEveryCombination = <TTestArg>(
     },
   );
 
-  for (const [serverID, server] of Object.entries(allowedServers)) {
-    for (const [dataValidationID, dataValidation] of Object.entries(
+  for (const [serverIDIter, server] of Object.entries(allowedServers)) {
+    for (const [dataValidationIDIter, dataValidation] of Object.entries(
       allowedDataValidations,
     )) {
       for (const testArg of getTestArgs({ backendCreators })) {
+        const serverID = serverIDIter as SupportedServers;
+        const dataValidationID =
+          dataValidationIDIter as SupportedBackendDataValidators;
         test(
           getTitle({ serverID, dataValidationID, testArg }),
           macro,
-          [serverID as SupportedServers, server],
-          [dataValidationID as SupportedBackendDataValidators, dataValidation],
+          [serverID, server],
+          [dataValidationID, dataValidation],
           testArg,
         );
       }
