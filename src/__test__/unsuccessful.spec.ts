@@ -10,7 +10,7 @@ integrationTest.testEveryCombination(
   // AVA runtime
   test,
   // Expected amount of assertions by the actual test function
-  9,
+  13,
   // Extra test arguments - unused in this case
   () => [undefined],
   // Title for single test
@@ -81,9 +81,34 @@ const runTestsForUnsuccessfulResults = async (
     },
     422,
   );
+  await integrationTest.assertUnsuccessfulResult(
+    c,
+    invoker,
+    {
+      method: "GET",
+      url: "/api/thing",
+      query: {
+        includeDeleted: "dummy",
+      },
+    },
+    // TODO is 400 really a good thing at this point?
+    400,
+  );
+  await integrationTest.assertUnsuccessfulResult(
+    c,
+    invoker,
+    {
+      method: "GET",
+      url: "/api/thing/invalid-uuid",
+    },
+    // TODO is 400 really a good thing at this point?
+    400,
+  );
 };
 
-const expectedEvents = (errors: [unknown]): Array<events.LoggedEvents> => [
+const expectedEvents = (
+  errors: [unknown, unknown, unknown],
+): Array<events.LoggedEvents> => [
   {
     eventName: "onInvalidUrl",
     eventData: {
@@ -149,10 +174,56 @@ const expectedEvents = (errors: [unknown]): Array<events.LoggedEvents> => [
       },
     },
   },
+  {
+    eventName: "onInvalidQuery",
+    eventData: {
+      groups: {
+        e_0: "/api/thing",
+        e_0_api_0: "/thing",
+        e_0_api_0_thing_0: "",
+        e_0_api_0_thing_1: undefined,
+        e_0_api_0_thing_1_id: undefined,
+        e_0_api_0_thing_2: undefined,
+        e_0_api_0_thing_2_id: undefined,
+        e_1: undefined,
+        e_1_api_0: undefined,
+        e_2: undefined,
+      },
+      state: {},
+      validationError: {
+        error: "error",
+        errorInfo: errors[1],
+      },
+    },
+  },
+  {
+    eventData: {
+      groups: {
+        e_0: "/api/thing/invalid-uuid",
+        e_0_api_0: "/thing/invalid-uuid",
+        e_0_api_0_thing_0: undefined,
+        e_0_api_0_thing_1: "/invalid-uuid",
+        e_0_api_0_thing_1_id: "invalid-uuid",
+        e_0_api_0_thing_2: undefined,
+        e_0_api_0_thing_2_id: undefined,
+        e_1: undefined,
+        e_1_api_0: undefined,
+        e_2: undefined,
+      },
+      state: {},
+      validationError: {
+        error: "error",
+        errorInfo: errors[2],
+      },
+    },
+    eventName: "onInvalidUrlParameters",
+  },
 ];
 
 // Error order:
 // 0. Error for invalid request body
+// 1. Error for invalid query data
+// 2. Error for invalid URL parameter
 const errorsForDataValidationFrameworks: Record<
   integrationTest.SupportedBackendDataValidators,
   Parameters<typeof expectedEvents>[0]
@@ -198,6 +269,56 @@ const errorsForDataValidationFrameworks: Record<
         value: undefined,
       },
     ],
+    [
+      {
+        error: "error",
+        errorInfo: [
+          {
+            context: [
+              {
+                actual: "dummy",
+                key: "",
+                type: {
+                  _tag: "KeyofType",
+                  keys: {
+                    false: "",
+                    true: "",
+                  },
+                  name: '"true" | "false"',
+                },
+              },
+            ],
+            message: undefined,
+            value: "dummy",
+          },
+        ],
+      },
+    ],
+    [
+      {
+        error: "error",
+        errorInfo: [
+          {
+            context: [
+              {
+                actual: "invalid-uuid",
+                key: "",
+                type: {
+                  _tag: "RefinementType",
+                  name: "ID",
+                  type: {
+                    _tag: "StringType",
+                    name: "string",
+                  },
+                },
+              },
+            ],
+            message: undefined,
+            value: "invalid-uuid",
+          },
+        ],
+      },
+    ],
   ],
   runtypes: [
     [
@@ -207,6 +328,29 @@ const errorsForDataValidationFrameworks: Record<
           property: "Expected string, but was missing",
         },
         message: "Expected { property: string; }, but was incompatible",
+      },
+    ],
+    [
+      {
+        error: "error",
+        errorInfo: [
+          {
+            code: "TYPE_INCORRECT",
+            message: 'Expected "true" | "false", but was string',
+          },
+        ],
+      },
+    ],
+    [
+      {
+        error: "error",
+        errorInfo: [
+          {
+            code: "CONSTRAINT_FAILED",
+            message:
+              "Failed constraint check for string: The IDs must be in valid format.",
+          },
+        ],
       },
     ],
   ],
@@ -223,6 +367,64 @@ const errorsForDataValidationFrameworks: Record<
           },
         ],
         name: "ZodError",
+      },
+    ],
+    [
+      {
+        error: "error",
+        errorInfo: [
+          {
+            issues: [
+              {
+                code: "invalid_union",
+                message: "Invalid input",
+                path: [],
+                unionErrors: [
+                  {
+                    issues: [
+                      {
+                        code: "invalid_literal",
+                        expected: "true",
+                        message: 'Invalid literal value, expected "true"',
+                        path: [],
+                      },
+                    ],
+                    name: "ZodError",
+                  },
+                  {
+                    issues: [
+                      {
+                        code: "invalid_literal",
+                        expected: "false",
+                        message: 'Invalid literal value, expected "false"',
+                        path: [],
+                      },
+                    ],
+                    name: "ZodError",
+                  },
+                ],
+              },
+            ],
+            name: "ZodError",
+          },
+        ],
+      },
+    ],
+    [
+      {
+        error: "error",
+        errorInfo: [
+          {
+            issues: [
+              {
+                code: "custom",
+                message: "The IDs must be in valid UUID format.",
+                path: [],
+              },
+            ],
+            name: "ZodError",
+          },
+        ],
       },
     ],
   ],

@@ -92,8 +92,8 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
         }),
       notAuthenticated.atURL`/${"id"}`
         .validateURLData({
-          // All parameters present in URL template string must be mentioned here, otherwise there will be compile-time error.
-          id: tPlugin.urlParameter(tPlugin.parameterString(idInBody), idRegex),
+          // Don't pass UUID regex to urlParameter, to make integration tests test also onInvalidUrlParameter event
+          id: tPlugin.urlParameter(tPlugin.parameterString(idInBody)),
         })
         .batchSpec(api.getThing(endpointArgs))
         .createEndpoint({

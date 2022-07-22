@@ -142,7 +142,7 @@ export const checkURLParametersForHandler = <TContext, TState>(
     if (!proceedToInvokeHandler) {
       events?.emit("onInvalidUrlParameters", {
         ...eventArgs,
-        validationError: errors,
+        validationError: data.combineErrorObjects(errors),
       });
     }
   } else {
