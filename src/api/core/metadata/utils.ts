@@ -9,6 +9,7 @@ export class InitialMetadataProviderClass<
   TEndpointMD,
   TContextArguments,
   TOutputContents extends data.TOutputContentsBase,
+  TInputContents extends data.TInputContentsBase,
   TFinalMetadataArgs,
   TFinalMetadata,
 > implements
@@ -18,6 +19,7 @@ export class InitialMetadataProviderClass<
       TEndpointMD,
       TContextArguments,
       TOutputContents,
+      TInputContents,
       TFinalMetadataArgs,
       TFinalMetadata
     >
@@ -30,7 +32,8 @@ export class InitialMetadataProviderClass<
       TArgument,
       TEndpointArg,
       TEndpointMD,
-      TOutputContents
+      TOutputContents,
+      TInputContents
     >,
     private readonly _getFinalMD: (
       contextInfo: TContextArguments,
@@ -47,6 +50,7 @@ export class InitialMetadataProviderClass<
     TEndpointMD,
     TContextArguments,
     TOutputContents,
+    TInputContents,
     TFinalMetadataArgs,
     TFinalMetadata
   > {
@@ -61,7 +65,8 @@ export class InitialMetadataProviderClass<
     TArgument,
     TEndpointArg,
     TEndpointMD,
-    TOutputContents
+    TOutputContents,
+    TInputContents
   > {
     return this._getBuilder(this._contextInfo);
   }

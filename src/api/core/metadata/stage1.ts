@@ -6,6 +6,7 @@ export interface MetadataBuilder<
   TEndpointArg,
   TEndpointMD,
   TOutputContents extends data.TOutputContentsBase,
+  TInputContents extends data.TInputContentsBase,
 > {
   getEndpointsMetadata: (
     arg: TEndpointArg,
@@ -19,10 +20,7 @@ export interface MetadataBuilder<
             | undefined;
           inputSpec:
             | Omit<
-                data.DataValidatorRequestInputSpec<
-                  unknown,
-                  Record<string, unknown>
-                >,
+                data.DataValidatorRequestInputSpec<unknown, TInputContents>,
                 "validator"
               >
             | undefined;

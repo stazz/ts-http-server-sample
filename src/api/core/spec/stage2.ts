@@ -13,9 +13,16 @@ export class AppEndpointBuilderForMethods<
   TAllowedMethods extends ep.HttpMethod,
   TArgsQuery,
   TOutputContents extends data.TOutputContentsBase,
+  TInputContents extends data.TInputContentsBase,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown, unknown, TOutputContents>
+    md.MetadataBuilder<
+      md.HKTArg,
+      unknown,
+      unknown,
+      TOutputContents,
+      TInputContents
+    >
   >,
 > {
   public constructor(
@@ -24,6 +31,7 @@ export class AppEndpointBuilderForMethods<
       TRefinedContext,
       TState,
       TOutputContents,
+      TInputContents,
       TMetadataProviders
     >,
     protected readonly _methods: Set<TAllowedMethods>,
@@ -46,7 +54,8 @@ export class AppEndpointBuilderForMethods<
         infer TArg,
         infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
         unknown,
-        infer _1
+        infer _1,
+        infer _2
       >
         ? md.Kind<
             TArg,
@@ -68,6 +77,7 @@ export class AppEndpointBuilderForMethods<
     TArgsURL,
     Exclude<ep.HttpMethod, TAllowedMethods>,
     TOutputContents,
+    TInputContents,
     TMetadataProviders
   > {
     const { query, getEndpointArgs } = this._queryInfo;
@@ -75,6 +85,7 @@ export class AppEndpointBuilderForMethods<
     const handler: state.StaticAppEndpointBuilderSpec<
       TContext,
       TOutputContents,
+      TInputContents,
       TMetadataProviders
     > = {
       outputValidation: outputSpec,
@@ -147,9 +158,16 @@ export class AppEndpointBuilderForMethodsAndBody<
   TAllowedMethods extends ep.HttpMethod,
   TArgsQuery,
   TOutputContents extends data.TOutputContentsBase,
+  TInputContents extends data.TInputContentsBase,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown, unknown, TOutputContents>
+    md.MetadataBuilder<
+      md.HKTArg,
+      unknown,
+      unknown,
+      TOutputContents,
+      TInputContents
+    >
   >,
 > extends AppEndpointBuilderForMethods<
   TContext,
@@ -159,17 +177,14 @@ export class AppEndpointBuilderForMethodsAndBody<
   TAllowedMethods,
   TArgsQuery,
   TOutputContents,
+  TInputContents,
   TMetadataProviders
 > {
-  public withBody<
-    THandlerResult,
-    TBody,
-    TInputContentTypes extends Record<string, unknown>,
-  >(
+  public withBody<THandlerResult, TBody>(
     {
       validator: inputValidator,
       ...inputSpec
-    }: data.DataValidatorRequestInputSpec<TBody, TInputContentTypes>,
+    }: data.DataValidatorRequestInputSpec<TBody, TInputContents>,
     endpointHandler: common.EndpointHandler<
       TArgsURL &
         TArgsQuery &
@@ -186,7 +201,8 @@ export class AppEndpointBuilderForMethodsAndBody<
         infer TArg,
         infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
         unknown,
-        infer _1
+        infer _1,
+        infer _2
       >
         ? md.Kind<
             TArg,
@@ -196,7 +212,7 @@ export class AppEndpointBuilderForMethodsAndBody<
             TArgsQuery extends common.EndpointHandlerArgsWithQuery<unknown>
               ? { [P in keyof TArgsQuery["query"]]: unknown }
               : undefined,
-            { [P in keyof TInputContentTypes]: TBody },
+            { [P in keyof TInputContents]: TBody },
             { [P in keyof TOutputContents]: THandlerResult }
           >
         : never;
@@ -208,6 +224,7 @@ export class AppEndpointBuilderForMethodsAndBody<
     TArgsURL,
     Exclude<ep.HttpMethod, TAllowedMethods>,
     TOutputContents,
+    TInputContents,
     TMetadataProviders
   > {
     const { query, getEndpointArgs } = this._queryInfo;
@@ -215,6 +232,7 @@ export class AppEndpointBuilderForMethodsAndBody<
     const handler: state.StaticAppEndpointBuilderSpec<
       TContext,
       TOutputContents,
+      TInputContents,
       TMetadataProviders
     > = {
       inputValidation: inputSpec,

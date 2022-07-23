@@ -49,7 +49,11 @@ export const inputValidator = <T>(
             supportedContentTypes: [CONTENT_TYPE],
           };
     },
-    validatorSpec: { [CONTENT_TYPE]: validation },
+    validatorSpec: {
+      contents: {
+        [CONTENT_TYPE]: validation,
+      },
+    },
   };
 };
 

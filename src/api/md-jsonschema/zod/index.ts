@@ -1,57 +1,50 @@
-import type * as jsonSchema from "json-schema";
 import type * as tPlugin from "../../data/zod";
+import * as common from "../common";
 
 export const createJsonSchemaFunctionality = <
-  TContentTypes extends string,
   TTransformedSchema,
+  TContentTypes extends string,
 >({
   contentTypes,
-  transformSchema,
-  customLookup,
-}: JSONSchemaFunctionalityCreationArguments<
-  TContentTypes,
-  TTransformedSchema
->): SupportedJSONSchemaFunctionality<TContentTypes, TTransformedSchema> => ({
-  encoders: Object.fromEntries(
-    contentTypes.map<[string, Transformer<Encoder, TTransformedSchema>]>(
-      (contentType) => [
-        contentType,
-        (encoder) => {
-          const retVal = customLookup?.(encoder) ?? encoderToSchema(encoder);
-          return retVal ? transformSchema(retVal) : undefined;
-        },
-      ],
+  overrideEncoder,
+  overrideDecoder,
+  ...args
+}: Input<TTransformedSchema, TContentTypes>) =>
+  common.createJsonSchemaFunctionality({
+    ...args,
+    encoders: common.arrayToRecord(
+      contentTypes,
+      (): common.SchemaTransformation<Encoder> => ({
+        transform: encoderToSchema,
+        override: overrideEncoder,
+      }),
     ),
-  ) as SupportedJSONSchemaFunctionality<
-    TContentTypes,
-    TTransformedSchema
-  >["encoders"],
+    decoders: common.arrayToRecord(
+      contentTypes,
+      (): common.SchemaTransformation<Decoder> => ({
+        transform: decoderToSchema,
+        override: overrideDecoder,
+      }),
+    ),
+  });
+
+export type Input<
+  TTransformedSchema,
+  TContentTypes extends string,
+> = common.JSONSchemaFunctionalityCreationArgumentsContentTypes<
+  TTransformedSchema,
+  TContentTypes
+> & {
+  overrideEncoder?: common.Transformer<Encoder>;
+  overrideDecoder?: common.Transformer<Decoder>;
+};
+export type Encoder = tPlugin.Encoder<any, any>;
+export type Decoder = tPlugin.Decoder<any>;
+
+const encoderToSchema: common.Transformer<Encoder> = (encoder) => ({
+  type: "string",
 });
 
-export interface JSONSchemaFunctionalityCreationArguments<
-  TContentTypes extends string,
-  TTransformedSchema,
-> {
-  contentTypes: Array<TContentTypes>;
-  transformSchema: (schema: JSONSchema) => TTransformedSchema;
-  customLookup?: (encoder: Encoder) => JSONSchema | undefined;
-}
-
-export type SupportedJSONSchemaFunctionality<
-  TContentTypes extends string,
-  TTransformedSchema,
-> = {
-  encoders: { [P in TContentTypes]: Transformer<Encoder, TTransformedSchema> };
-};
-
-export type Encoder = tPlugin.Encoder<any, any>;
-
-export type Transformer<TInput, TReturnType = JSONSchema> = (
-  input: TInput,
-) => TReturnType | undefined;
-
-export type JSONSchema = jsonSchema.JSONSchema7Definition;
-
-const encoderToSchema: Transformer<Encoder> = (encoder) => ({
+const decoderToSchema: common.Transformer<Decoder> = () => ({
   type: "string",
 });

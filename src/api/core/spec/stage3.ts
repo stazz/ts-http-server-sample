@@ -1,5 +1,5 @@
 import * as ep from "../endpoint";
-import type * as data from "../data-server";
+import * as data from "../data-server";
 import type * as md from "../metadata";
 import type * as state from "./state";
 import { AppEndpointBuilderInitial } from ".";
@@ -11,11 +11,12 @@ export class AppEndpointBuilder<
   TArgsURL,
   TAllowedMethods extends ep.HttpMethod,
   TOutputContents extends data.TOutputContentsBase,
+  TInputContents extends data.TInputContentsBase,
   TMetadataProviders extends Record<
     string,
     // We must use 'any' as 2nd parameter, otherwise we won't be able to use AppEndpointBuilder with specific TMetadataProviders type as parameter to functions.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    md.MetadataBuilder<md.HKTArg, any, unknown, TOutputContents>
+    md.MetadataBuilder<md.HKTArg, any, unknown, TOutputContents, TInputContents>
   >,
 > extends AppEndpointBuilderInitial<
   TContext,
@@ -24,6 +25,7 @@ export class AppEndpointBuilder<
   TArgsURL,
   TAllowedMethods,
   TOutputContents,
+  TInputContents,
   TMetadataProviders
 > {
   public createEndpoint(mdArgs: {
@@ -31,7 +33,8 @@ export class AppEndpointBuilder<
       infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
       infer TArg,
       unknown,
-      infer _1
+      infer _1,
+      infer _2
     >
       ? TArg
       : never;
@@ -42,7 +45,8 @@ export class AppEndpointBuilder<
         infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
         infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
         infer TEndpointMD,
-        infer _1
+        infer _1,
+        infer _2
       >
         ? TEndpointMD
         : never;
@@ -70,7 +74,9 @@ export class AppEndpointBuilder<
         }),
         getMetadata: (urlPrefix) => {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-          return ep.transformEntries(metadata, (md) => [md(urlPrefix)]) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+          return data.transformEntries(metadata, (md) => [
+            md(urlPrefix),
+          ]) as any; // eslint-disable-line @typescript-eslint/no-explicit-any
         },
       };
     } else {
@@ -84,15 +90,23 @@ export class AppEndpointBuilder<
 const checkMethodsForHandler = <
   TContext,
   TOutputContents extends data.TOutputContentsBase,
+  TInputContents extends data.TInputContentsBase,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown, unknown, Record<string, unknown>>
+    md.MetadataBuilder<
+      md.HKTArg,
+      unknown,
+      unknown,
+      TOutputContents,
+      TInputContents
+    >
   >,
 >(
   state: {
     [key: string]: state.StaticAppEndpointBuilderSpec<
       TContext,
       TOutputContents,
+      TInputContents,
       TMetadataProviders
     >;
   },
@@ -154,9 +168,16 @@ const constructMDResults = <
   TRefinedContext,
   TState,
   TOutputContents extends data.TOutputContentsBase,
+  TInputContents extends data.TInputContentsBase,
   TMetadata extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown, unknown, TOutputContents>
+    md.MetadataBuilder<
+      md.HKTArg,
+      unknown,
+      unknown,
+      TOutputContents,
+      TInputContents
+    >
   >,
 >(
   {
@@ -167,6 +188,7 @@ const constructMDResults = <
     TRefinedContext,
     TState,
     TOutputContents,
+    TInputContents,
     TMetadata
   >,
   mdArgs: {
@@ -174,7 +196,8 @@ const constructMDResults = <
       infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
       infer TArg,
       unknown,
-      infer _1
+      infer _1,
+      infer _2
     >
       ? TArg
       : never;
@@ -197,7 +220,7 @@ const constructMDResults = <
       )
     : [...state.fragments];
 
-  return ep.transformEntries(state.metadata, (md, mdKey) =>
+  return data.transformEntries(state.metadata, (md, mdKey) =>
     md.getEndpointsMetadata(
       mdArgs[mdKey],
       urlSpec,

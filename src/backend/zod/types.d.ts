@@ -16,7 +16,8 @@ import type * as common from "../../module-api/common";
 export type TMetadataProviders = {
   openapi: openapi.OpenAPIMetadataBuilder<
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    tPlugin.OutputValidatorSpec<any, any>
+    tPlugin.OutputValidatorSpec<any, any>,
+    tPlugin.InputValidatorSpec<any>
   >;
 };
 

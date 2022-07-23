@@ -3,10 +3,10 @@ import type * as stream from "stream";
 
 export interface DataValidatorRequestInputSpec<
   TData,
-  TValidatorSpec extends Record<string, unknown>,
+  TValidatorSpec extends TInputContentsBase,
 > {
   validator: DataValidatorRequestInput<TData>;
-  validatorSpec: TValidatorSpec;
+  validatorSpec: DataValidatorResponseInputValidatorSpec<TValidatorSpec>;
 }
 
 export type DataValidatorRequestInput<TData> = common.DataValidatorAsync<
@@ -21,3 +21,12 @@ export type DataValidatorRequestInput<TData> = common.DataValidatorAsync<
       supportedContentTypes: ReadonlyArray<string>;
     }
 >;
+
+export interface DataValidatorResponseInputValidatorSpec<
+  TContents extends TInputContentsBase,
+> {
+  // TODO undefinedAccepted: 'maybe' | 'only' | 'never'
+  contents: TContents;
+}
+
+export type TInputContentsBase = Record<string, unknown>;

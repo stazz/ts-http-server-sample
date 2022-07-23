@@ -7,16 +7,28 @@ export interface AppEndpointBuilderState<
   TRefinedContext,
   TState,
   TOutputContents extends data.TOutputContentsBase,
+  TInputContents extends data.TInputContentsBase,
   TMetadata extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown, unknown, TOutputContents>
+    md.MetadataBuilder<
+      md.HKTArg,
+      unknown,
+      unknown,
+      TOutputContents,
+      TInputContents
+    >
   >,
 > {
   fragments: TemplateStringsArray;
   methods: Partial<
     Record<
       ep.HttpMethod,
-      StaticAppEndpointBuilderSpec<TContext, TOutputContents, TMetadata>
+      StaticAppEndpointBuilderSpec<
+        TContext,
+        TOutputContents,
+        TInputContents,
+        TMetadata
+      >
     >
   >;
   contextTransform: data.ContextValidatorSpec<
@@ -36,15 +48,22 @@ export interface AppEndpointBuilderState<
 export interface StaticAppEndpointBuilderSpec<
   TContext,
   TOutputContents extends data.TOutputContentsBase,
+  TInputContents extends data.TInputContentsBase,
   TMetadata extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown, unknown, TOutputContents>
+    md.MetadataBuilder<
+      md.HKTArg,
+      unknown,
+      unknown,
+      TOutputContents,
+      TInputContents
+    >
   >,
 > {
   builder: StaticAppEndpointBuilder<TContext>;
   queryValidation?: Omit<data.QueryValidatorSpec<unknown, string>, "validator">;
   inputValidation?: Omit<
-    data.DataValidatorRequestInputSpec<unknown, Record<string, unknown>>,
+    data.DataValidatorRequestInputSpec<unknown, TInputContents>,
     "validator"
   >;
   outputValidation: Omit<
@@ -56,6 +75,7 @@ export interface StaticAppEndpointBuilderSpec<
       infer TArg,
       infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
       infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
+      infer _,
       infer _
     >
       ? md.Kind<

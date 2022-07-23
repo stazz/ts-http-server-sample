@@ -1,6 +1,8 @@
 import * as md from "../../core/metadata";
 import type * as data from "../../core/data-server";
 import type * as jsonSchema from "json-schema";
+import type * as jsonSchemaPlugin from "../../md-jsonschema/common";
+
 // The openapi-types is pretty good, but not perfect
 // E.g. the ParameterObject's "in" property is just "string", instead of "'query' | 'header' | 'path' | 'cookie'", as mentioned in spec.
 // Maybe define own OpenAPI types at some point, altho probably no need, as these types can be modified with things like Omit and Pick.
@@ -78,41 +80,57 @@ export interface PathsObjectInfo {
 
 export type OpenAPIMetadataProvider<
   TOutputContents extends data.TOutputContentsBase,
+  TInputContents extends data.TInputContentsBase,
 > = md.MetadataProvider<
   OpenAPIArguments,
   OpenAPIPathItemArg,
   PathsObjectInfo,
   OpenAPIContextArgs,
   TOutputContents,
+  TInputContents,
   openapi.InfoObject,
   openapi.Document
 >;
 
 export type OpenAPIMetadataBuilder<
   TOutputContents extends data.TOutputContentsBase,
+  TInputContents extends data.TInputContentsBase,
 > = md.MetadataBuilder<
   OpenAPIArguments,
   OpenAPIPathItemArg,
   PathsObjectInfo,
-  TOutputContents
+  TOutputContents,
+  TInputContents
 >;
 
 export const createOpenAPIProvider = <
   TOutputContents extends data.TOutputContentsBase,
+  TInputContents extends data.TInputContentsBase,
 >(
-  jsonSchema: OpenAPIJSONSchemaFunctionality<TOutputContents>,
-): OpenAPIMetadataProvider<TOutputContents> => {
+  jsonSchema: jsonSchemaPlugin.SupportedJSONSchemaFunctionality<
+    openapi.SchemaObject,
+    {
+      [P in keyof TOutputContents]: jsonSchemaPlugin.SchemaTransformation<
+        TOutputContents[P]
+      >;
+    },
+    {
+      [P in keyof TInputContents]: jsonSchemaPlugin.SchemaTransformation<
+        TInputContents[P]
+      >;
+    }
+  >,
+): OpenAPIMetadataProvider<TOutputContents, TInputContents> => {
   const initialContextArgs: OpenAPIContextArgs = {
     securitySchemes: [],
   };
 
   const generateEncoderJSONSchema = (contentType: string, encoder: unknown) =>
-    jsonSchema.encoders[contentType as keyof TOutputContents](
-      encoder as TOutputContents[keyof TOutputContents],
-    );
-  // OpenAPI typings are crappy - the V3.1 ParameterObject is specified to be exactly same as V3.0 ParameterObject
-  // However, the 'schema' property of ParameterObject is reference to SchemaObject, which is different between V3.0 and V3.1
-  // Make it a cast here to satisfy compiler
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    jsonSchema.encoders[contentType as keyof TOutputContents](encoder as any);
+  const generateDecoderJSONSchema = (contentType: string, encoder: unknown) =>
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    jsonSchema.decoders[contentType as keyof TInputContents](encoder as any);
   return new md.InitialMetadataProviderClass(
     initialContextArgs,
     ({ securitySchemes }) => ({
@@ -125,9 +143,13 @@ export const createOpenAPIProvider = <
             name: name,
             in: "path",
             required: true,
-            schema: {
-              type: "string",
-              pattern: urlParamSpec.regExp.source,
+            content: {
+              "text/plain": {
+                schema: {
+                  type: "string",
+                  pattern: urlParamSpec.regExp.source,
+                },
+              },
             },
           }));
         for (const [method, specs] of Object.entries(methods)) {
@@ -183,14 +205,14 @@ export const createOpenAPIProvider = <
                 // TODO false if response spec can be undefined
                 required: true,
                 content: Object.fromEntries(
-                  Object.entries(inputSpec.validatorSpec).map(
+                  Object.entries(inputSpec.validatorSpec.contents).map(
                     ([contentType, contentInput]) => [
                       contentType,
                       addSchema<openapi.MediaTypeObject>(
                         {
                           example: metadataArguments.body[contentType].example,
                         },
-                        generateEncoderJSONSchema(contentType, contentInput),
+                        generateDecoderJSONSchema(contentType, contentInput),
                       ),
                     ],
                   ),
@@ -232,10 +254,16 @@ export const createOpenAPIProvider = <
 
 export type OpenAPIJSONSchemaFunctionality<
   TOutputContents extends data.TOutputContentsBase,
+  TInputContents extends data.TInputContentsBase,
 > = {
   encoders: {
     [P in keyof TOutputContents]: (
       encoder: TOutputContents[P],
+    ) => openapi.SchemaObject | undefined;
+  };
+  decoders: {
+    [P in keyof TInputContents]: (
+      decoder: TInputContents[P],
     ) => openapi.SchemaObject | undefined;
   };
 };

@@ -1,66 +1,50 @@
-import type * as jsonSchema from "json-schema";
 import type * as tPlugin from "../../data/io-ts";
 import type * as t from "io-ts";
+import * as common from "../common";
 
 export const createJsonSchemaFunctionality = <
-  TContentTypes extends string,
   TTransformedSchema,
+  TContentTypes extends string,
 >({
   contentTypes,
-  transformSchema,
-  customLookup,
-  fallbackValue,
-}: JSONSchemaFunctionalityCreationArguments<
-  TContentTypes,
-  TTransformedSchema
->): SupportedJSONSchemaFunctionality<TContentTypes, TTransformedSchema> => ({
-  encoders: Object.fromEntries(
-    contentTypes.map<[TContentTypes, Transformer<Encoder, TTransformedSchema>]>(
-      (contentType) => [
-        contentType,
-        (encoder) => {
-          const retVal =
-            customLookup?.(encoder) ??
-            encoderToSchema(encoder) ??
-            fallbackValue;
-          return retVal ? transformSchema(retVal) : undefined;
-        },
-      ],
+  override,
+  ...args
+}: Input<TTransformedSchema, TContentTypes>) =>
+  common.createJsonSchemaFunctionality({
+    ...args,
+    encoders: common.arrayToRecord(
+      contentTypes,
+      (): common.SchemaTransformation<Encoder> => ({
+        transform: encoderToSchema,
+        override,
+      }),
     ),
-  ) as SupportedJSONSchemaFunctionality<
-    TContentTypes,
-    TTransformedSchema
-  >["encoders"],
-});
+    decoders: common.arrayToRecord(
+      contentTypes,
+      (): common.SchemaTransformation<Decoder> => ({
+        transform: encoderToSchema,
+        override,
+      }),
+    ),
+  });
 
-export interface JSONSchemaFunctionalityCreationArguments<
-  TContentTypes extends string,
+export type Input<
   TTransformedSchema,
-> {
-  contentTypes: Array<TContentTypes>;
-  transformSchema: (schema: JSONSchema) => TTransformedSchema;
-  customLookup?: (encoder: Encoder) => JSONSchema | undefined;
-  fallbackValue?: JSONSchema;
-}
-
-export type SupportedJSONSchemaFunctionality<
   TContentTypes extends string,
+> = common.JSONSchemaFunctionalityCreationArgumentsContentTypes<
   TTransformedSchema,
-> = {
-  encoders: { [P in TContentTypes]: Transformer<Encoder, TTransformedSchema> };
+  TContentTypes
+> & {
+  override?: common.Transformer<Encoder | Decoder>;
 };
 
 export type Encoder = tPlugin.Encoder<any, any>;
+export type Decoder = tPlugin.Decoder<any>;
 
-export type Transformer<TInput, TReturnType = JSONSchema> = (
-  input: TInput,
-) => TReturnType | undefined;
-
-export type JSONSchema = jsonSchema.JSONSchema7Definition;
-
-const encoderToSchema: Transformer<Encoder> = (encoder) => {
-  if ("_tag" in encoder) {
-    const tag = encoder._tag;
+const encoderToSchema: common.Transformer<Encoder | Decoder> = (validation) => {
+  if ("_tag" in validation) {
+    const type = validation as AllTypes;
+    const tag = type._tag;
     switch (tag) {
       case "NullType": {
         return {
@@ -117,7 +101,7 @@ const encoderToSchema: Transformer<Encoder> = (encoder) => {
       case "ArrayType": {
         return {
           type: "array",
-          items: encoderToSchema((encoder as t.ArrayType<t.Any>).type),
+          items: encoderToSchema((validation as t.ArrayType<t.Any>).type),
         };
       }
       case "InterfaceType": {
@@ -165,3 +149,34 @@ const encoderToSchema: Transformer<Encoder> = (encoder) => {
     }
   }
 };
+
+type AllTypes =
+  | t.NullType
+  | t.UndefinedType
+  | t.VoidType
+  | t.UnknownType
+  | t.StringType
+  | t.NumberType
+  | t.BigIntType
+  | t.BooleanType
+  | t.AnyArrayType
+  | t.AnyDictionaryType
+  | t.LiteralType<any>
+  | t.KeyofType<Record<string, unknown>>
+  | t.RefinementType<t.Any>
+  | t.RecursiveType<t.Any>
+  | t.ArrayType<t.Any>
+  | t.InterfaceType<Record<string, t.Any>>
+  | t.PartialType<Record<string, t.Any>>
+  | t.DictionaryType<t.Any, t.Any>
+  | t.UnionType<Array<t.Any>>
+  | t.IntersectionType<Array<t.Any>>
+  | t.TupleType<Array<t.Any>>
+  | t.ReadonlyType<t.Any>
+  | t.ReadonlyArrayType<t.Any>
+  | t.ExactType<t.Any>
+  | t.FunctionType
+  | t.NeverType
+  | t.AnyType
+  | t.ObjectType
+  | t.StrictType<t.Any>;

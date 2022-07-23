@@ -8,6 +8,7 @@ export interface MetadataProvider<
   TEndpointMD,
   TContextArguments,
   TOutputContents extends data.TOutputContentsBase,
+  TInputContents extends data.TInputContentsBase,
   TFinalMetadataArgs,
   TFinalMetadata,
 > {
@@ -19,6 +20,7 @@ export interface MetadataProvider<
     TEndpointMD,
     TContextArguments,
     TOutputContents,
+    TInputContents,
     TFinalMetadataArgs,
     TFinalMetadata
   >;
@@ -27,7 +29,8 @@ export interface MetadataProvider<
     TArgument,
     TEndpointArg,
     TEndpointMD,
-    TOutputContents
+    TOutputContents,
+    TInputContents
   >;
   createFinalMetadata(
     args: TFinalMetadataArgs,
