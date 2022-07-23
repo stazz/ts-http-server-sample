@@ -55,25 +55,33 @@ export const inputValidator = <T>(
 
 export const outputValidator = <TOutput, TSerialized>(
   validation: common.Encoder<TOutput, TSerialized>,
+  headers?: Record<string, string>,
 ): data.DataValidatorResponseOutputSpec<
   TOutput,
   OutputValidatorSpec<TOutput, TSerialized>
 > => ({
   validator: (output) => {
     try {
+      const success: data.DataValidatorResponseOutputSuccess = {
+        contentType: CONTENT_TYPE,
+        output: JSON.stringify(validation.encode(output)),
+      };
+      if (headers) {
+        success.headers = headers;
+      }
       return {
         error: "none",
-        data: {
-          contentType: CONTENT_TYPE,
-          output: JSON.stringify(validation.encode(output)),
-        },
+        data: success,
       };
     } catch (e) {
       return data.exceptionAsValidationError(e);
     }
   },
   validatorSpec: {
-    [CONTENT_TYPE]: validation,
+    headerSpec: headers ?? {},
+    contents: {
+      [CONTENT_TYPE]: validation,
+    },
   },
 });
 

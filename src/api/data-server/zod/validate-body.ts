@@ -4,7 +4,7 @@ import * as common from "../../data/zod";
 import * as rawbody from "raw-body";
 
 // We only support json things for io-ts validation.
-const CONTENT_TYPE = "application/json" as const;
+export const CONTENT_TYPE = "application/json" as const;
 
 export const inputValidator = <T>(
   validation: common.Decoder<T>,
@@ -56,6 +56,7 @@ export const inputValidator = <T>(
 
 export function outputValidator<TOutput>(
   validation: t.ZodType<TOutput>,
+  headers?: Record<string, string>,
 ): data.DataValidatorResponseOutputSpec<
   TOutput,
   OutputValidatorSpec<TOutput, TOutput>
@@ -63,17 +64,27 @@ export function outputValidator<TOutput>(
 export function outputValidator<TOutput, TSerialized>(
   validation: t.ZodType<TOutput>,
   transform: (output: TOutput) => TSerialized,
+  headers?: Record<string, string>,
 ): data.DataValidatorResponseOutputSpec<
   TOutput,
   OutputValidatorSpec<TOutput, TSerialized>
 >;
 export function outputValidator<TOutput, TSerialized>(
   validation: t.ZodType<TOutput>,
-  transform?: (output: TOutput) => TSerialized,
+  transformOrHeaders?:
+    | ((output: TOutput) => TSerialized)
+    | Record<string, string>,
+  maybeHeaders?: Record<string, string>,
 ): data.DataValidatorResponseOutputSpec<
   TOutput,
   OutputValidatorSpec<TOutput, TSerialized>
 > {
+  const headers =
+    typeof transformOrHeaders === "function"
+      ? maybeHeaders
+      : transformOrHeaders;
+  const transform =
+    typeof transformOrHeaders === "function" ? transformOrHeaders : undefined;
   const encoder: common.Encoder<TOutput, TSerialized> = transform
     ? common.encoder(validation, transform)
     : (common.encoder(validation) as unknown as common.Encoder<
@@ -84,21 +95,30 @@ export function outputValidator<TOutput, TSerialized>(
     validator: (output) => {
       try {
         const result = encoder.validation.safeParse(output);
-        return result.success
-          ? {
-              error: "none",
-              data: {
-                contentType: CONTENT_TYPE,
-                output: JSON.stringify(encoder.transform(result.data)),
-              },
-            }
-          : common.createErrorObject([result.error]);
+        if (result.success) {
+          const success: data.DataValidatorResponseOutputSuccess = {
+            contentType: CONTENT_TYPE,
+            output: JSON.stringify(encoder.transform(result.data)),
+          };
+          if (headers) {
+            success.headers = headers;
+          }
+          return {
+            error: "none",
+            data: success,
+          };
+        } else {
+          return common.createErrorObject([result.error]);
+        }
       } catch (e) {
         return data.exceptionAsValidationError(e);
       }
     },
     validatorSpec: {
-      [CONTENT_TYPE]: encoder,
+      headerSpec: headers ?? {},
+      contents: {
+        [CONTENT_TYPE]: encoder,
+      },
     },
   };
 }

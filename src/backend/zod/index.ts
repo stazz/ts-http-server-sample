@@ -14,6 +14,9 @@ import * as t from "zod";
 // Import plugin for Runtypes
 import * as tPlugin from "../../api/data-server/zod";
 
+// Import plugin for Zod and JSON Schema generation
+import * as jsonSchema from "../../api/md-jsonschema/zod";
+
 import * as api from "./api";
 
 // Function to create REST API specification, utilizing generic REST API things in ./api and our functionality in ./lib.
@@ -32,7 +35,15 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
     >(getStateFromContext);
     const notAuthenticated = initial
       // All endpoints must specify enough metadata to be able to auto-generate OpenAPI specification
-      .withMetadataProvider("openapi", openapi.createOpenAPIProvider());
+      .withMetadataProvider(
+        "openapi",
+        openapi.createOpenAPIProvider(
+          jsonSchema.createJsonSchemaFunctionality({
+            contentTypes: [tPlugin.CONTENT_TYPE],
+            transformSchema: openapi.convertToOpenAPISchemaObject,
+          }),
+        ),
+      );
 
     // Add validation that some previous middleware has set the username to Koa state.
     // Instruct validation to return error code 403 if no username has been set (= no auth).
@@ -121,7 +132,7 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
     const notAuthenticatedMetadata = notAuthenticated.getMetadataFinalResult(
       {
         openapi: {
-          title: "Sample REST API (Authenticated)",
+          title: "Sample REST API (Unauthenticated)",
           version: "0.1",
         },
       },
@@ -130,7 +141,7 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
     const authenticatedMetadata = authenticated.getMetadataFinalResult(
       {
         openapi: {
-          title: "Sample REST API",
+          title: "Sample REST API (Authenticated)",
           version: "0.1",
         },
       },
@@ -145,7 +156,7 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
           return username ? authenticatedMetadata : notAuthenticatedMetadata;
         },
         // Proper validator for OpenAPI objects is out of scope of this sample
-        tPlugin.outputValidator(t.record(t.unknown())),
+        tPlugin.outputValidator(t.unknown()),
         // No metadata - as this is the metadata-returning endpoints itself
         {},
       )

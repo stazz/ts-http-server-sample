@@ -1,10 +1,11 @@
-import * as data from "../data-server";
-import * as common from "./common";
+import type * as data from "../data-server";
+import type * as common from "./common";
 
 export interface MetadataBuilder<
   TArgument extends common.HKTArg,
   TEndpointArg,
   TEndpointMD,
+  TOutputContents extends data.TOutputContentsBase,
 > {
   getEndpointsMetadata: (
     arg: TEndpointArg,
@@ -26,10 +27,7 @@ export interface MetadataBuilder<
               >
             | undefined;
           outputSpec: Omit<
-            data.DataValidatorResponseOutputSpec<
-              unknown,
-              Record<string, unknown>
-            >,
+            data.DataValidatorResponseOutputSpec<unknown, TOutputContents>,
             "validator"
           >;
           metadataArguments: common.Kind<

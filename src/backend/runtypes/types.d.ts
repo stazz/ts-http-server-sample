@@ -13,7 +13,12 @@ import type * as tPluginCommon from "../../api/data/io-ts";
 import type * as tPlugin from "../../api/data-server/runtypes";
 import type * as common from "../../module-api/common";
 
-export type TMetadataProviders = { openapi: openapi.OpenAPIMetadataBuilder };
+export type TMetadataProviders = {
+  openapi: openapi.OpenAPIMetadataBuilder<
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    tPlugin.OutputValidatorSpec<any, any>
+  >;
+};
 
 export type AuthenticatedState = common.MakeRequired<common.State>;
 

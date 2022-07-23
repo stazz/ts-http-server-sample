@@ -11,6 +11,8 @@ export const bindNecessaryTypes = <TContext, TState>(
   TContext,
   TState,
   // eslint-disable-next-line @typescript-eslint/ban-types
+  {},
+  // eslint-disable-next-line @typescript-eslint/ban-types
   {}
 > =>
   new AppEndpointBuilderProvider(
@@ -26,11 +28,20 @@ export class AppEndpointBuilderProvider<
   TContext,
   TRefinedContext,
   TState,
+  TOutputContents extends data.TOutputContentsBase,
   TMetadataProviders extends Record<
     string,
     // We must use 'any' as 2nd parameter, otherwise we won't be able to use AppEndpointBuilderProvider with specific TMetadataProviders type as parameter to functions.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    md.MetadataProvider<md.HKTArg, any, unknown, unknown, unknown, unknown>
+    md.MetadataProvider<
+      md.HKTArg,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      any,
+      unknown,
+      unknown,
+      TOutputContents,
+      unknown,
+      unknown
+    >
   >,
 > {
   public constructor(
@@ -48,6 +59,7 @@ export class AppEndpointBuilderProvider<
     TState,
     {}, // eslint-disable-line @typescript-eslint/ban-types
     ep.HttpMethod,
+    TOutputContents,
     {
       [P in keyof TMetadataProviders]: ReturnType<
         TMetadataProviders[P]["getBuilder"]
@@ -62,6 +74,7 @@ export class AppEndpointBuilderProvider<
     TRefinedContext,
     TState,
     TArgs[number],
+    TOutputContents,
     {
       [P in keyof TMetadataProviders]: ReturnType<
         TMetadataProviders[P]["getBuilder"]
@@ -78,6 +91,7 @@ export class AppEndpointBuilderProvider<
         TState,
         {}, // eslint-disable-line @typescript-eslint/ban-types
         ep.HttpMethod,
+        TOutputContents,
         {
           [P in keyof TMetadataProviders]: ReturnType<
             TMetadataProviders[P]["getBuilder"]
@@ -89,6 +103,7 @@ export class AppEndpointBuilderProvider<
         TRefinedContext,
         TState,
         TArgs[number],
+        TOutputContents,
         {
           [P in keyof TMetadataProviders]: ReturnType<
             TMetadataProviders[P]["getBuilder"]
@@ -146,6 +161,7 @@ export class AppEndpointBuilderProvider<
     TContext,
     TNewContext,
     TNewState,
+    TOutputContents,
     TMetadataProviders
   > {
     return new AppEndpointBuilderProvider(
@@ -170,7 +186,15 @@ export class AppEndpointBuilderProvider<
   public withMetadataProvider<
     TMetadataKind extends string,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    TMetadataProvider extends md.MetadataProvider<any, any, any, any, any, any>,
+    TMetadataProvider extends md.MetadataProvider<
+      any,
+      any,
+      any,
+      any,
+      any,
+      any,
+      any
+    >,
   >(
     metadataKind: TMetadataKind,
     metadataProvider: TMetadataProvider,
@@ -178,6 +202,18 @@ export class AppEndpointBuilderProvider<
     TContext,
     TRefinedContext,
     TState,
+    TOutputContents &
+      (TMetadataProvider extends md.MetadataProvider<
+        infer _,
+        infer _1,
+        infer _2,
+        infer _4,
+        infer TNewOutputContents,
+        infer _5,
+        infer _6
+      >
+        ? TNewOutputContents
+        : never),
     TMetadataProviders & { [P in TMetadataKind]: TMetadataProvider }
   > {
     return new AppEndpointBuilderProvider(this._contextTransform, {
@@ -193,6 +229,7 @@ export class AppEndpointBuilderProvider<
         infer _1, // eslint-disable-line @typescript-eslint/no-unused-vars
         infer _2, // eslint-disable-line @typescript-eslint/no-unused-vars
         infer _3, // eslint-disable-line @typescript-eslint/no-unused-vars
+        infer _4,
         infer TArg,
         unknown
       >
@@ -206,7 +243,8 @@ export class AppEndpointBuilderProvider<
         infer TEndpointMD,
         infer _2, // eslint-disable-line @typescript-eslint/no-unused-vars
         infer _3, // eslint-disable-line @typescript-eslint/no-unused-vars
-        infer _4 // eslint-disable-line @typescript-eslint/no-unused-vars
+        infer _4, // eslint-disable-line @typescript-eslint/no-unused-vars
+        infer _5
       >
         ? Array<TEndpointMD>
         : never;
@@ -218,6 +256,7 @@ export class AppEndpointBuilderProvider<
       infer _2, // eslint-disable-line @typescript-eslint/no-unused-vars
       infer _3, // eslint-disable-line @typescript-eslint/no-unused-vars
       infer _4, // eslint-disable-line @typescript-eslint/no-unused-vars
+      infer _5,
       infer TResult
     >
       ? TResult
@@ -235,6 +274,7 @@ export class AppEndpointBuilderProvider<
         infer _2, // eslint-disable-line @typescript-eslint/no-unused-vars
         infer _3, // eslint-disable-line @typescript-eslint/no-unused-vars
         infer _4, // eslint-disable-line @typescript-eslint/no-unused-vars
+        infer _5,
         infer TResult
       >
         ? TResult
@@ -248,9 +288,10 @@ export interface URLDataNames<
   TRefinedContext,
   TState,
   TNames extends string,
+  TOutputContents extends data.TOutputContentsBase,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown, unknown>
+    md.MetadataBuilder<md.HKTArg, unknown, unknown, TOutputContents>
   >,
 > {
   validateURLData: <
@@ -267,6 +308,7 @@ export interface URLDataNames<
       [P in TNames]: data.URLParameterDataType<TValidation[P]["validator"]>;
     }>,
     ep.HttpMethod,
+    TOutputContents,
     TMetadataProviders
   >;
 }

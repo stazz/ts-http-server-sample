@@ -1,10 +1,13 @@
 import * as t from "io-ts";
 import * as data from "../../core/data-server";
-import * as error from "./error";
 import * as utils from "./utils";
 
-export type Decoder<TData, TInput = unknown> = t.Decoder<TInput, TData>;
-export type Encoder<TOutput, TSerialized> = t.Encoder<TOutput, TSerialized>;
+export type Decoder<TData, TInput = unknown> = t.Decoder<TInput, TData> & {
+  _tag?: string;
+};
+export type Encoder<TOutput, TSerialized> = t.Encoder<TOutput, TSerialized> & {
+  _tag?: string;
+};
 
 export const plainValidator =
   <TInput, TData>(

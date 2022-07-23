@@ -96,7 +96,14 @@ export const createMiddleware = <TState>(
                 switch (retVal.error) {
                   case "none":
                     {
-                      const { contentType, output } = retVal.data;
+                      const { contentType, output, headers } = retVal.data;
+                      if (headers) {
+                        for (const [hdrName, hdrValue] of Object.entries(
+                          headers,
+                        )) {
+                          ctx.set(hdrName, hdrValue);
+                        }
+                      }
                       if (output !== undefined) {
                         ctx.set("Content-Type", contentType);
                         ctx.body = output;

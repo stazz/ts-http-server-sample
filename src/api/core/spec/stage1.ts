@@ -15,11 +15,12 @@ export class AppEndpointBuilderInitial<
   TState,
   TArgsURL,
   TAllowedMethods extends ep.HttpMethod,
+  TOutputContents extends data.TOutputContentsBase,
   TMetadataProviders extends Record<
     string,
     // We must use 'any' as 2nd parameter, otherwise we won't be able to use AppEndpointBuilderInitial with specific TMetadataProviders type as parameter to functions.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    md.MetadataBuilder<md.HKTArg, any, unknown>
+    md.MetadataBuilder<md.HKTArg, any, unknown, TOutputContents>
   >,
 > {
   public constructor(
@@ -27,6 +28,7 @@ export class AppEndpointBuilderInitial<
       TContext,
       TRefinedContext,
       TState,
+      TOutputContents,
       TMetadataProviders
     >,
   ) {}
@@ -40,6 +42,7 @@ export class AppEndpointBuilderInitial<
     TArgsURL,
     TMethods,
     common.EndpointHandlerArgs<TRefinedContext, TState>,
+    TOutputContents,
     TMetadataProviders
   >;
   public forMethod<TMethods extends TAllowedMethods>(
@@ -51,6 +54,7 @@ export class AppEndpointBuilderInitial<
     TArgsURL,
     TMethods,
     common.EndpointHandlerArgs<TRefinedContext, TState>,
+    TOutputContents,
     TMetadataProviders
   >;
   public forMethod<TMethods extends TAllowedMethods, TQuery>(
@@ -64,6 +68,7 @@ export class AppEndpointBuilderInitial<
     TMethods,
     common.EndpointHandlerArgs<TRefinedContext, TState> &
       common.EndpointHandlerArgsWithQuery<TQuery>,
+    TOutputContents,
     TMetadataProviders
   >;
   public forMethod<TMethods extends TAllowedMethods, TQuery>(
@@ -77,6 +82,7 @@ export class AppEndpointBuilderInitial<
     TMethods,
     common.EndpointHandlerArgs<TRefinedContext, TState> &
       common.EndpointHandlerArgsWithQuery<TQuery>,
+    TOutputContents,
     TMetadataProviders
   >;
   forMethod<TMethods extends TAllowedMethods, TQuery>(
@@ -91,6 +97,7 @@ export class AppEndpointBuilderInitial<
         TMethods,
         | common.EndpointHandlerArgs<TRefinedContext, TState>
         | common.EndpointHandlerArgsWithQuery<TQuery>,
+        TOutputContents,
         TMetadataProviders
       >
     | AppEndpointBuilderForMethodsAndBody<
@@ -101,6 +108,7 @@ export class AppEndpointBuilderInitial<
         TMethods,
         | common.EndpointHandlerArgs<TRefinedContext, TState>
         | common.EndpointHandlerArgsWithQuery<TQuery>,
+        TOutputContents,
         TMetadataProviders
       > {
     return this._forMethod(method, query);
@@ -118,6 +126,7 @@ export class AppEndpointBuilderInitial<
         TMethods,
         | common.EndpointHandlerArgs<TRefinedContext, TState>
         | common.EndpointHandlerArgsWithQuery<TQuery>,
+        TOutputContents,
         TMetadataProviders
       >
     | AppEndpointBuilderForMethodsAndBody<
@@ -128,6 +137,7 @@ export class AppEndpointBuilderInitial<
         TMethods,
         | common.EndpointHandlerArgs<TRefinedContext, TState>
         | common.EndpointHandlerArgsWithQuery<TQuery>,
+        TOutputContents,
         TMetadataProviders
       > {
     const overlappingMehods = new Set(
@@ -172,7 +182,6 @@ export class AppEndpointBuilderInitial<
   public batchSpec<
     TMethod extends TAllowedMethods & ep.HttpMethodWithoutBody,
     TOutput,
-    TOutputContentTypes extends Record<string, unknown>,
   >(
     spec: BatchSpecificationWithoutQueryWithoutBody<
       TRefinedContext,
@@ -181,7 +190,7 @@ export class AppEndpointBuilderInitial<
       TMetadataProviders,
       TMethod,
       TOutput,
-      TOutputContentTypes
+      TOutputContents
     >,
   ): AppEndpointBuilder<
     TContext,
@@ -189,13 +198,13 @@ export class AppEndpointBuilderInitial<
     TState,
     TArgsURL,
     Omit<TAllowedMethods, TMethod> & ep.HttpMethod,
+    TOutputContents,
     TMetadataProviders
   >;
   public batchSpec<
     TMethod extends TAllowedMethods & ep.HttpMethodWithoutBody,
     TQuery,
     TOutput,
-    TOutputContentTypes extends Record<string, unknown>,
   >(
     spec: BatchSpecificationWithQueryWithoutBody<
       TRefinedContext,
@@ -205,7 +214,7 @@ export class AppEndpointBuilderInitial<
       TMetadataProviders,
       TMethod,
       TOutput,
-      TOutputContentTypes
+      TOutputContents
     >,
   ): AppEndpointBuilder<
     TContext,
@@ -213,6 +222,7 @@ export class AppEndpointBuilderInitial<
     TState,
     TArgsURL,
     Omit<TAllowedMethods, TMethod> & ep.HttpMethod,
+    TOutputContents,
     TMetadataProviders
   >;
   public batchSpec<
@@ -220,7 +230,6 @@ export class AppEndpointBuilderInitial<
     TInput,
     TInputContentTypes extends Record<string, unknown>,
     TOutput,
-    TOutputContentTypes extends Record<string, unknown>,
   >(
     spec: BatchSpecificationWithoutQueryWithBody<
       TRefinedContext,
@@ -229,7 +238,7 @@ export class AppEndpointBuilderInitial<
       TMetadataProviders,
       TMethod,
       TOutput,
-      TOutputContentTypes,
+      TOutputContents,
       TInput,
       TInputContentTypes
     >,
@@ -239,6 +248,7 @@ export class AppEndpointBuilderInitial<
     TState,
     TArgsURL,
     Omit<TAllowedMethods, TMethod> & ep.HttpMethod,
+    TOutputContents,
     TMetadataProviders
   >;
   public batchSpec<
@@ -247,7 +257,6 @@ export class AppEndpointBuilderInitial<
     TInput,
     TInputContentTypes extends Record<string, unknown>,
     TOutput,
-    TOutputContentTypes extends Record<string, unknown>,
   >(
     spec: BatchSpecificationWithQueryWithBody<
       TRefinedContext,
@@ -257,7 +266,7 @@ export class AppEndpointBuilderInitial<
       TMetadataProviders,
       TMethod,
       TOutput,
-      TOutputContentTypes,
+      TOutputContents,
       TInput,
       TInputContentTypes
     >,
@@ -267,6 +276,7 @@ export class AppEndpointBuilderInitial<
     TState,
     TArgsURL,
     Omit<TAllowedMethods, TMethod> & ep.HttpMethod,
+    TOutputContents,
     TMetadataProviders
   >;
   public batchSpec<
@@ -275,7 +285,6 @@ export class AppEndpointBuilderInitial<
     TInput,
     TInputContentTypes extends Record<string, unknown>,
     TOutput,
-    TOutputContentTypes extends Record<string, unknown>,
   >(
     spec:
       | BatchSpecificationWithoutQueryWithoutBody<
@@ -285,7 +294,7 @@ export class AppEndpointBuilderInitial<
           TMetadataProviders,
           TMethod & ep.HttpMethodWithoutBody,
           TOutput,
-          TOutputContentTypes
+          TOutputContents
         >
       | BatchSpecificationWithQueryWithoutBody<
           TRefinedContext,
@@ -295,7 +304,7 @@ export class AppEndpointBuilderInitial<
           TMetadataProviders,
           TMethod & ep.HttpMethodWithoutBody,
           TOutput,
-          TOutputContentTypes
+          TOutputContents
         >
       | BatchSpecificationWithoutQueryWithBody<
           TRefinedContext,
@@ -304,7 +313,7 @@ export class AppEndpointBuilderInitial<
           TMetadataProviders,
           TMethod & ep.HttpMethodWithBody,
           TOutput,
-          TOutputContentTypes,
+          TOutputContents,
           TInput,
           TInputContentTypes
         >
@@ -316,7 +325,7 @@ export class AppEndpointBuilderInitial<
           TMetadataProviders,
           TMethod & ep.HttpMethodWithBody,
           TOutput,
-          TOutputContentTypes,
+          TOutputContents,
           TInput,
           TInputContentTypes
         >,
@@ -326,6 +335,7 @@ export class AppEndpointBuilderInitial<
     TState,
     TArgsURL,
     Omit<TAllowedMethods, TMethod> & ep.HttpMethod,
+    TOutputContents,
     TMetadataProviders
   > {
     const builder = this._forMethod(
@@ -356,7 +366,7 @@ export type BatchSpecificationWithoutQueryWithoutBody<
   TArgsURL,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, any, unknown>
+    md.MetadataBuilder<md.HKTArg, any, unknown, TOutputContentTypes>
   >,
   TMethod,
   TOutput,
@@ -381,7 +391,7 @@ export type BatchSpecificationWithQueryWithoutBody<
   TQueryData,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, any, unknown>
+    md.MetadataBuilder<md.HKTArg, any, unknown, TOutputContentTypes>
   >,
   TMethod,
   TOutput,
@@ -405,7 +415,7 @@ export type BatchSpecificationWithoutQueryWithBody<
   TArgsURL,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, any, unknown>
+    md.MetadataBuilder<md.HKTArg, any, unknown, TOutputContentTypes>
   >,
   TMethod,
   TOutput,
@@ -434,7 +444,7 @@ export type BatchSpecificationWithQueryWithBody<
   TQueryData,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, any, unknown>
+    md.MetadataBuilder<md.HKTArg, any, unknown, TOutputContentTypes>
   >,
   TMethod,
   TOutput,
