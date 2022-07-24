@@ -16,7 +16,7 @@ export type DataValidatorResponseOutput<TOutput> = common.DataValidator<
 
 export type DataValidatorResponseOutputSuccess = {
   contentType: string;
-  output: string | Buffer | stream.Readable;
+  output: string | Buffer | stream.Readable | undefined;
   // TODO Do we want headers to be returned by output handler?
   // That kinda makes sense, since if we split that ->
   //   the user might need to do some tricks, if output headers depend on output value, which might not end up actual response body!

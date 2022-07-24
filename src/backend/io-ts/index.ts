@@ -1,5 +1,6 @@
 // Import generic REST-related things
 import * as data from "../../api/core/data-server";
+import * as ep from "../../api/core/endpoint";
 import * as spec from "../../api/core/spec";
 import * as server from "../../api/core/server";
 import * as prefix from "../../api/core/prefix";
@@ -43,7 +44,8 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
             contentTypes: [tPlugin.CONTENT_TYPE],
             transformSchema: openapi.convertToOpenAPISchemaObject,
             fallbackValue: {
-              type: "string",
+              description:
+                "This is fallback value for when JSON schema could not be generated from type validation object.",
             },
           }),
         ),
@@ -163,16 +165,31 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
           return username ? authenticatedMetadata : notAuthenticatedMetadata;
         },
         // Proper validator for OpenAPI objects is out of scope of this sample
-        tPlugin.outputValidator(t.unknown, {
-          "Access-Control-Allow-Origin": "*",
-        }),
+        tPlugin.outputValidator(
+          t.unknown,
+          // Allow access from e.g. SwaggeR UI in browser
+          {
+            "Access-Control-Allow-Origin": "*",
+          },
+        ),
         // No metadata - as this is the metadata-returning endpoints itself
         {},
       )
       .createEndpoint({});
 
+    // Allow Swagger UI execution
+    const cors: ep.CORSOptions = {
+      origin: "*",
+      allowHeaders: "Content-Type",
+    };
+
     return {
-      api: [notAuthenticatedAPI, authenticatedAPI, docs],
+      api: [
+        ep.withCORSOptions(notAuthenticatedAPI, cors),
+        ep.withCORSOptions(authenticatedAPI, cors),
+        // Docs endpoint doesn't need OPTIONS support.
+        docs,
+      ],
     };
   },
 };

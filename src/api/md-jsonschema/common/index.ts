@@ -6,7 +6,6 @@ export const createJsonSchemaFunctionality = <
   TInputContents extends TContentsBase,
 >({
   transformSchema,
-  fallbackValue,
   encoders,
   decoders,
 }: JSONSchemaFunctionalityCreationArgumentsGeneric<
@@ -30,11 +29,7 @@ export const createJsonSchemaFunctionality = <
       ]
     >(([contentType, { transform, override }]) => [
       contentType,
-      (encoder) => {
-        const retVal =
-          override?.(encoder) ?? transform(encoder) ?? fallbackValue;
-        return retVal ? transformSchema(retVal) : undefined;
-      },
+      (encoder) => transformSchema(override?.(encoder) ?? transform(encoder)),
     ]),
   ) as unknown as SupportedJSONSchemaFunctionality<
     TTransformedSchema,
@@ -53,12 +48,7 @@ export const createJsonSchemaFunctionality = <
       ]
     >(([contentType, { transform, override }]) => [
       contentType,
-      (decoder) => {
-        const retVal =
-          override?.(decoder) ?? transform(decoder) ?? fallbackValue;
-
-        return retVal ? transformSchema(retVal) : undefined;
-      },
+      (decoder) => transformSchema(override?.(decoder) ?? transform(decoder)),
     ]),
   ) as unknown as SupportedJSONSchemaFunctionality<
     TTransformedSchema,
@@ -71,7 +61,6 @@ export interface JSONSchemaFunctionalityCreationArgumentsBase<
   TTransformedSchema,
 > {
   transformSchema: (schema: JSONSchema) => TTransformedSchema;
-  fallbackValue?: JSONSchema;
 }
 
 export type JSONSchemaFunctionalityCreationArgumentsGeneric<
@@ -86,13 +75,19 @@ export type JSONSchemaFunctionalityCreationArgumentsGeneric<
 export type JSONSchemaFunctionalityCreationArgumentsContentTypes<
   TTransformedSchema,
   TKeys extends string,
-> = JSONSchemaFunctionalityCreationArgumentsBase<TTransformedSchema> & {
+> = JSONSchemaFunctionalityCreationArgumentsBase<TTransformedSchema> &
+  JSONSchemaFunctionalityCreationArgumentsContentTypesOnly<TKeys>;
+
+export type JSONSchemaFunctionalityCreationArgumentsContentTypesOnly<
+  TKeys extends string,
+> = {
   contentTypes: Array<TKeys>;
+  fallbackValue: JSONSchema;
 };
 
 export interface SchemaTransformation<TInput> {
-  transform: Transformer<TInput>;
-  override: Transformer<TInput> | undefined;
+  override: Transformer<TInput, JSONSchema | undefined> | undefined;
+  transform: (input: TInput) => JSONSchema;
 }
 
 export type SupportedJSONSchemaFunctionality<
@@ -116,7 +111,7 @@ export type SupportedJSONSchemaFunctionality<
 
 export type Transformer<TInput, TReturnType = JSONSchema> = (
   input: TInput,
-) => TReturnType | undefined;
+) => TReturnType;
 
 export type JSONSchema = jsonSchema.JSONSchema7Definition;
 
@@ -133,3 +128,36 @@ export type TContentsBase = Record<string, SchemaTransformation<any>>;
 
 export type GetInput<TSchemaTransformation> =
   TSchemaTransformation extends SchemaTransformation<infer T> ? T : never;
+
+export const transformerFromConstructor =
+  <TInput, TOutput>(
+    ctor: Constructor<TInput>,
+    tryTransform: Transformer<TInput, TOutput>,
+  ): Transformer<unknown, TOutput | undefined> =>
+  (input) =>
+    input instanceof ctor ? tryTransform(input) : undefined;
+
+export const transformerFromEquality =
+  <TInput, TOutput>(
+    value: TInput,
+    tryTransform: Transformer<TInput, TOutput>,
+  ): Transformer<unknown, TOutput | undefined> =>
+  (input) =>
+    input === value ? tryTransform(input as TInput) : undefined;
+
+export const transformerFromMany =
+  <TInput, TOutput>(
+    matchers: Array<Transformer<TInput, TOutput | undefined>>,
+  ): Transformer<TInput, TOutput | undefined> =>
+  // TODO create a copy out of matchers to prevent modifications outside of this scope
+  (input) => {
+    // Reduce doesn't provide a way to break early out from the loop
+    // We could use .every and return false, and inside lambda scope, modifying the result variable declared in this scope
+    let result: TOutput | undefined;
+    matchers.every((matcher) => (result = matcher(input)) === undefined);
+    return result;
+  };
+
+export interface Constructor<V> {
+  new (...args: any[]): V;
+}

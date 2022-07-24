@@ -1,5 +1,6 @@
 import type * as tPlugin from "../../data/io-ts";
 import type * as t from "io-ts";
+import * as tt from "io-ts-types";
 import * as common from "../common";
 
 export const createJsonSchemaFunctionality = <
@@ -8,6 +9,7 @@ export const createJsonSchemaFunctionality = <
 >({
   contentTypes,
   override,
+  fallbackValue,
   ...args
 }: Input<TTransformedSchema, TContentTypes>) =>
   common.createJsonSchemaFunctionality({
@@ -15,14 +17,16 @@ export const createJsonSchemaFunctionality = <
     encoders: common.arrayToRecord(
       contentTypes,
       (): common.SchemaTransformation<Encoder> => ({
-        transform: encoderToSchema,
+        transform: (validation) =>
+          validationToSchema(validation, fallbackValue),
         override,
       }),
     ),
     decoders: common.arrayToRecord(
       contentTypes,
       (): common.SchemaTransformation<Decoder> => ({
-        transform: encoderToSchema,
+        transform: (validation) =>
+          validationToSchema(validation, fallbackValue),
         override,
       }),
     ),
@@ -41,113 +45,228 @@ export type Input<
 export type Encoder = tPlugin.Encoder<any, any>;
 export type Decoder = tPlugin.Decoder<any>;
 
-const encoderToSchema: common.Transformer<Encoder | Decoder> = (validation) => {
+const validationToSchema = (
+  validation: Encoder | Decoder,
+  fallbackValue: common.JSONSchema,
+): common.JSONSchema => {
+  const recursion = (innerValidation: Encoder | Decoder) =>
+    validationToSchema(innerValidation, fallbackValue);
+  let retVal: common.JSONSchema | undefined;
   if ("_tag" in validation) {
     const type = validation as AllTypes;
     const tag = type._tag;
     switch (tag) {
-      case "NullType": {
-        return {
-          type: "null",
-        };
-      }
-      case "UndefinedType": {
-        return undefined;
-      }
-      case "VoidType": {
-        return undefined;
-      }
-      case "UnknownType": {
-        return undefined;
-      }
-      case "StringType": {
-        return {
-          type: "string",
-        };
-      }
-      case "NumberType": {
-        return {
-          type: "number",
-        };
-      }
-      case "BigIntType": {
-        return undefined;
-      }
-      case "BooleanType": {
-        return {
-          type: "boolean",
-        };
-      }
-      case "AnyArrayType": {
-        return {
-          type: "array",
-        };
-      }
-      case "AnyDictionaryType": {
-        return undefined;
-      }
+      case "NullType":
+        {
+          retVal = {
+            type: "null",
+          };
+        }
+        break;
+      // case "UndefinedType":
+      //   {
+      //     retVal = undefined;
+      //   }
+      //   break;
+      // case "VoidType":
+      //   {
+      //     retVal = undefined;
+      //   }
+      //   break;
+      // case "UnknownType":
+      //   {
+      //     retVal = undefined;
+      //   }
+      //   break;
+      case "StringType":
+        {
+          retVal = {
+            type: "string",
+          };
+        }
+        break;
+      case "NumberType":
+        {
+          retVal = {
+            type: "number",
+          };
+        }
+        break;
+      // case "BigIntType":
+      //   {
+      //     retVal = undefined;
+      //   }
+      //   break;
+      case "BooleanType":
+        {
+          retVal = {
+            type: "boolean",
+          };
+        }
+        break;
+      case "AnyArrayType":
+        {
+          retVal = {
+            type: "array",
+          };
+        }
+        break;
+      case "AnyDictionaryType":
+        {
+          retVal = {
+            type: "object",
+          };
+        }
+        break;
       case "LiteralType": {
-        return undefined;
-      }
-      case "KeyofType": {
-        return undefined;
-      }
-      case "RefinementType": {
-        return undefined;
-      }
-      case "RecursiveType": {
-        return undefined;
-      }
-      case "ArrayType": {
-        return {
-          type: "array",
-          items: encoderToSchema((validation as t.ArrayType<t.Any>).type),
+        retVal = {
+          const: type.value,
         };
+        break;
       }
-      case "InterfaceType": {
-        return undefined;
-      }
-      case "PartialType": {
-        return undefined;
-      }
-      case "DictionaryType": {
-        return undefined;
-      }
-      case "UnionType": {
-        return undefined;
-      }
-      case "IntersectionType": {
-        return undefined;
-      }
-      case "TupleType": {
-        return undefined;
-      }
-      case "ReadonlyType": {
-        return undefined;
-      }
-      case "ReadonlyArrayType": {
-        return undefined;
-      }
-      case "ExactType": {
-        return undefined;
-      }
-      case "FunctionType": {
-        return undefined;
-      }
-      case "NeverType": {
-        return undefined;
-      }
-      case "AnyType": {
-        return undefined;
-      }
-      case "ObjectType": {
-        return undefined;
-      }
-      case "StrictType": {
-        return undefined;
-      }
+      case "KeyofType":
+        {
+          const keys = Object.keys(type.keys);
+          retVal =
+            keys.length === 1
+              ? {
+                  const: keys[0],
+                }
+              : keys.length > 1
+              ? {
+                  enum: keys,
+                }
+              : undefined;
+        }
+        break;
+      case "RefinementType":
+      case "ReadonlyType":
+      case "ReadonlyArrayType":
+        {
+          retVal = recursion(type.type);
+        }
+        break;
+      // TODO: use ref here
+      // case "RecursiveType":
+      //   {
+      //     retVal = recursion(type.type);
+      //   }
+      //   break;
+      case "ArrayType":
+        {
+          retVal = {
+            type: "array",
+            items: recursion(type.type),
+          };
+        }
+        break;
+      case "InterfaceType":
+        {
+          const entries = Object.entries(type.props);
+          retVal = {
+            type: "object",
+            properties: Object.fromEntries(
+              entries.map(([propName, propValidation]) => [
+                propName,
+                recursion(propValidation),
+              ]),
+            ),
+            required: entries.map(([propName]) => propName),
+          };
+        }
+        break;
+      case "PartialType":
+        {
+          retVal = {
+            type: "object",
+            properties: Object.fromEntries(
+              Object.entries(type.props).map(([propName, propValidation]) => [
+                propName,
+                recursion(propValidation),
+              ]),
+            ),
+          };
+        }
+        break;
+      case "DictionaryType":
+        {
+          retVal = {
+            type: "object",
+            propertyNames: recursion(type.domain),
+            additionalProperties: recursion(type.codomain),
+          };
+        }
+        break;
+      case "UnionType":
+        {
+          // TODO if all results are primitive json schemas, then this can be 'enum'
+          retVal = {
+            anyOf: type.types.map(recursion),
+          };
+        }
+        break;
+      case "IntersectionType":
+        {
+          retVal = {
+            allOf: type.types.map(recursion),
+          };
+        }
+        break;
+      case "TupleType":
+        {
+          retVal = {
+            type: "array",
+            minItems: type.types.length,
+            maxItems: type.types.length,
+            items: type.types.map(recursion),
+          };
+        }
+        break;
+      case "ExactType":
+        {
+          retVal = recursion(type.type);
+          if (typeof retVal === "object" && retVal.type === "object") {
+            retVal.minProperties = retVal.maxProperties = Object.keys(
+              retVal.properties ?? {},
+            ).length;
+          }
+        }
+        break;
+      // case "FunctionType":
+      //   {
+      //     retVal = undefined;
+      //   }
+      //   break;
+      case "NeverType":
+        {
+          retVal = false;
+        }
+        break;
+      case "AnyType":
+        {
+          retVal = true;
+        }
+        break;
+      case "ObjectType":
+        {
+          retVal = {
+            type: "object",
+          };
+        }
+        break;
+      case "StrictType":
+        {
+          retVal = undefined;
+        }
+        break;
     }
+    if (retVal && typeof retVal !== "boolean") {
+      retVal.description = type.name;
+    }
+  } else {
+    retVal = transformFromIOTypes(validation);
   }
+  return retVal ?? fallbackValue;
 };
 
 type AllTypes =
@@ -161,7 +280,7 @@ type AllTypes =
   | t.BooleanType
   | t.AnyArrayType
   | t.AnyDictionaryType
-  | t.LiteralType<any>
+  | t.LiteralType<string | number | boolean>
   | t.KeyofType<Record<string, unknown>>
   | t.RefinementType<t.Any>
   | t.RecursiveType<t.Any>
@@ -180,3 +299,15 @@ type AllTypes =
   | t.AnyType
   | t.ObjectType
   | t.StrictType<t.Any>;
+
+const transformFromIOTypes = common.transformerFromMany<
+  unknown,
+  common.JSONSchema
+>([
+  common.transformerFromEquality(tt.DateFromISOString, () => ({
+    type: "string",
+    // TODO pattern
+    description: "Timestamp in ISO format.",
+  })),
+  // TODO add more here
+]);
