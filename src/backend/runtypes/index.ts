@@ -41,17 +41,23 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
           jsonSchema.createJsonSchemaFunctionality({
             encoding: {
               contentTypes: [tPlugin.CONTENT_TYPE],
-              fallbackValue: {
-                description:
-                  "This is fallback value for when JSON schema could not be generated from encoding object.",
-              },
+              fallbackValue: ({ reflect }) =>
+                reflect.tag === "instanceof" && reflect.ctor === Date
+                  ? {
+                      type: "string",
+                      description: "Timestamp in ISO format",
+                    }
+                  : undefined,
             },
             decoding: {
               contentTypes: [tPlugin.CONTENT_TYPE],
-              fallbackValue: {
-                description:
-                  "This is fallback value for when JSON schema could not be generated from decoding object.",
-              },
+              fallbackValue: ({ reflect }) =>
+                reflect.tag === "instanceof" && reflect.ctor === Date
+                  ? {
+                      type: "string",
+                      description: "Timestamp in ISO format",
+                    }
+                  : undefined,
             },
             transformSchema: openapi.convertToOpenAPISchemaObject,
           }),

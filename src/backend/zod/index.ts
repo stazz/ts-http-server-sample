@@ -42,17 +42,23 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
           jsonSchema.createJsonSchemaFunctionality({
             encoding: {
               contentTypes: [tPlugin.CONTENT_TYPE],
-              fallbackValue: {
-                description:
-                  "This is fallback value for when JSON schema could not be generated from encoding object.",
-              },
+              fallbackValue: (decoder) =>
+                isZodInstanceOf(decoder, theDate)
+                  ? {
+                      type: "string",
+                      description: "Timestamp in ISO format",
+                    }
+                  : undefined,
             },
             decoding: {
               contentTypes: [tPlugin.CONTENT_TYPE],
-              fallbackValue: {
-                description:
-                  "This is fallback value for when JSON schema could not be generated from decoding object.",
-              },
+              fallbackValue: (decoder) =>
+                isZodInstanceOf(decoder, theDate)
+                  ? {
+                      type: "string",
+                      description: "Timestamp in ISO format",
+                    }
+                  : undefined,
             },
             transformSchema: openapi.convertToOpenAPISchemaObject,
           }),
@@ -200,3 +206,25 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
 };
 
 export default restModule;
+
+// Avoid allocating new date on every call
+const theDate = new Date();
+
+const isZodInstanceOf = (zodType: t.ZodType, value: unknown) => {
+  // In Zod, instanceof is .superRefine call, which returns ZodEffect
+  const firstParty = zodType as t.ZodFirstPartySchemaTypes;
+  const { _def } = firstParty;
+  let retVal = false;
+  if (
+    _def.typeName === t.ZodFirstPartyTypeKind.ZodEffects &&
+    _def.effect.type === "refinement"
+  ) {
+    let issuesSeen = false;
+    _def.effect.refinement(value, {
+      addIssue: () => (issuesSeen = true),
+      path: [],
+    });
+    retVal = !issuesSeen;
+  }
+  return retVal;
+};

@@ -75,15 +75,21 @@ export type JSONSchemaFunctionalityCreationArgumentsGeneric<
 export type JSONSchemaFunctionalityCreationArgumentsContentTypes<
   TTransformedSchema,
   TKeys extends string,
+  TInput,
 > = JSONSchemaFunctionalityCreationArgumentsBase<TTransformedSchema> &
-  JSONSchemaFunctionalityCreationArgumentsContentTypesOnly<TKeys>;
+  JSONSchemaFunctionalityCreationArgumentsContentTypesOnly<TKeys, TInput>;
 
 export type JSONSchemaFunctionalityCreationArgumentsContentTypesOnly<
   TKeys extends string,
+  TInput,
 > = {
   contentTypes: Array<TKeys>;
-  fallbackValue: JSONSchema;
+  fallbackValue?: FallbackValue<TInput>;
 };
+
+export type FallbackValue<TInput> =
+  | JSONSchema
+  | ((input: TInput) => JSONSchema | undefined);
 
 export interface SchemaTransformation<TInput> {
   override: Transformer<TInput, JSONSchema | undefined> | undefined;
@@ -161,3 +167,18 @@ export const transformerFromMany =
 export interface Constructor<V> {
   new (...args: any[]): V;
 }
+
+export const getFallbackValue = <TInput>(
+  input: TInput | undefined,
+  fallbackValue: FallbackValue<TInput>,
+): JSONSchema =>
+  typeof fallbackValue === "function"
+    ? input === undefined
+      ? getDefaultFallbackValue()
+      : fallbackValue(input) ?? getDefaultFallbackValue()
+    : fallbackValue;
+
+export const getDefaultFallbackValue = (): JSONSchema => ({
+  description:
+    "This is fallback value for when JSON schema could not be generated from type validation object.",
+});

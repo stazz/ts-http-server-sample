@@ -17,7 +17,10 @@ export const createJsonSchemaFunctionality = <
       encoding.contentTypes,
       (): common.SchemaTransformation<Encoder> => ({
         transform: (encoder) =>
-          encoderToSchema(encoder, encoding.fallbackValue),
+          encoderToSchema(
+            encoder,
+            encoding.fallbackValue ?? common.getDefaultFallbackValue(),
+          ),
         override: encoding.override,
       }),
     ),
@@ -25,7 +28,10 @@ export const createJsonSchemaFunctionality = <
       decoding.contentTypes,
       (): common.SchemaTransformation<Decoder> => ({
         transform: (decoder) =>
-          decoderToSchema(decoder, decoding.fallbackValue),
+          decoderToSchema(
+            decoder,
+            decoding.fallbackValue ?? common.getDefaultFallbackValue(),
+          ),
         override: decoding.override,
       }),
     ),
@@ -43,25 +49,33 @@ export type Input<
 export type InputForValidation<
   TValidation,
   TContentTypes extends string,
-> = common.JSONSchemaFunctionalityCreationArgumentsContentTypesOnly<TContentTypes> & {
+> = common.JSONSchemaFunctionalityCreationArgumentsContentTypesOnly<
+  TContentTypes,
+  Decoder
+> & {
   override?: common.Transformer<TValidation>;
 };
 export type Encoder = tPlugin.Encoder<any, any>;
 export type Decoder = tPlugin.Decoder<any>;
+export type FallbackValue = common.FallbackValue<Decoder>;
 
 const encoderToSchema = (
   encoder: Encoder,
-  fallbackValue: common.JSONSchema,
+  fallbackValue: FallbackValue,
 ): common.JSONSchema =>
   // TODO add customizability for e.g. ISO timestamps
   decoderToSchema(encoder.validation, fallbackValue);
 
 const decoderToSchema = (
   decoder: Decoder,
-  fallbackValue: common.JSONSchema,
+  fallbackValue: FallbackValue,
 ): common.JSONSchema => {
-  const recursion = (innerValidation: Decoder) =>
-    decoderToSchema(innerValidation, fallbackValue);
+  // Zod fallbacks to 'any' in many of its definitions of ZodFirstPartySchemaTypes
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recursion = (innerValidation: any) =>
+    innerValidation instanceof t.ZodType
+      ? decoderToSchema(innerValidation as Decoder, fallbackValue)
+      : common.getFallbackValue(undefined, fallbackValue);
 
   let retVal: common.JSONSchema | undefined;
   const def = (decoder as t.ZodFirstPartySchemaTypes)._def;
@@ -78,6 +92,16 @@ const decoderToSchema = (
         retVal = {
           type: "boolean",
         };
+      }
+      break;
+    case t.ZodFirstPartyTypeKind.ZodNever:
+      {
+        retVal = false;
+      }
+      break;
+    case t.ZodFirstPartyTypeKind.ZodAny:
+      {
+        retVal = true;
       }
       break;
     case t.ZodFirstPartyTypeKind.ZodNumber:
@@ -103,10 +127,66 @@ const decoderToSchema = (
             : undefined;
       }
       break;
+    case t.ZodFirstPartyTypeKind.ZodArray:
+      {
+        retVal = {
+          type: "array",
+          items: recursion(def.type),
+        };
+      }
+      break;
+    case t.ZodFirstPartyTypeKind.ZodObject:
+      {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        const entries = Object.entries(def.shape());
+        retVal = {
+          type: "object",
+          properties: Object.fromEntries(
+            entries.map(([propertyName, propertyValidation]) => [
+              propertyName,
+              recursion(propertyValidation),
+            ]),
+          ),
+        };
+        const required = entries.filter(
+          ([, validation]) => !(validation instanceof t.ZodOptional),
+        );
+        if (required.length > 0) {
+          retVal.required = required.map(([propertyName]) => propertyName);
+        }
+      }
+      break;
+    case t.ZodFirstPartyTypeKind.ZodRecord:
+      {
+        retVal = {
+          type: "object",
+          propertyNames: recursion(def.keyType),
+          additionalProperties: recursion(def.valueType),
+        };
+      }
+      break;
+    case t.ZodFirstPartyTypeKind.ZodOptional:
+      {
+        retVal = recursion(def.innerType);
+      }
+      break;
+    case t.ZodFirstPartyTypeKind.ZodTuple:
+      {
+      }
+      break;
+    case t.ZodFirstPartyTypeKind.ZodUnion:
+    case t.ZodFirstPartyTypeKind.ZodDiscriminatedUnion:
+      {
+      }
+      break;
+    case t.ZodFirstPartyTypeKind.ZodIntersection:
+      {
+      }
+      break;
   }
 
   if (retVal && typeof retVal !== "boolean") {
     retVal.description = decoder.description;
   }
-  return retVal ?? fallbackValue;
+  return retVal ?? common.getFallbackValue(decoder, fallbackValue);
 };

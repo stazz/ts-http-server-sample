@@ -17,7 +17,10 @@ export const createJsonSchemaFunctionality = <
       encoding.contentTypes,
       (): common.SchemaTransformation<Encoder> => ({
         transform: (encoder) =>
-          encoderToSchema(encoder, encoding.fallbackValue),
+          encoderToSchema(
+            encoder,
+            encoding.fallbackValue ?? common.getDefaultFallbackValue(),
+          ),
         override: encoding.override,
       }),
     ),
@@ -25,7 +28,10 @@ export const createJsonSchemaFunctionality = <
       decoding.contentTypes,
       (): common.SchemaTransformation<Decoder> => ({
         transform: (decoder) =>
-          decoderToSchema(decoder.reflect, decoding.fallbackValue),
+          decoderToSchema(
+            decoder.reflect,
+            decoding.fallbackValue ?? common.getDefaultFallbackValue(),
+          ),
         override: decoding.override,
       }),
     ),
@@ -43,23 +49,27 @@ export type Input<
 export type InputForValidation<
   TValidation,
   TContentTypes extends string,
-> = common.JSONSchemaFunctionalityCreationArgumentsContentTypesOnly<TContentTypes> & {
+> = common.JSONSchemaFunctionalityCreationArgumentsContentTypesOnly<
+  TContentTypes,
+  Decoder
+> & {
   override?: common.Transformer<TValidation>;
 };
 
 export type Encoder = tPlugin.Encoder<any, any>;
 export type Decoder = tPlugin.Decoder<any>;
+export type FallbackValue = common.FallbackValue<Decoder>;
 
 const encoderToSchema = (
   encoder: Encoder,
-  fallbackValue: common.JSONSchema,
+  fallbackValue: FallbackValue,
 ): common.JSONSchema =>
   // TODO add customizability for e.g. ISO timestamps
   decoderToSchema(encoder.validation.reflect, fallbackValue);
 
 const decoderToSchema = (
   decoder: t.Reflect,
-  fallbackValue: common.JSONSchema,
+  fallbackValue: FallbackValue,
 ): common.JSONSchema => {
   const recursion = (innerValidation: t.Reflect) =>
     decoderToSchema(innerValidation, fallbackValue);
@@ -176,5 +186,5 @@ const decoderToSchema = (
       break;
   }
   // No description in runtypes...
-  return retVal ?? fallbackValue;
+  return retVal ?? common.getFallbackValue(decoder, fallbackValue);
 };

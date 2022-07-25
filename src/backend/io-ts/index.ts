@@ -43,10 +43,6 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
           jsonSchema.createJsonSchemaFunctionality({
             contentTypes: [tPlugin.CONTENT_TYPE],
             transformSchema: openapi.convertToOpenAPISchemaObject,
-            fallbackValue: {
-              description:
-                "This is fallback value for when JSON schema could not be generated from type validation object.",
-            },
           }),
         ),
       );

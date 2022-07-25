@@ -18,7 +18,10 @@ export const createJsonSchemaFunctionality = <
       contentTypes,
       (): common.SchemaTransformation<Encoder> => ({
         transform: (validation) =>
-          validationToSchema(validation, fallbackValue),
+          validationToSchema(
+            validation,
+            fallbackValue ?? common.getDefaultFallbackValue(),
+          ),
         override,
       }),
     ),
@@ -26,7 +29,10 @@ export const createJsonSchemaFunctionality = <
       contentTypes,
       (): common.SchemaTransformation<Decoder> => ({
         transform: (validation) =>
-          validationToSchema(validation, fallbackValue),
+          validationToSchema(
+            validation,
+            fallbackValue ?? common.getDefaultFallbackValue(),
+          ),
         override,
       }),
     ),
@@ -37,17 +43,19 @@ export type Input<
   TContentTypes extends string,
 > = common.JSONSchemaFunctionalityCreationArgumentsContentTypes<
   TTransformedSchema,
-  TContentTypes
+  TContentTypes,
+  Encoder | Decoder
 > & {
   override?: common.Transformer<Encoder | Decoder>;
 };
 
 export type Encoder = tPlugin.Encoder<any, any>;
 export type Decoder = tPlugin.Decoder<any>;
+export type FallbackValue = common.FallbackValue<Encoder | Decoder>;
 
 const validationToSchema = (
   validation: Encoder | Decoder,
-  fallbackValue: common.JSONSchema,
+  fallbackValue: FallbackValue,
 ): common.JSONSchema => {
   const recursion = (innerValidation: Encoder | Decoder) =>
     validationToSchema(innerValidation, fallbackValue);
@@ -266,7 +274,7 @@ const validationToSchema = (
   } else {
     retVal = transformFromIOTypes(validation);
   }
-  return retVal ?? fallbackValue;
+  return retVal ?? common.getFallbackValue(validation, fallbackValue);
 };
 
 type AllTypes =
