@@ -92,9 +92,12 @@ export type FallbackValue<TInput> =
   | ((input: TInput) => JSONSchema | undefined);
 
 export interface SchemaTransformation<TInput> {
-  override: Transformer<TInput, JSONSchema | undefined> | undefined;
+  // TODO get rid of this here.
+  override: Override<TInput> | undefined;
   transform: (input: TInput) => JSONSchema;
 }
+
+export type Override<TInput> = Transformer<TInput, JSONSchema | undefined>;
 
 export type SupportedJSONSchemaFunctionality<
   TTransformedSchema,

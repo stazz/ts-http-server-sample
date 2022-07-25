@@ -20,6 +20,7 @@ export const createJsonSchemaFunctionality = <
         transform: (validation) =>
           validationToSchema(
             validation,
+            override,
             fallbackValue ?? common.getDefaultFallbackValue(),
           ),
         override,
@@ -31,6 +32,7 @@ export const createJsonSchemaFunctionality = <
         transform: (validation) =>
           validationToSchema(
             validation,
+            override,
             fallbackValue ?? common.getDefaultFallbackValue(),
           ),
         override,
@@ -46,233 +48,237 @@ export type Input<
   TContentTypes,
   Encoder | Decoder
 > & {
-  override?: common.Transformer<Encoder | Decoder>;
+  override?: common.Override<Encoder | Decoder>;
 };
 
 export type Encoder = tPlugin.Encoder<any, any>;
 export type Decoder = tPlugin.Decoder<any>;
 export type FallbackValue = common.FallbackValue<Encoder | Decoder>;
+export type Override = common.Override<Encoder | Decoder>;
 
 const validationToSchema = (
   validation: Encoder | Decoder,
+  override: Override | undefined,
   fallbackValue: FallbackValue,
 ): common.JSONSchema => {
   const recursion = (innerValidation: Encoder | Decoder) =>
-    validationToSchema(innerValidation, fallbackValue);
-  let retVal: common.JSONSchema | undefined;
-  if ("_tag" in validation) {
-    const type = validation as AllTypes;
-    const tag = type._tag;
-    switch (tag) {
-      case "NullType":
-        {
-          retVal = {
-            type: "null",
-          };
-        }
-        break;
-      // case "UndefinedType":
-      //   {
-      //     retVal = undefined;
-      //   }
-      //   break;
-      // case "VoidType":
-      //   {
-      //     retVal = undefined;
-      //   }
-      //   break;
-      // case "UnknownType":
-      //   {
-      //     retVal = undefined;
-      //   }
-      //   break;
-      case "StringType":
-        {
-          retVal = {
-            type: "string",
-          };
-        }
-        break;
-      case "NumberType":
-        {
-          retVal = {
-            type: "number",
-          };
-        }
-        break;
-      // case "BigIntType":
-      //   {
-      //     retVal = undefined;
-      //   }
-      //   break;
-      case "BooleanType":
-        {
-          retVal = {
-            type: "boolean",
-          };
-        }
-        break;
-      case "AnyArrayType":
-        {
-          retVal = {
-            type: "array",
-          };
-        }
-        break;
-      case "AnyDictionaryType":
-        {
-          retVal = {
-            type: "object",
-          };
-        }
-        break;
-      case "LiteralType": {
-        retVal = {
-          const: type.value,
-        };
-        break;
-      }
-      case "KeyofType":
-        {
-          const keys = Object.keys(type.keys);
-          retVal =
-            keys.length === 1
-              ? {
-                  const: keys[0],
-                }
-              : keys.length > 1
-              ? {
-                  enum: keys,
-                }
-              : undefined;
-        }
-        break;
-      case "RefinementType":
-      case "ReadonlyType":
-      case "ReadonlyArrayType":
-        {
-          retVal = recursion(type.type);
-        }
-        break;
-      // TODO: use ref here
-      // case "RecursiveType":
-      //   {
-      //     retVal = recursion(type.type);
-      //   }
-      //   break;
-      case "ArrayType":
-        {
-          retVal = {
-            type: "array",
-            items: recursion(type.type),
-          };
-        }
-        break;
-      case "InterfaceType":
-        {
-          const entries = Object.entries(type.props);
-          retVal = {
-            type: "object",
-            properties: Object.fromEntries(
-              entries.map(([propName, propValidation]) => [
-                propName,
-                recursion(propValidation),
-              ]),
-            ),
-            required: entries.map(([propName]) => propName),
-          };
-        }
-        break;
-      case "PartialType":
-        {
-          retVal = {
-            type: "object",
-            properties: Object.fromEntries(
-              Object.entries(type.props).map(([propName, propValidation]) => [
-                propName,
-                recursion(propValidation),
-              ]),
-            ),
-          };
-        }
-        break;
-      case "DictionaryType":
-        {
-          retVal = {
-            type: "object",
-            propertyNames: recursion(type.domain),
-            additionalProperties: recursion(type.codomain),
-          };
-        }
-        break;
-      case "UnionType":
-        {
-          // TODO if all results are primitive json schemas, then this can be 'enum'
-          retVal = {
-            anyOf: type.types.map(recursion),
-          };
-        }
-        break;
-      case "IntersectionType":
-        {
-          retVal = {
-            allOf: type.types.map(recursion),
-          };
-        }
-        break;
-      case "TupleType":
-        {
-          retVal = {
-            type: "array",
-            minItems: type.types.length,
-            maxItems: type.types.length,
-            items: type.types.map(recursion),
-          };
-        }
-        break;
-      case "ExactType":
-        {
-          retVal = recursion(type.type);
-          if (typeof retVal === "object" && retVal.type === "object") {
-            retVal.minProperties = retVal.maxProperties = Object.keys(
-              retVal.properties ?? {},
-            ).length;
+    validationToSchema(innerValidation, override, fallbackValue);
+  let retVal = override?.(validation);
+  if (retVal === undefined) {
+    if ("_tag" in validation) {
+      const type = validation as AllTypes;
+      const tag = type._tag;
+      switch (tag) {
+        case "NullType":
+          {
+            retVal = {
+              type: "null",
+            };
           }
-        }
-        break;
-      // case "FunctionType":
-      //   {
-      //     retVal = undefined;
-      //   }
-      //   break;
-      case "NeverType":
-        {
-          retVal = false;
-        }
-        break;
-      case "AnyType":
-        {
-          retVal = true;
-        }
-        break;
-      case "ObjectType":
-        {
+          break;
+        // case "UndefinedType":
+        //   {
+        //     retVal = undefined;
+        //   }
+        //   break;
+        // case "VoidType":
+        //   {
+        //     retVal = undefined;
+        //   }
+        //   break;
+        // case "UnknownType":
+        //   {
+        //     retVal = undefined;
+        //   }
+        //   break;
+        case "StringType":
+          {
+            retVal = {
+              type: "string",
+            };
+          }
+          break;
+        case "NumberType":
+          {
+            retVal = {
+              type: "number",
+            };
+          }
+          break;
+        // case "BigIntType":
+        //   {
+        //     retVal = undefined;
+        //   }
+        //   break;
+        case "BooleanType":
+          {
+            retVal = {
+              type: "boolean",
+            };
+          }
+          break;
+        case "AnyArrayType":
+          {
+            retVal = {
+              type: "array",
+            };
+          }
+          break;
+        case "AnyDictionaryType":
+          {
+            retVal = {
+              type: "object",
+            };
+          }
+          break;
+        case "LiteralType": {
           retVal = {
-            type: "object",
+            const: type.value,
           };
+          break;
         }
-        break;
-      case "StrictType":
-        {
-          retVal = undefined;
-        }
-        break;
+        case "KeyofType":
+          {
+            const keys = Object.keys(type.keys);
+            retVal =
+              keys.length === 1
+                ? {
+                    const: keys[0],
+                  }
+                : keys.length > 1
+                ? {
+                    enum: keys,
+                  }
+                : undefined;
+          }
+          break;
+        case "RefinementType":
+        case "ReadonlyType":
+        case "ReadonlyArrayType":
+          {
+            retVal = recursion(type.type);
+          }
+          break;
+        // TODO: use ref here
+        // case "RecursiveType":
+        //   {
+        //     retVal = recursion(type.type);
+        //   }
+        //   break;
+        case "ArrayType":
+          {
+            retVal = {
+              type: "array",
+              items: recursion(type.type),
+            };
+          }
+          break;
+        case "InterfaceType":
+          {
+            const entries = Object.entries(type.props);
+            retVal = {
+              type: "object",
+              properties: Object.fromEntries(
+                entries.map(([propName, propValidation]) => [
+                  propName,
+                  recursion(propValidation),
+                ]),
+              ),
+              required: entries.map(([propName]) => propName),
+            };
+          }
+          break;
+        case "PartialType":
+          {
+            retVal = {
+              type: "object",
+              properties: Object.fromEntries(
+                Object.entries(type.props).map(([propName, propValidation]) => [
+                  propName,
+                  recursion(propValidation),
+                ]),
+              ),
+            };
+          }
+          break;
+        case "DictionaryType":
+          {
+            retVal = {
+              type: "object",
+              propertyNames: recursion(type.domain),
+              additionalProperties: recursion(type.codomain),
+            };
+          }
+          break;
+        case "UnionType":
+          {
+            // TODO if all results are primitive json schemas, then this can be 'enum'
+            retVal = {
+              anyOf: type.types.map(recursion),
+            };
+          }
+          break;
+        case "IntersectionType":
+          {
+            retVal = {
+              allOf: type.types.map(recursion),
+            };
+          }
+          break;
+        case "TupleType":
+          {
+            retVal = {
+              type: "array",
+              minItems: type.types.length,
+              maxItems: type.types.length,
+              items: type.types.map(recursion),
+            };
+          }
+          break;
+        case "ExactType":
+          {
+            retVal = recursion(type.type);
+            if (typeof retVal === "object" && retVal.type === "object") {
+              retVal.minProperties = retVal.maxProperties = Object.keys(
+                retVal.properties ?? {},
+              ).length;
+            }
+          }
+          break;
+        // case "FunctionType":
+        //   {
+        //     retVal = undefined;
+        //   }
+        //   break;
+        case "NeverType":
+          {
+            retVal = false;
+          }
+          break;
+        case "AnyType":
+          {
+            retVal = true;
+          }
+          break;
+        case "ObjectType":
+          {
+            retVal = {
+              type: "object",
+            };
+          }
+          break;
+        case "StrictType":
+          {
+            retVal = undefined;
+          }
+          break;
+      }
+      if (retVal && typeof retVal !== "boolean") {
+        retVal.description = type.name;
+      }
+    } else {
+      retVal = transformFromIOTypes(validation);
     }
-    if (retVal && typeof retVal !== "boolean") {
-      retVal.description = type.name;
-    }
-  } else {
-    retVal = transformFromIOTypes(validation);
   }
   return retVal ?? common.getFallbackValue(validation, fallbackValue);
 };

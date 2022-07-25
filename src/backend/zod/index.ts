@@ -42,7 +42,7 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
           jsonSchema.createJsonSchemaFunctionality({
             encoding: {
               contentTypes: [tPlugin.CONTENT_TYPE],
-              fallbackValue: (decoder) =>
+              override: (decoder) =>
                 isZodInstanceOf(decoder, theDate)
                   ? {
                       type: "string",
@@ -52,7 +52,7 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
             },
             decoding: {
               contentTypes: [tPlugin.CONTENT_TYPE],
-              fallbackValue: (decoder) =>
+              override: (decoder) =>
                 isZodInstanceOf(decoder, theDate)
                   ? {
                       type: "string",
