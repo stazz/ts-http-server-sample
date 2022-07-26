@@ -128,6 +128,11 @@ const decoderToSchema = (
           retVal = recursion(reflect.underlying);
         }
         break;
+      case "brand":
+        {
+          retVal = recursion(reflect.entity);
+        }
+        break;
       case "array":
         {
           retVal = {

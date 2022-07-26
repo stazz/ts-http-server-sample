@@ -159,7 +159,6 @@ export const createOpenAPIProvider = <
             const parameters: Array<openapi.ParameterObject> = [];
             const operationObject: openapi.OperationObject = {
               ...metadataArguments.operation,
-              security: securitySchemes.map(({ name }) => ({ [name]: [] })),
               responses: {
                 // TODO use also 204 if response spec can be undefined
                 "200": {
@@ -182,6 +181,11 @@ export const createOpenAPIProvider = <
                 },
               },
             };
+            if (securitySchemes.length > 0) {
+              operationObject.security = securitySchemes.map(({ name }) => ({
+                [name]: [],
+              }));
+            }
             pathObject[method.toLowerCase() as Lowercase<openapi.HttpMethods>] =
               operationObject;
             // Query parameters

@@ -41,21 +41,21 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
           jsonSchema.createJsonSchemaFunctionality({
             encoding: {
               contentTypes: [tPlugin.CONTENT_TYPE],
-              fallbackValue: ({ reflect }) =>
+              override: ({ reflect }) =>
                 reflect.tag === "instanceof" && reflect.ctor === Date
                   ? {
                       type: "string",
-                      description: "Timestamp in ISO format",
+                      description: "Timestamp in ISO format.",
                     }
                   : undefined,
             },
             decoding: {
               contentTypes: [tPlugin.CONTENT_TYPE],
-              fallbackValue: ({ reflect }) =>
+              override: ({ reflect }) =>
                 reflect.tag === "instanceof" && reflect.ctor === Date
                   ? {
                       type: "string",
-                      description: "Timestamp in ISO format",
+                      description: "Timestamp in ISO format.",
                     }
                   : undefined,
             },

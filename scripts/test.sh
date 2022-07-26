@@ -20,6 +20,6 @@ docker run \
   --env CI \
   "node:${NODE_VERSION}" \
   run \
-  "test:${TEST_MODE}"
-
+  "test:${TEST_MODE}" \
+  "$@"
   

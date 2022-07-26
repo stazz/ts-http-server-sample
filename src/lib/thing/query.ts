@@ -1,7 +1,7 @@
 export const queryThings = (
   includeDeleted: boolean,
   lastModified: Date | undefined,
-): Array<unknown> => {
+): Array<{ property: string }> => {
   // Get the things from DB, maybe with pagination in the future
   return [];
 };

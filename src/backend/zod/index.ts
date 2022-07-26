@@ -46,7 +46,7 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
                 isZodInstanceOf(decoder, theDate)
                   ? {
                       type: "string",
-                      description: "Timestamp in ISO format",
+                      description: "Timestamp in ISO format.",
                     }
                   : undefined,
             },
@@ -56,7 +56,7 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
                 isZodInstanceOf(decoder, theDate)
                   ? {
                       type: "string",
-                      description: "Timestamp in ISO format",
+                      description: "Timestamp in ISO format.",
                     }
                   : undefined,
             },
