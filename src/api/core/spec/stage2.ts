@@ -110,7 +110,7 @@ export class AppEndpointBuilderForMethods<
               )
             : undefined,
           queryValidator: query?.validator,
-          handler: ({ context, state, url, query }) => {
+          handler: async ({ context, state, url, query }) => {
             const handlerArgs = {
               ...getEndpointArgs(query),
               context,
@@ -122,7 +122,7 @@ export class AppEndpointBuilderForMethods<
               ).url = url;
             }
             return validator(
-              endpointHandler(
+              await endpointHandler(
                 handlerArgs as unknown as Parameters<typeof endpointHandler>[0],
               ),
             );
@@ -258,7 +258,7 @@ export class AppEndpointBuilderForMethodsAndBody<
             : undefined,
           queryValidator: query?.validator,
           bodyValidator: inputValidator,
-          handler: ({ context, state, url, body, query }) => {
+          handler: async ({ context, state, url, body, query }) => {
             const handlerArgs = {
               ...getEndpointArgs(query),
               context,
@@ -271,7 +271,7 @@ export class AppEndpointBuilderForMethodsAndBody<
               ).url = url;
             }
             return outputValidator(
-              endpointHandler(
+              await endpointHandler(
                 handlerArgs as unknown as Parameters<typeof endpointHandler>[0],
               ),
             );

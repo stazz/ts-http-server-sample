@@ -60,9 +60,9 @@ export type MakeSpecWithoutBody<
       protocol.RuntimeOf<TQuery>,
       TMetadataProviders,
       TProtocolSpec["method"],
-      ReturnType<TFunctionality>,
+      ExtractReturnType<TFunctionality>,
       tPlugin.OutputValidatorSpec<
-        ReturnType<TFunctionality>,
+        ExtractReturnType<TFunctionality>,
         tPluginCommon.GetEncoded<TProtocolSpec["responseBody"]>
       >
     >
@@ -75,9 +75,9 @@ export type MakeSpecWithoutBody<
           {},
       TMetadataProviders,
       TProtocolSpec["method"],
-      ReturnType<TFunctionality>,
+      ExtractReturnType<TFunctionality>,
       tPlugin.OutputValidatorSpec<
-        ReturnType<TFunctionality>,
+        ExtractReturnType<TFunctionality>,
         tPluginCommon.GetEncoded<TProtocolSpec["responseBody"]>
       >
     >;
@@ -98,9 +98,9 @@ export type MakeSpecWithBody<
       protocol.RuntimeOf<TQuery>,
       TMetadataProviders,
       TProtocolSpec["method"],
-      ReturnType<TFunctionality>,
+      ExtractReturnType<TFunctionality>,
       tPlugin.OutputValidatorSpec<
-        ReturnType<TFunctionality>,
+        ExtractReturnType<TFunctionality>,
         tPluginCommon.GetEncoded<TProtocolSpec["responseBody"]>
       >,
       protocol.RuntimeOf<TProtocolSpec["requestBody"]>,
@@ -117,9 +117,9 @@ export type MakeSpecWithBody<
           {},
       TMetadataProviders,
       TProtocolSpec["method"],
-      ReturnType<TFunctionality>,
+      ExtractReturnType<TFunctionality>,
       tPlugin.OutputValidatorSpec<
-        ReturnType<TFunctionality>,
+        ExtractReturnType<TFunctionality>,
         tPluginCommon.GetEncoded<TProtocolSpec["responseBody"]>
       >,
       protocol.RuntimeOf<TProtocolSpec["requestBody"]>,
@@ -132,3 +132,8 @@ export type GetProtocolState<TProtocolSpec> =
   TProtocolSpec extends protocol.ProtocolSpecHeaders<Record<string, "auth">>
     ? AuthenticatedState
     : common.State;
+
+export type ExtractReturnType<TFunctionality extends (...args: any) => any> =
+  ReturnType<TFunctionality> extends Promise<infer T>
+    ? T
+    : ReturnType<TFunctionality>;

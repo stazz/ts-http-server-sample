@@ -54,7 +54,11 @@ export type StaticAppEndpointHandlerFunction<TContext> = (args: {
   url: unknown;
   query: unknown;
   body: unknown;
-}) => data.DataValidatorResult<data.DataValidatorResponseOutputSuccess>;
+}) => MaybePromise<
+  data.DataValidatorResult<data.DataValidatorResponseOutputSuccess>
+>;
+
+export type MaybePromise<T> = T | Promise<T>;
 
 // TODO This is not optimal solution.
 // Refactor when issue #16 gets addressed.
@@ -106,8 +110,8 @@ export const withCORSOptions = <
             found: "handler",
             handler: {
               ...rest,
-              handler: (args) => {
-                const result = requestHandler(args);
+              handler: async (args) => {
+                const result = await requestHandler(args);
                 if (result.error === "none") {
                   result.data.headers = Object.assign(
                     {

@@ -256,7 +256,7 @@ export const checkBodyForHandler = async <TContext, TState>(
   return [proceedToInvokeHandler, body];
 };
 
-export const invokeHandler = <TContext, TState>(
+export const invokeHandler = async <TContext, TState>(
   eventArgs: evt.EventArguments<TContext, TState>,
   events:
     | ServerEventEmitter<
@@ -271,7 +271,7 @@ export const invokeHandler = <TContext, TState>(
   ...handlerParameters: Parameters<typeof handler>
 ) => {
   events?.emit("onSuccessfulInvocationStart", { ...eventArgs });
-  const retVal = handler(...handlerParameters);
+  const retVal = await handler(...handlerParameters);
   if (retVal.error === "none") {
     events?.emit("onSuccessfulInvocationEnd", { ...eventArgs });
   } else {

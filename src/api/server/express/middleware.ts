@@ -91,7 +91,7 @@ export const createMiddleware = <TState>(
                 ctx.req,
               );
               if (proceedAfterBody) {
-                const retVal = server.invokeHandler(
+                const retVal = await server.invokeHandler(
                   eventArgs,
                   events,
                   handler,
