@@ -231,3 +231,8 @@ export type SupportedServers = keyof ReturnType<
 export type SupportedBackendDataValidators = keyof ReturnType<
   typeof utils.loadServersAndDataValidations
 >["allowedDataValidations"];
+
+export const getBasicAuthorizationHeaderValue =
+  (username: string, password: string): (() => string) =>
+  () =>
+    `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`;

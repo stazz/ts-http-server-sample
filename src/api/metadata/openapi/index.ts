@@ -239,18 +239,23 @@ export const createOpenAPIProvider = <
       },
     }),
     ({ securitySchemes }, info, paths) => {
+      const components: openapi.ComponentsObject = {};
+      // TODO aggressively cache all cacheable things to components
+      if (securitySchemes.length > 0) {
+        components.securitySchemes = Object.fromEntries(
+          securitySchemes.map(({ name, scheme }) => [name, scheme]),
+        );
+      }
       const doc: openapi.Document = {
         openapi: "3.0.3",
         info,
-        components: {
-          securitySchemes: Object.fromEntries(
-            securitySchemes.map(({ name, scheme }) => [name, scheme]),
-          ),
-        },
         paths: Object.fromEntries(
           paths.map(({ urlPath, pathObject }) => [urlPath, pathObject]),
         ),
       };
+      if (Object.keys(components).length > 0) {
+        doc.components = components;
+      }
       return doc;
     },
   );
