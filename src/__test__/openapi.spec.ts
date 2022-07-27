@@ -404,15 +404,7 @@ const authenticatedPathObjectsWithoutSchemaDescriptions: openapi.PathsObject = {
   "/api/secret": {
     get: {
       responses: {
-        200: {
-          content: {
-            "application/json": {
-              schema: {
-                description:
-                  "This is fallback value for when JSON schema could not be generated from type validation object.",
-              },
-            },
-          },
+        "204": {
           description: "No data in output",
         },
       },

@@ -106,31 +106,33 @@ export type OpenAPIMetadataBuilder<
 export const createOpenAPIProvider = <
   TOutputContents extends data.TOutputContentsBase,
   TInputContents extends data.TInputContentsBase,
->(
-  jsonSchema: jsonSchemaPlugin.SupportedJSONSchemaFunctionality<
-    openapi.SchemaObject,
-    {
-      [P in keyof TOutputContents]: jsonSchemaPlugin.SchemaTransformation<
-        TOutputContents[P]
-      >;
-    },
-    {
-      [P in keyof TInputContents]: jsonSchemaPlugin.SchemaTransformation<
-        TInputContents[P]
-      >;
-    }
-  >,
-): OpenAPIMetadataProvider<TOutputContents, TInputContents> => {
+>({
+  encoders,
+  decoders,
+  getUndefinedPossibility,
+}: jsonSchemaPlugin.SupportedJSONSchemaFunctionality<
+  openapi.SchemaObject,
+  {
+    [P in keyof TOutputContents]: jsonSchemaPlugin.SchemaTransformation<
+      TOutputContents[P]
+    >;
+  },
+  {
+    [P in keyof TInputContents]: jsonSchemaPlugin.SchemaTransformation<
+      TInputContents[P]
+    >;
+  }
+>): OpenAPIMetadataProvider<TOutputContents, TInputContents> => {
   const initialContextArgs: OpenAPIContextArgs = {
     securitySchemes: [],
   };
 
   const generateEncoderJSONSchema = (contentType: string, encoder: unknown) =>
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    jsonSchema.encoders[contentType as keyof TOutputContents](encoder as any);
+    encoders[contentType as keyof TOutputContents](encoder as any);
   const generateDecoderJSONSchema = (contentType: string, encoder: unknown) =>
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    jsonSchema.decoders[contentType as keyof TInputContents](encoder as any);
+    decoders[contentType as keyof TInputContents](encoder as any);
   return new md.InitialMetadataProviderClass(
     initialContextArgs,
     ({ securitySchemes }) => ({
@@ -143,6 +145,7 @@ export const createOpenAPIProvider = <
             name: name,
             in: "path",
             required: true,
+            // TODO: need to think more on what exactly to put here in 'content' or 'schema'.
             content: {
               "text/plain": {
                 schema: {
@@ -157,30 +160,46 @@ export const createOpenAPIProvider = <
             const { metadataArguments, querySpec, inputSpec, outputSpec } =
               specs;
             const parameters: Array<openapi.ParameterObject> = [];
+            const contentEntries = Object.entries(
+              outputSpec.validatorSpec.contents,
+            );
+            let hasResponse204 = false;
+            const response200Entries: typeof contentEntries = [];
+            for (const [contentType, contentOutput] of contentEntries) {
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+              if (getUndefinedPossibility(contentOutput as any)) {
+                hasResponse204 = true;
+              } else {
+                response200Entries.push([contentType, contentOutput]);
+              }
+            }
             const operationObject: openapi.OperationObject = {
               ...metadataArguments.operation,
-              responses: {
-                // TODO use also 204 if response spec can be undefined
-                "200": {
-                  description: metadataArguments.output.description,
-                  content: Object.fromEntries(
-                    Object.entries(outputSpec.validatorSpec.contents).map(
-                      ([contentType, contentOutput]) => [
-                        contentType,
-                        addSchema<openapi.MediaTypeObject>(
-                          {
-                            example:
-                              metadataArguments.output.mediaTypes[contentType]
-                                .example,
-                          },
-                          generateEncoderJSONSchema(contentType, contentOutput),
-                        ),
-                      ],
-                    ),
-                  ),
-                },
-              },
+              responses: {},
             };
+            if (hasResponse204) {
+              operationObject.responses["204"] = {
+                description: metadataArguments.output.description,
+              };
+            }
+            if (response200Entries.length > 0) {
+              operationObject.responses["200"] = {
+                description: metadataArguments.output.description,
+                content: Object.fromEntries(
+                  response200Entries.map(([contentType, contentOutput]) => [
+                    contentType,
+                    addSchema<openapi.MediaTypeObject>(
+                      {
+                        example:
+                          metadataArguments.output.mediaTypes[contentType]
+                            .example,
+                      },
+                      generateEncoderJSONSchema(contentType, contentOutput),
+                    ),
+                  ]),
+                ),
+              };
+            }
             if (securitySchemes.length > 0) {
               operationObject.security = securitySchemes.map(({ name }) => ({
                 [name]: [],
@@ -205,21 +224,24 @@ export const createOpenAPIProvider = <
 
             // Request body
             if (inputSpec) {
+              const inputEntries = Object.entries(
+                inputSpec.validatorSpec.contents,
+              );
               operationObject.requestBody = {
-                // TODO false if response spec can be undefined
-                required: true,
+                required: !inputEntries.some(([, contentInput]) =>
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+                  getUndefinedPossibility(contentInput as any),
+                ),
                 content: Object.fromEntries(
-                  Object.entries(inputSpec.validatorSpec.contents).map(
-                    ([contentType, contentInput]) => [
-                      contentType,
-                      addSchema<openapi.MediaTypeObject>(
-                        {
-                          example: metadataArguments.body[contentType].example,
-                        },
-                        generateDecoderJSONSchema(contentType, contentInput),
-                      ),
-                    ],
-                  ),
+                  inputEntries.map(([contentType, contentInput]) => [
+                    contentType,
+                    addSchema<openapi.MediaTypeObject>(
+                      {
+                        example: metadataArguments.body[contentType].example,
+                      },
+                      generateDecoderJSONSchema(contentType, contentInput),
+                    ),
+                  ]),
                 ),
               };
             }
