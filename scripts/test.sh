@@ -10,6 +10,11 @@ else
   VOLUME_MODE='ro'
 fi
 
+if [ "$1" = "${TEST_MODE}" ]; then
+  # Consume test mode parameter
+  shift
+fi
+
 
 docker run \
   --rm \
