@@ -23,12 +23,14 @@ integrationTest.testEveryCombination<
     const backend = (await beModule).createBackend(
       invoke.createCallHTTPEndpoint(host, port),
       {
-        auth: () =>
-          `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`,
+        auth: integrationTest.getBasicAuthorizationHeaderValue(
+          username,
+          password,
+        ),
       },
     );
     await runTestsForSuccessfulResults(c, backend);
-    return expectedEvents;
+    return expectedEvents(username);
   },
 );
 
@@ -106,7 +108,7 @@ const runTestsForSuccessfulResults = async (
   );
 };
 
-const expectedEvents: Array<events.LoggedEvents> = [
+const expectedEvents = (username: string): Array<events.LoggedEvents> => [
   {
     eventName: "onSuccessfulInvocationStart",
     eventData: {
@@ -271,7 +273,7 @@ const expectedEvents: Array<events.LoggedEvents> = [
         e_2: undefined,
       },
       state: {
-        username: "test_user",
+        username,
       },
     },
   },
@@ -291,7 +293,7 @@ const expectedEvents: Array<events.LoggedEvents> = [
         e_2: undefined,
       },
       state: {
-        username: "test_user",
+        username,
       },
     },
   },

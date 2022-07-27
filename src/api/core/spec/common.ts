@@ -30,7 +30,7 @@ export interface EndpointSpecArgsWithoutBody<
   TArgsQuery,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown, unknown>
+    md.MetadataBuilder<md.HKTArg, unknown, unknown, TOutputContentTypes, never>
   >,
   TOutput,
   TOutputContentTypes extends Record<string, unknown>,
@@ -44,7 +44,9 @@ export interface EndpointSpecArgsWithoutBody<
     [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
       infer TArg,
       infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
-      unknown
+      unknown,
+      TOutputContentTypes,
+      never
     >
       ? md.Kind<
           TArg,
@@ -68,7 +70,13 @@ export interface EndpointSpecArgsWithBody<
   TArgsQuery,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown, unknown>
+    md.MetadataBuilder<
+      md.HKTArg,
+      unknown,
+      unknown,
+      TOutputContentTypes,
+      TInputContentTypes
+    >
   >,
   TOutput,
   TOutputContentTypes extends Record<string, unknown>,
@@ -88,7 +96,9 @@ export interface EndpointSpecArgsWithBody<
     [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
       infer TArg,
       infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
-      unknown
+      unknown,
+      TOutputContentTypes,
+      TInputContentTypes
     >
       ? md.Kind<
           TArg,

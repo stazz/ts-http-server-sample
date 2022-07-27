@@ -1,4 +1,5 @@
 import * as ep from "../endpoint";
+import * as data from "../data";
 
 export function atPrefix<TContext, TMetadata extends Record<string, unknown>>(
   prefix: string,
@@ -55,7 +56,7 @@ export function atPrefix<TContext, TMetadata extends Record<string, unknown>>(
         allEndpoints.reduce((curResult, { getMetadata }) => {
           const mdDic = getMetadata(`${urlPrefix}${prefix}`);
           if (curResult === undefined) {
-            curResult = ep.transformEntries(mdDic, () => []);
+            curResult = data.transformEntries(mdDic, () => []);
           }
           for (const key of Object.keys(mdDic)) {
             curResult[key].push(...mdDic[key]);

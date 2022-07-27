@@ -1,6 +1,5 @@
 import * as data from "../api/core/data";
 import * as server from "../api/core/server";
-import * as ep from "../api/core/endpoint";
 import * as events from "@data-heaving/common";
 
 export const saveAllEventsToArray = (
@@ -12,7 +11,7 @@ export const saveAllEventsToArray = (
 ) =>
   saveEventsToArray(
     array,
-    ep.transformEntries(eventNames, () => true),
+    data.transformEntries(eventNames, () => true),
   );
 
 export const saveEventsToArray = <

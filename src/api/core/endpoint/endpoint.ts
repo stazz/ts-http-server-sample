@@ -55,3 +55,81 @@ export type StaticAppEndpointHandlerFunction<TContext> = (args: {
   query: unknown;
   body: unknown;
 }) => data.DataValidatorResult<data.DataValidatorResponseOutputSuccess>;
+
+// TODO This is not optimal solution.
+// Refactor when issue #16 gets addressed.
+export const withCORSOptions = <
+  TContext,
+  TMetadata extends Record<string, unknown>,
+>(
+  ep: AppEndpoint<TContext, TMetadata>,
+  { origin, allowHeaders }: CORSOptions,
+): AppEndpoint<TContext, TMetadata> => ({
+  getRegExpAndHandler: (groupNamePrefix) => {
+    const { handler, ...retVal } = ep.getRegExpAndHandler(groupNamePrefix);
+    return {
+      ...retVal,
+      handler: (method, groups) => {
+        let handlerResult = handler(method, groups);
+        if (handlerResult.found === "invalid-method" && method === "OPTIONS") {
+          handlerResult = {
+            found: "handler",
+            handler: {
+              contextValidator: {
+                validator: (ctx) => ({
+                  error: "none",
+                  data: ctx,
+                }),
+                getState: () => undefined,
+              },
+              urlValidator: undefined,
+              queryValidator: undefined,
+              handler: () => ({
+                error: "none",
+                data: {
+                  output: undefined,
+                  contentType: "will-not-be-used",
+                  headers: {
+                    "Access-Control-Allow-Origin": origin,
+                    "Access-Control-Allow-Headers":
+                      typeof allowHeaders === "string"
+                        ? allowHeaders
+                        : allowHeaders.join(","),
+                  },
+                },
+              }),
+            },
+          };
+        } else if (handlerResult.found === "handler") {
+          const { handler: requestHandler, ...rest } = handlerResult.handler;
+          handlerResult = {
+            found: "handler",
+            handler: {
+              ...rest,
+              handler: (args) => {
+                const result = requestHandler(args);
+                if (result.error === "none") {
+                  result.data.headers = Object.assign(
+                    {
+                      "Access-Control-Allow-Origin": origin,
+                    },
+                    result.data.headers ?? {},
+                  );
+                }
+
+                return result;
+              },
+            },
+          };
+        }
+        return handlerResult;
+      },
+    };
+  },
+  getMetadata: (urlPrefix) => ep.getMetadata(urlPrefix),
+});
+
+export interface CORSOptions {
+  origin: string;
+  allowHeaders: string | Array<string>;
+}

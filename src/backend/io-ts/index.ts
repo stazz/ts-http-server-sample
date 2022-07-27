@@ -1,5 +1,6 @@
 // Import generic REST-related things
 import * as data from "../../api/core/data-server";
+import * as ep from "../../api/core/endpoint";
 import * as spec from "../../api/core/spec";
 import * as server from "../../api/core/server";
 import * as prefix from "../../api/core/prefix";
@@ -14,6 +15,9 @@ import * as t from "io-ts";
 // Import plugin for IO-TS
 import * as tPlugin from "../../api/data-server/io-ts";
 
+// Import plugin for IO-TS and JSON Schema generation
+import * as jsonSchema from "../../api/md-jsonschema/io-ts";
+
 import * as api from "./api";
 
 const restModule: moduleApi.RESTAPISpecificationModule = {
@@ -22,6 +26,7 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
     contextValidatorFactory,
     idRegexParam,
   ) => {
+    // Builder which allows defining endpoints without metadata or authentication
     const initial = spec.bindNecessaryTypes<
       server.HKTContextKind<
         moduleApi.GetContextHKT<typeof contextValidatorFactory>,
@@ -29,9 +34,18 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
       >,
       moduleApi.State
     >(getStateFromContext);
+    // Builder which requires metadata, with or without authentication
     const notAuthenticated = initial
       // All endpoints must specify enough metadata to be able to auto-generate OpenAPI specification
-      .withMetadataProvider("openapi", openapi.createOpenAPIProvider());
+      .withMetadataProvider(
+        "openapi",
+        openapi.createOpenAPIProvider(
+          jsonSchema.createJsonSchemaFunctionality({
+            contentTypes: [tPlugin.CONTENT_TYPE],
+            transformSchema: openapi.convertToOpenAPISchemaObject,
+          }),
+        ),
+      );
 
     // Add validation that some previous middleware has set the username to Koa state.
     // Instruct validation to return error code 403 if no username has been set (= no auth).
@@ -123,7 +137,7 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
     const notAuthenticatedMetadata = notAuthenticated.getMetadataFinalResult(
       {
         openapi: {
-          title: "Sample REST API (Authenticated)",
+          title: "Sample REST API (Unauthenticated)",
           version: "0.1",
         },
       },
@@ -132,7 +146,7 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
     const authenticatedMetadata = authenticated.getMetadataFinalResult(
       {
         openapi: {
-          title: "Sample REST API",
+          title: "Sample REST API (Authenticated)",
           version: "0.1",
         },
       },
@@ -147,14 +161,31 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
           return username ? authenticatedMetadata : notAuthenticatedMetadata;
         },
         // Proper validator for OpenAPI objects is out of scope of this sample
-        tPlugin.outputValidator(t.UnknownRecord),
+        tPlugin.outputValidator(
+          t.unknown,
+          // Allow access from e.g. SwaggeR UI in browser
+          {
+            "Access-Control-Allow-Origin": "*",
+          },
+        ),
         // No metadata - as this is the metadata-returning endpoints itself
         {},
       )
       .createEndpoint({});
 
+    // Allow Swagger UI execution
+    const cors: ep.CORSOptions = {
+      origin: "*",
+      allowHeaders: "Content-Type",
+    };
+
     return {
-      api: [notAuthenticatedAPI, authenticatedAPI, docs],
+      api: [
+        ep.withCORSOptions(notAuthenticatedAPI, cors),
+        ep.withCORSOptions(authenticatedAPI, cors),
+        // Docs endpoint doesn't need OPTIONS support.
+        docs,
+      ],
     };
   },
 };

@@ -1,7 +1,7 @@
 {
   "all": true,
   "include": [
-    "src/**/*.*"
+    "src/**/*.ts"
   ],
   "exclude": [
     "src/__test__/**/*.*",

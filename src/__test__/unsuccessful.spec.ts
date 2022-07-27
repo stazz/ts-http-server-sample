@@ -92,6 +92,7 @@ const runTestsForUnsuccessfulResults = async (
       },
     },
     // TODO is 400 really a good thing at this point?
+    // More info: https://stackoverflow.com/questions/51676598/http-404-vs-400-for-invalid-query-parameters
     400,
   );
   await integrationTest.assertUnsuccessfulResult(

@@ -108,14 +108,20 @@ export const createRoute = <TState>(
                 switch (retVal.error) {
                   case "none":
                     {
-                      const { contentType, output } = retVal.data;
-                      if (output !== undefined) {
+                      const { contentType, output, headers } = retVal.data;
+                      if (headers) {
+                        for (const [hdrName, hdrValue] of Object.entries(
+                          headers,
+                        )) {
+                          res = res.header(hdrName, hdrValue);
+                        }
+                      }
+                      const statusCode = output === undefined ? 204 : 200;
+                      res = res.code(statusCode);
+                      if (statusCode === 200) {
                         await res
                           .header("Content-Type", contentType)
-                          .code(200) // OK
                           .send(output); // TODO do we need to pipe readable?
-                      } else {
-                        res.statusCode = 204; // No Content
                       }
                     }
                     break;

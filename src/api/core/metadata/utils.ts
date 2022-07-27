@@ -1,12 +1,15 @@
-import * as common from "./common";
-import * as stage0 from "./stage0";
-import * as stage1 from "./stage1";
+import type * as data from "../data-server";
+import type * as common from "./common";
+import type * as stage0 from "./stage0";
+import type * as stage1 from "./stage1";
 
 export class InitialMetadataProviderClass<
   TArgument extends common.HKTArg,
   TEndpointArg,
   TEndpointMD,
   TContextArguments,
+  TOutputContents extends data.TOutputContentsBase,
+  TInputContents extends data.TInputContentsBase,
   TFinalMetadataArgs,
   TFinalMetadata,
 > implements
@@ -15,6 +18,8 @@ export class InitialMetadataProviderClass<
       TEndpointArg,
       TEndpointMD,
       TContextArguments,
+      TOutputContents,
+      TInputContents,
       TFinalMetadataArgs,
       TFinalMetadata
     >
@@ -23,7 +28,13 @@ export class InitialMetadataProviderClass<
     private readonly _contextInfo: TContextArguments,
     private readonly _getBuilder: (
       contextInfo: TContextArguments,
-    ) => stage1.MetadataBuilder<TArgument, TEndpointArg, TEndpointMD>,
+    ) => stage1.MetadataBuilder<
+      TArgument,
+      TEndpointArg,
+      TEndpointMD,
+      TOutputContents,
+      TInputContents
+    >,
     private readonly _getFinalMD: (
       contextInfo: TContextArguments,
       args: TFinalMetadataArgs,
@@ -38,6 +49,8 @@ export class InitialMetadataProviderClass<
     TEndpointArg,
     TEndpointMD,
     TContextArguments,
+    TOutputContents,
+    TInputContents,
     TFinalMetadataArgs,
     TFinalMetadata
   > {
@@ -51,7 +64,9 @@ export class InitialMetadataProviderClass<
   public getBuilder(): stage1.MetadataBuilder<
     TArgument,
     TEndpointArg,
-    TEndpointMD
+    TEndpointMD,
+    TOutputContents,
+    TInputContents
   > {
     return this._getBuilder(this._contextInfo);
   }

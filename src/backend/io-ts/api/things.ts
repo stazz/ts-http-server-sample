@@ -25,7 +25,19 @@ export const getThings: types.EndpointSpec<
   }),
   endpointHandler: ({ query: { includeDeleted, lastModified } }) =>
     functionality.queryThings(includeDeleted === true, lastModified),
-  output: tPlugin.outputValidator(t.array(t.unknown)),
+  output: tPlugin.outputValidator(
+    t.array(
+      t.type({
+        // TODO would be nice to use 'thing' validation provided as parameter
+        // However, branded types do not go well with this, unless library uses them too (which right now it doesn't)
+        // This needs further thinking.
+        // Option 1 is to wrap string to class UUID used in lib which would in constructor make sure string is of correct format.
+        // Option 2 is to use branded types in lib, and have "getUUID" function which would check the string to be in correct format, and return string which would look like branded type.
+        // Problem with option2 is that library might need to lock in to specific data validation framework for this - not maybe the best thing.
+        property: t.string,
+      }),
+    ),
+  ),
   mdArgs: {
     openapi: {
       operation: { summary: "Query things" },

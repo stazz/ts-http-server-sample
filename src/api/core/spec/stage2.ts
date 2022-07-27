@@ -12,9 +12,17 @@ export class AppEndpointBuilderForMethods<
   TArgsURL,
   TAllowedMethods extends ep.HttpMethod,
   TArgsQuery,
+  TOutputContents extends data.TOutputContentsBase,
+  TInputContents extends data.TInputContentsBase,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown, unknown>
+    md.MetadataBuilder<
+      md.HKTArg,
+      unknown,
+      unknown,
+      TOutputContents,
+      TInputContents
+    >
   >,
 > {
   public constructor(
@@ -22,16 +30,15 @@ export class AppEndpointBuilderForMethods<
       TContext,
       TRefinedContext,
       TState,
+      TOutputContents,
+      TInputContents,
       TMetadataProviders
     >,
     protected readonly _methods: Set<TAllowedMethods>,
     protected readonly _queryInfo: common.QueryInfo<TArgsQuery>,
   ) {}
 
-  public withoutBody<
-    TOutput,
-    TOutputValidatorSpec extends Record<string, unknown>,
-  >(
+  public withoutBody<TOutput>(
     endpointHandler: common.EndpointHandler<
       TArgsURL &
         TArgsQuery &
@@ -41,12 +48,14 @@ export class AppEndpointBuilderForMethods<
     {
       validator,
       ...outputSpec
-    }: data.DataValidatorResponseOutputSpec<TOutput, TOutputValidatorSpec>,
+    }: data.DataValidatorResponseOutputSpec<TOutput, TOutputContents>,
     mdArgs: {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
         infer TArg,
         infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
-        unknown
+        unknown,
+        infer _1,
+        infer _2
       >
         ? md.Kind<
             TArg,
@@ -57,7 +66,7 @@ export class AppEndpointBuilderForMethods<
               ? { [P in keyof TArgsQuery["query"]]: unknown }
               : undefined,
             undefined,
-            { [P in keyof TOutputValidatorSpec]: TOutput }
+            { [P in keyof TOutputContents]: TOutput }
           >
         : never;
     },
@@ -67,12 +76,16 @@ export class AppEndpointBuilderForMethods<
     TState,
     TArgsURL,
     Exclude<ep.HttpMethod, TAllowedMethods>,
+    TOutputContents,
+    TInputContents,
     TMetadataProviders
   > {
     const { query, getEndpointArgs } = this._queryInfo;
     const { contextTransform, urlValidation } = this._state;
     const handler: state.StaticAppEndpointBuilderSpec<
       TContext,
+      TOutputContents,
+      TInputContents,
       TMetadataProviders
     > = {
       outputValidation: outputSpec,
@@ -144,9 +157,17 @@ export class AppEndpointBuilderForMethodsAndBody<
   TArgsURL,
   TAllowedMethods extends ep.HttpMethod,
   TArgsQuery,
+  TOutputContents extends data.TOutputContentsBase,
+  TInputContents extends data.TInputContentsBase,
   TMetadataProviders extends Record<
     string,
-    md.MetadataBuilder<md.HKTArg, unknown, unknown>
+    md.MetadataBuilder<
+      md.HKTArg,
+      unknown,
+      unknown,
+      TOutputContents,
+      TInputContents
+    >
   >,
 > extends AppEndpointBuilderForMethods<
   TContext,
@@ -155,18 +176,15 @@ export class AppEndpointBuilderForMethodsAndBody<
   TArgsURL,
   TAllowedMethods,
   TArgsQuery,
+  TOutputContents,
+  TInputContents,
   TMetadataProviders
 > {
-  public withBody<
-    THandlerResult,
-    TBody,
-    TInputContentTypes extends Record<string, unknown>,
-    TOutputValidatorSpec extends Record<string, unknown>,
-  >(
+  public withBody<THandlerResult, TBody>(
     {
       validator: inputValidator,
       ...inputSpec
-    }: data.DataValidatorRequestInputSpec<TBody, TInputContentTypes>,
+    }: data.DataValidatorRequestInputSpec<TBody, TInputContents>,
     endpointHandler: common.EndpointHandler<
       TArgsURL &
         TArgsQuery &
@@ -177,15 +195,14 @@ export class AppEndpointBuilderForMethodsAndBody<
     {
       validator: outputValidator,
       ...outputSpec
-    }: data.DataValidatorResponseOutputSpec<
-      THandlerResult,
-      TOutputValidatorSpec
-    >,
+    }: data.DataValidatorResponseOutputSpec<THandlerResult, TOutputContents>,
     mdArgs: {
       [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
         infer TArg,
         infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
-        unknown
+        unknown,
+        infer _1,
+        infer _2
       >
         ? md.Kind<
             TArg,
@@ -195,8 +212,8 @@ export class AppEndpointBuilderForMethodsAndBody<
             TArgsQuery extends common.EndpointHandlerArgsWithQuery<unknown>
               ? { [P in keyof TArgsQuery["query"]]: unknown }
               : undefined,
-            { [P in keyof TInputContentTypes]: TBody },
-            { [P in keyof TOutputValidatorSpec]: THandlerResult }
+            { [P in keyof TInputContents]: TBody },
+            { [P in keyof TOutputContents]: THandlerResult }
           >
         : never;
     },
@@ -206,12 +223,16 @@ export class AppEndpointBuilderForMethodsAndBody<
     TState,
     TArgsURL,
     Exclude<ep.HttpMethod, TAllowedMethods>,
+    TOutputContents,
+    TInputContents,
     TMetadataProviders
   > {
     const { query, getEndpointArgs } = this._queryInfo;
     const { contextTransform, urlValidation } = this._state;
     const handler: state.StaticAppEndpointBuilderSpec<
       TContext,
+      TOutputContents,
+      TInputContents,
       TMetadataProviders
     > = {
       inputValidation: inputSpec,
