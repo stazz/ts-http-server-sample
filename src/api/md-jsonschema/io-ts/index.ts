@@ -1,5 +1,5 @@
 import type * as tPlugin from "../../data/io-ts";
-import type * as t from "io-ts";
+import * as t from "io-ts";
 import * as tt from "io-ts-types";
 import * as common from "../common";
 
@@ -38,6 +38,7 @@ export const createJsonSchemaFunctionality = <
         override,
       }),
     ),
+    getUndefinedPossibility,
   });
 
 export type Input<
@@ -325,3 +326,13 @@ const transformFromIOTypes = common.transformerFromMany<
   })),
   // TODO add more here
 ]);
+
+const getUndefinedPossibility = (
+  validation: Encoder | Decoder,
+): common.UndefinedPossibility =>
+  validation instanceof t.UndefinedType ||
+  ((validation instanceof t.IntersectionType ||
+    validation instanceof t.UnionType) &&
+    (
+      validation as t.IntersectionType<Array<t.Any>> | t.UnionType<Array<t.Any>>
+    ).types.some(getUndefinedPossibility));

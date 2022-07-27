@@ -37,6 +37,7 @@ export const createJsonSchemaFunctionality = <
         override: decoding.override,
       }),
     ),
+    getUndefinedPossibility,
   });
 
 export type Input<
@@ -213,4 +214,25 @@ const decoderToSchema = (
     }
   }
   return retVal ?? common.getFallbackValue(decoder, fallbackValue);
+};
+
+const getUndefinedPossibility = (validation: Decoder | Encoder) =>
+  validation instanceof t.ZodType
+    ? getUndefinedPossibilityDecoder(validation)
+    : getUndefinedPossibilityDecoder(validation.validation);
+
+const getUndefinedPossibilityDecoder = (
+  decoder: Decoder,
+): common.UndefinedPossibility => {
+  const recursion = (val: unknown) =>
+    val instanceof t.ZodType && getUndefinedPossibilityDecoder(val as Decoder);
+
+  return (
+    decoder instanceof t.ZodUndefined ||
+    (decoder instanceof t.ZodIntersection &&
+      recursion(decoder._def.left) &&
+      recursion(decoder._def.right)) ||
+    (decoder instanceof t.ZodUnion &&
+      (decoder as t.ZodUnion<[t.ZodType]>)._def.options.some(recursion))
+  );
 };

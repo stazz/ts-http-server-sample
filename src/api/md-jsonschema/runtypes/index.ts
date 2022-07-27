@@ -37,6 +37,7 @@ export const createJsonSchemaFunctionality = <
         override: decoding.override,
       }),
     ),
+    getUndefinedPossibility,
   });
 
 export type Input<
@@ -198,3 +199,17 @@ const decoderToSchema = (
   // No description in runtypes...
   return retVal ?? common.getFallbackValue(decoder, fallbackValue);
 };
+
+const getUndefinedPossibility = (validation: Decoder | Encoder) =>
+  "reflect" in validation
+    ? getUndefinedPossibilityDecoder(validation)
+    : getUndefinedPossibilityDecoder(validation.validation);
+
+const getUndefinedPossibilityDecoder = ({
+  reflect,
+}: Decoder): common.UndefinedPossibility =>
+  (reflect.tag === "literal" && reflect.value === undefined) ||
+  (reflect.tag === "intersect" &&
+    reflect.intersectees.some(getUndefinedPossibilityDecoder)) ||
+  (reflect.tag === "union" &&
+    reflect.alternatives.some(getUndefinedPossibilityDecoder));

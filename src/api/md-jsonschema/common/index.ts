@@ -8,6 +8,7 @@ export const createJsonSchemaFunctionality = <
   transformSchema,
   encoders,
   decoders,
+  getUndefinedPossibility,
 }: JSONSchemaFunctionalityCreationArgumentsGeneric<
   TTransformedSchema,
   TOutputContents,
@@ -55,6 +56,7 @@ export const createJsonSchemaFunctionality = <
     TOutputContents,
     TInputContents
   >["decoders"],
+  getUndefinedPossibility,
 });
 
 export interface JSONSchemaFunctionalityCreationArgumentsBase<
@@ -63,14 +65,30 @@ export interface JSONSchemaFunctionalityCreationArgumentsBase<
   transformSchema: (schema: JSONSchema) => TTransformedSchema;
 }
 
+export interface JSONSchemaFunctionalityCreationArgumentsWithUndefinedFunctionality<
+  TOutputContents extends TContentsBase,
+  TInputContents extends TContentsBase,
+> {
+  getUndefinedPossibility: (
+    decoderOrEncoder:
+      | GetInput<TOutputContents[keyof TOutputContents]>
+      | GetInput<TInputContents[keyof TInputContents]>,
+  ) => UndefinedPossibility;
+}
 export type JSONSchemaFunctionalityCreationArgumentsGeneric<
   TTransformedSchema,
   TOutputContents extends TContentsBase,
   TInputContents extends TContentsBase,
-> = JSONSchemaFunctionalityCreationArgumentsBase<TTransformedSchema> & {
-  encoders: TOutputContents;
-  decoders: TInputContents;
-};
+> = JSONSchemaFunctionalityCreationArgumentsBase<TTransformedSchema> &
+  JSONSchemaFunctionalityCreationArgumentsWithUndefinedFunctionality<
+    TOutputContents,
+    TInputContents
+  > & {
+    encoders: TOutputContents;
+    decoders: TInputContents;
+  };
+
+export type UndefinedPossibility = boolean; // "always" | "maybe" | "never";
 
 export type JSONSchemaFunctionalityCreationArgumentsContentTypes<
   TTransformedSchema,
@@ -103,7 +121,10 @@ export type SupportedJSONSchemaFunctionality<
   TTransformedSchema,
   TOutputContents extends TContentsBase,
   TInputContents extends TContentsBase,
-> = {
+> = JSONSchemaFunctionalityCreationArgumentsWithUndefinedFunctionality<
+  TOutputContents,
+  TInputContents
+> & {
   encoders: {
     [P in keyof TOutputContents]: Transformer<
       GetInput<TOutputContents[P]>,
@@ -116,11 +137,6 @@ export type SupportedJSONSchemaFunctionality<
       TTransformedSchema
     >;
   };
-  getUndefinedPossibility: (
-    decoderOrEncoder:
-      | TOutputContents[keyof TOutputContents]
-      | TInputContents[keyof TInputContents],
-  ) => "always" | "maybe" | "never";
 };
 
 export type Transformer<TInput, TReturnType = JSONSchema> = (
