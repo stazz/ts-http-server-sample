@@ -68,31 +68,16 @@ Notice that when the list talks about observing compile-time errors in certain f
 - Feel free to try similar things with other endpoints, and other places in the code.
   All folder in [source code folder](src) also contain `README.md` files for documentation.
 
-Before delving deeper into the code, try starting the HTTP server with command `./scripts/run-server.sh koa io-ts`, and after seeing message `Started server "koa" running on 0.0.0.0:3000 using data validation "io-ts".`, try the following `curl` commands:
-- `curl -v http://localhost:3000/api/thing/00000000-0000-0000-0000-000000000000` to test endpoint in `src/lib/query.ts`.
-  There should be no errors, and the returned value should be same ID as in URL.
-- `curl -v -X PUT -H 'Content-Type: application/json' -d'{"property":"00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing` to test endpoint in `src/lib/create.ts`.
-  There should be no errors, and the returned value should be same as supplied body.
-- `curl -v -X POST -H 'Content-Type: application/json' -d'{"anotherThingId": "00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing/00000000-0000-0000-0000-000000000000/connectToAnotherThing` to test endpoint in `src/lib/connect.ts`.
-  There should be no errors, and the returned value should be `{"connected":true,"connectedAt":"<current time in ISO format>"}`.
-- `curl -v -X GET http://localhost:3000/api/secret` to test simplistic credential checker in `src/index.ts`.
-  The status code should be `403`.
-- `curl -v -u secret:secrett http://localhost:3000/api/secret` to test endpoint in `src/lib/authenticated.ts`.
-  There should be no errors, and the returned value should be empty, with status code of `204`.
-- `curl -v http://localhost:3000/api-md` to test OpenAPI stub JSON endpoint.
-  There should be no errors, and the returned value should be valid, but incomplete (because of the scope of the sample) OpenAPI JSON specification.
-  Notice that returned value will not contain metadata about `api/secret` endpoint.
-  Notice also that the returned value is very limited, as this is just a sample, and not all aspects of OpenAPI specification are present in the returned value (but enough information exists already to generate them).
-- `curl -v -u secret:secret http://localhost:3000/api-md` to test OpenAPI stub JSON endpoint while authenticated.
-  There should be no errors, and the returned value should contain metadata about `api/secret` endpoint.
-  Notice also that the returned value is very limited, as this is just a sample, and not all aspects of OpenAPI specification are present in the returned value (but enough information exists already to generate them).
-- `curl -v http://localhost:3000/non-existing` to test how situation is handled when there are no suitable endpoints for URL.
-  The response code should be `404`, and Koa server should have logged an error to stdout.
-- `curl -v -X PUT -H 'Content-Type: application/json' -d'{"property":"00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing` to test correct endpoint, but wrong method.
-  The response code should be `405` and `Allowed` header should contain value `POST,GET`.
-  Koa server should have logged an error to stdout.
-- `curl -v -X POST -H 'Content-Type: application/json' -d'{"invalid_property":"00000000-0000-0000-0000-000000000000"}' http://localhost:3000/api/thing` to test correct endpoint, but wrong body.
-  The response code should be `422`, and Koa server should have logged an error to stdout.
+
+Before delving deeper into the code, try starting the HTTP server with command `./scripts/run-server.sh koa io-ts`, and wait for seeing message `Started server "koa" running on 0.0.0.0:3000 using data validation "io-ts".`.
+Once seeing that message, run in another terminal window `./scripts/swagger-ui.sh`, and wait for message `/docker-entrypoint.sh: Configuration complete; ready for start up`.
+Open your browser and navigate to `http://localhost` and notice Swagger UI is running.
+Compare the API definitions to the ones in [protocol.d.ts](./src/protocol.d.ts) - the API definitions were generated from code which ultimately depends on the interfaces in [protocol.d.ts](./src/protocol.d.ts).
+
+Notice that authenticated endpoints miss from this one.
+Swagger UI needs to be configured to send credentials when accessing `/api-md` endpoint (or use slightly different technique for launching UI) for the authenticated endpoint specification to become available.
+
+The various `.spec.ts` files in [src/__test__](./src/__test__) folder can be explored to see what kind of behaviour is expected of BE.
 
 This should be quite good introduction to the project.
 Feel free to explore subfolders in `src` folder, read included `README.md` files, and play around with code to see which changes invoke immediate IDE compiler response.
