@@ -3,9 +3,9 @@ export const connectToAnotherThing = (
   anotherThingId: string,
 ) => {
   // Do the connection in DB...
-  return {
+  return Promise.resolve({
     connected: true,
     // Use Date just to demonstrate how to convert non-conventional objects to JSON response in index.ts
     connectedAt: new Date(),
-  };
+  });
 };

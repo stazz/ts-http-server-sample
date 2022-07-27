@@ -93,7 +93,7 @@ export const createRoute = <TState>(
                 bodyStream,
               );
               if (proceedAfterBody) {
-                const retVal = server.invokeHandler(
+                const retVal = await server.invokeHandler(
                   eventArgs,
                   events,
                   handler,

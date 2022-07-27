@@ -117,4 +117,4 @@ export interface EndpointSpecArgsWithBody<
 
 export type EndpointHandler<TArgs, THandlerResult> = (
   args: TArgs,
-) => THandlerResult;
+) => THandlerResult | Promise<THandlerResult>;
