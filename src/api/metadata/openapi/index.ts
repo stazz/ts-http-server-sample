@@ -106,31 +106,33 @@ export type OpenAPIMetadataBuilder<
 export const createOpenAPIProvider = <
   TOutputContents extends data.TOutputContentsBase,
   TInputContents extends data.TInputContentsBase,
->(
-  jsonSchema: jsonSchemaPlugin.SupportedJSONSchemaFunctionality<
-    openapi.SchemaObject,
-    {
-      [P in keyof TOutputContents]: jsonSchemaPlugin.SchemaTransformation<
-        TOutputContents[P]
-      >;
-    },
-    {
-      [P in keyof TInputContents]: jsonSchemaPlugin.SchemaTransformation<
-        TInputContents[P]
-      >;
-    }
-  >,
-): OpenAPIMetadataProvider<TOutputContents, TInputContents> => {
+>({
+  encoders,
+  decoders,
+  getUndefinedPossibility,
+}: jsonSchemaPlugin.SupportedJSONSchemaFunctionality<
+  openapi.SchemaObject,
+  {
+    [P in keyof TOutputContents]: jsonSchemaPlugin.SchemaTransformation<
+      TOutputContents[P]
+    >;
+  },
+  {
+    [P in keyof TInputContents]: jsonSchemaPlugin.SchemaTransformation<
+      TInputContents[P]
+    >;
+  }
+>): OpenAPIMetadataProvider<TOutputContents, TInputContents> => {
   const initialContextArgs: OpenAPIContextArgs = {
     securitySchemes: [],
   };
 
   const generateEncoderJSONSchema = (contentType: string, encoder: unknown) =>
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    jsonSchema.encoders[contentType as keyof TOutputContents](encoder as any);
+    encoders[contentType as keyof TOutputContents](encoder as any);
   const generateDecoderJSONSchema = (contentType: string, encoder: unknown) =>
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    jsonSchema.decoders[contentType as keyof TInputContents](encoder as any);
+    decoders[contentType as keyof TInputContents](encoder as any);
   return new md.InitialMetadataProviderClass(
     initialContextArgs,
     ({ securitySchemes }) => ({

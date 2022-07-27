@@ -116,6 +116,11 @@ export type SupportedJSONSchemaFunctionality<
       TTransformedSchema
     >;
   };
+  getUndefinedPossibility: (
+    decoderOrEncoder:
+      | TOutputContents[keyof TOutputContents]
+      | TInputContents[keyof TInputContents],
+  ) => "always" | "maybe" | "never";
 };
 
 export type Transformer<TInput, TReturnType = JSONSchema> = (
