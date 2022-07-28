@@ -211,20 +211,20 @@ export const checkHeadersForHandler = <TContext, TState>(
   const headers: data.RuntimeAnyHeaders = {};
   let proceedToInvokeHandler = true;
   if (headersValidation) {
-    const errors: Array<data.DataValidatorResultError> = [];
+    const errors: Record<string, data.DataValidatorResultError> = {};
     for (const [hdrName, hdrValidation] of Object.entries(headersValidation)) {
       const validatedHeader = hdrValidation(getHeaderValue(hdrName));
       if (validatedHeader.error === "none") {
         headers[hdrName] = validatedHeader.data;
       } else {
-        errors.push(validatedHeader);
+        proceedToInvokeHandler = false;
+        errors[hdrName] = validatedHeader;
       }
     }
-    proceedToInvokeHandler = errors.length === 0;
     if (!proceedToInvokeHandler) {
       events?.emit("onInvalidRequestHeaders", {
         ...eventArgs,
-        validationError: data.combineErrorObjects(errors),
+        validationError: errors,
       });
     }
   }

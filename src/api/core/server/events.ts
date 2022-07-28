@@ -15,7 +15,7 @@ export interface VirtualRequestProcessingEvents<TContext, TState> {
   onInvalidUrlParameters: EventArguments<TContext, TState> &
     ValidationErrorArgs;
   onInvalidRequestHeaders: EventArguments<TContext, TState> &
-    ValidationErrorArgs;
+    ValidationErrorArgs<Record<string, data.DataValidatorResultError>>;
   // Could not parse query string
   onInvalidQuery: EventArguments<TContext, TState> & ValidationErrorArgs;
   // No validator for body content type
