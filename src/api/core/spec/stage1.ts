@@ -44,6 +44,7 @@ export class AppEndpointBuilderInitial<
     TArgsURL,
     TMethods,
     common.EndpointHandlerArgs<TRefinedContext, TState>,
+    common.EndpointHandlerArgs<TRefinedContext, TState>,
     TOutputContents,
     TInputContents,
     TMetadataProviders
@@ -56,6 +57,7 @@ export class AppEndpointBuilderInitial<
     TState,
     TArgsURL,
     TMethods,
+    common.EndpointHandlerArgs<TRefinedContext, TState>,
     common.EndpointHandlerArgs<TRefinedContext, TState>,
     TOutputContents,
     TInputContents,
@@ -70,6 +72,7 @@ export class AppEndpointBuilderInitial<
     TState,
     TArgsURL,
     TMethods,
+    common.EndpointHandlerArgs<TRefinedContext, TState>,
     common.EndpointHandlerArgs<TRefinedContext, TState> &
       common.EndpointHandlerArgsWithQuery<TQuery>,
     TOutputContents,
@@ -85,15 +88,21 @@ export class AppEndpointBuilderInitial<
     TState,
     TArgsURL,
     TMethods,
+    common.EndpointHandlerArgs<TRefinedContext, TState>,
     common.EndpointHandlerArgs<TRefinedContext, TState> &
       common.EndpointHandlerArgsWithQuery<TQuery>,
     TOutputContents,
     TInputContents,
     TMetadataProviders
   >;
-  forMethod<TMethods extends TAllowedMethods, TQuery>(
+  forMethod<
+    TMethods extends TAllowedMethods,
+    TQuery,
+    THeaderData extends Record<string, unknown>,
+  >(
     method: TMethods,
     query?: data.QueryValidatorSpec<TQuery, keyof TQuery & string> | undefined,
+    headers?: data.HeaderDataValidatorSpec<THeaderData> | undefined,
   ):
     | AppEndpointBuilderForMethods<
         TContext,
@@ -101,6 +110,8 @@ export class AppEndpointBuilderInitial<
         TState,
         TArgsURL,
         TMethods,
+        | common.EndpointHandlerArgs<TRefinedContext, TState>
+        | common.EndpointHandlerArgsWithHeaders<THeaderData>,
         | common.EndpointHandlerArgs<TRefinedContext, TState>
         | common.EndpointHandlerArgsWithQuery<TQuery>,
         TOutputContents,
@@ -113,18 +124,25 @@ export class AppEndpointBuilderInitial<
         TState,
         TArgsURL,
         TMethods,
+        | common.EndpointHandlerArgs<TRefinedContext, TState>
+        | common.EndpointHandlerArgsWithHeaders<THeaderData>,
         | common.EndpointHandlerArgs<TRefinedContext, TState>
         | common.EndpointHandlerArgsWithQuery<TQuery>,
         TOutputContents,
         TInputContents,
         TMetadataProviders
       > {
-    return this._forMethod(method, query);
+    return this._forMethod(method, query, headers);
   }
 
-  private _forMethod<TMethods extends TAllowedMethods, TQuery>(
+  private _forMethod<
+    TMethods extends TAllowedMethods,
+    TQuery,
+    THeaderData extends Record<string, unknown>,
+  >(
     method: TMethods,
     query?: data.QueryValidatorSpec<TQuery, keyof TQuery & string> | undefined,
+    headers?: data.HeaderDataValidatorSpec<THeaderData> | undefined,
   ):
     | AppEndpointBuilderForMethods<
         TContext,
@@ -132,6 +150,8 @@ export class AppEndpointBuilderInitial<
         TState,
         TArgsURL,
         TMethods,
+        | common.EndpointHandlerArgs<TRefinedContext, TState>
+        | common.EndpointHandlerArgsWithHeaders<THeaderData>,
         | common.EndpointHandlerArgs<TRefinedContext, TState>
         | common.EndpointHandlerArgsWithQuery<TQuery>,
         TOutputContents,
@@ -144,6 +164,8 @@ export class AppEndpointBuilderInitial<
         TState,
         TArgsURL,
         TMethods,
+        | common.EndpointHandlerArgs<TRefinedContext, TState>
+        | common.EndpointHandlerArgsWithHeaders<THeaderData>,
         | common.EndpointHandlerArgs<TRefinedContext, TState>
         | common.EndpointHandlerArgsWithQuery<TQuery>,
         TOutputContents,
@@ -176,16 +198,30 @@ export class AppEndpointBuilderInitial<
       queryInfo.query = query;
     }
 
+    const headerInfo: common.HeaderDataInfo<
+      common.EndpointHandlerArgsWithHeaders<THeaderData>
+    > = {
+      getEndpointArgs: (h) =>
+        headers
+          ? { headers: h as THeaderData }
+          : ({} as common.EndpointHandlerArgsWithHeaders<THeaderData>),
+    };
+    if (headers) {
+      headerInfo.headers = headers;
+    }
+
     return ep.isMethodWithoutBody(method)
       ? new AppEndpointBuilderForMethods(
           this._state,
           new Set([method]),
           queryInfo,
+          headerInfo,
         )
       : new AppEndpointBuilderForMethodsAndBody(
           this._state,
           new Set([method]),
           queryInfo,
+          headerInfo,
         );
   }
 
@@ -201,7 +237,7 @@ export class AppEndpointBuilderInitial<
       TMethod,
       TOutput,
       TOutputContents
-    >,
+    > & { query: never },
   ): AppEndpointBuilder<
     TContext,
     TRefinedContext,
@@ -217,16 +253,16 @@ export class AppEndpointBuilderInitial<
     TQuery,
     TOutput,
   >(
-    spec: BatchSpecificationWithQueryWithoutBody<
+    spec: BatchSpecificationWithoutQueryWithoutBody<
       TRefinedContext,
       TState,
-      TArgsURL,
-      TQuery,
+      TArgsURL & common.EndpointHandlerArgsWithQuery<TQuery>,
       TMetadataProviders,
       TMethod,
       TOutput,
       TOutputContents
-    >,
+    > &
+      BatchSpecificationQueryArgs<TQuery>,
   ): AppEndpointBuilder<
     TContext,
     TRefinedContext,
@@ -252,7 +288,7 @@ export class AppEndpointBuilderInitial<
       TOutputContents,
       TInput,
       TInputContents
-    >,
+    > & { query: never },
   ): AppEndpointBuilder<
     TContext,
     TRefinedContext,
@@ -269,18 +305,18 @@ export class AppEndpointBuilderInitial<
     TInput,
     TOutput,
   >(
-    spec: BatchSpecificationWithQueryWithBody<
+    spec: BatchSpecificationWithoutQueryWithBody<
       TRefinedContext,
       TState,
-      TArgsURL,
-      TQuery,
+      TArgsURL & common.EndpointHandlerArgsWithQuery<TQuery>,
       TMetadataProviders,
       TMethod,
       TOutput,
       TOutputContents,
       TInput,
       TInputContents
-    >,
+    > &
+      BatchSpecificationQueryArgs<TQuery>,
   ): AppEndpointBuilder<
     TContext,
     TRefinedContext,
@@ -292,21 +328,12 @@ export class AppEndpointBuilderInitial<
     TMetadataProviders
   >;
   public batchSpec<TMethod extends TAllowedMethods, TQuery, TInput, TOutput>(
-    spec:
+    spec: (
       | BatchSpecificationWithoutQueryWithoutBody<
           TRefinedContext,
           TState,
-          TArgsURL,
-          TMetadataProviders,
-          TMethod & ep.HttpMethodWithoutBody,
-          TOutput,
-          TOutputContents
-        >
-      | BatchSpecificationWithQueryWithoutBody<
-          TRefinedContext,
-          TState,
-          TArgsURL,
-          TQuery,
+          // TODO figure out non-any type which would not cause signature mismatch
+          any,
           TMetadataProviders,
           TMethod & ep.HttpMethodWithoutBody,
           TOutput,
@@ -315,7 +342,8 @@ export class AppEndpointBuilderInitial<
       | BatchSpecificationWithoutQueryWithBody<
           TRefinedContext,
           TState,
-          TArgsURL,
+          // TODO figure out non-any type which would not cause signature mismatch
+          any,
           TMetadataProviders,
           TMethod & ep.HttpMethodWithBody,
           TOutput,
@@ -323,18 +351,9 @@ export class AppEndpointBuilderInitial<
           TInput,
           TInputContents
         >
-      | BatchSpecificationWithQueryWithBody<
-          TRefinedContext,
-          TState,
-          TArgsURL,
-          TQuery,
-          TMetadataProviders,
-          TMethod & ep.HttpMethodWithBody,
-          TOutput,
-          TOutputContents,
-          TInput,
-          TInputContents
-        >,
+    ) &
+      // eslint-disable-next-line @typescript-eslint/ban-types
+      ({} | BatchSpecificationQueryArgs<TQuery>),
   ): AppEndpointBuilder<
     TContext,
     TRefinedContext,
@@ -354,13 +373,13 @@ export class AppEndpointBuilderInitial<
       ? builder.withBody(
           spec.input,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          spec.endpointHandler as any,
+          spec.endpointHandler,
           spec.output,
           spec.mdArgs,
         )
       : builder.withoutBody(
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          spec.endpointHandler as any,
+          spec.endpointHandler,
           spec.output,
           spec.mdArgs,
         );
@@ -370,7 +389,7 @@ export class AppEndpointBuilderInitial<
 export type BatchSpecificationWithoutQueryWithoutBody<
   TRefinedContext,
   TState,
-  TArgsURL,
+  TEndpointArgs,
   TMetadataProviders extends Record<
     string,
     md.MetadataBuilder<md.HKTArg, any, unknown, TOutputContentTypes, never>
@@ -380,46 +399,44 @@ export type BatchSpecificationWithoutQueryWithoutBody<
   TOutputContentTypes extends Record<string, unknown>,
 > = {
   method: TMethod;
-} & common.EndpointSpecArgsWithoutBody<
+} & EndpointSpecArgsWithoutBody<
   TRefinedContext,
   TState,
-  TArgsURL,
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  {},
+  TEndpointArgs,
   TMetadataProviders,
   TOutput,
   TOutputContentTypes
 >;
 
-export type BatchSpecificationWithQueryWithoutBody<
-  TRefinedContext,
-  TState,
-  TArgsURL,
-  TQueryData,
-  TMetadataProviders extends Record<
-    string,
-    md.MetadataBuilder<md.HKTArg, any, unknown, TOutputContentTypes, never>
-  >,
-  TMethod,
-  TOutput,
-  TOutputContentTypes extends Record<string, unknown>,
-> = {
-  method: TMethod;
-  query: data.QueryValidatorSpec<TQueryData, keyof TQueryData & string>;
-} & common.EndpointSpecArgsWithoutBody<
-  TRefinedContext,
-  TState,
-  TArgsURL,
-  common.EndpointHandlerArgsWithQuery<TQueryData>,
-  TMetadataProviders,
-  TOutput,
-  TOutputContentTypes
->;
+// export type BatchSpecificationWithQueryWithoutBody<
+//   TRefinedContext,
+//   TState,
+//   TArgsURL,
+//   TQueryData,
+//   TMetadataProviders extends Record<
+//     string,
+//     md.MetadataBuilder<md.HKTArg, any, unknown, TOutputContentTypes, never>
+//   >,
+//   TMethod,
+//   TOutput,
+//   TOutputContentTypes extends Record<string, unknown>,
+// > = {
+//   method: TMethod;
+//   query: data.QueryValidatorSpec<TQueryData, keyof TQueryData & string>;
+// } & common.EndpointSpecArgsWithoutBody<
+//   TRefinedContext,
+//   TState,
+//   TArgsURL,
+//   common.EndpointHandlerArgsWithQuery<TQueryData>,
+//   TMetadataProviders,
+//   TOutput,
+//   TOutputContentTypes
+// >;
 
 export type BatchSpecificationWithoutQueryWithBody<
   TRefinedContext,
   TState,
-  TArgsURL,
+  TEndpointArgs,
   TMetadataProviders extends Record<
     string,
     md.MetadataBuilder<
@@ -437,12 +454,10 @@ export type BatchSpecificationWithoutQueryWithBody<
   TInputContentTypes extends Record<string, unknown>,
 > = {
   method: TMethod;
-} & common.EndpointSpecArgsWithBody<
+} & EndpointSpecArgsWithBody<
   TRefinedContext,
   TState,
-  TArgsURL,
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  {},
+  TEndpointArgs,
   TMetadataProviders,
   TOutput,
   TOutputContentTypes,
@@ -450,37 +465,134 @@ export type BatchSpecificationWithoutQueryWithBody<
   TInputContentTypes
 >;
 
-export type BatchSpecificationWithQueryWithBody<
+// export type BatchSpecificationWithQueryWithBody<
+//   TRefinedContext,
+//   TState,
+//   TArgsURL,
+//   TQueryData,
+//   TMetadataProviders extends Record<
+//     string,
+//     md.MetadataBuilder<
+//       md.HKTArg,
+//       any,
+//       unknown,
+//       TOutputContentTypes,
+//       TInputContentTypes
+//     >
+//   >,
+//   TMethod,
+//   TOutput,
+//   TOutputContentTypes extends Record<string, unknown>,
+//   TInput,
+//   TInputContentTypes extends Record<string, unknown>,
+// > = {
+//   method: TMethod;
+//   query: data.QueryValidatorSpec<TQueryData, keyof TQueryData & string>;
+// } & common.EndpointSpecArgsWithBody<
+//   TRefinedContext,
+//   TState,
+//   TArgsURL,
+//   common.EndpointHandlerArgsWithQuery<TQueryData>,
+//   TMetadataProviders,
+//   TOutput,
+//   TOutputContentTypes,
+//   TInput,
+//   TInputContentTypes
+// >;
+
+export interface BatchSpecificationQueryArgs<TQuery> {
+  query: data.QueryValidatorSpec<TQuery, keyof TQuery & string>;
+}
+
+export interface EndpointSpecArgsWithoutBody<
   TRefinedContext,
   TState,
-  TArgsURL,
-  TQueryData,
+  TEndpointArgs,
+  TMetadataProviders extends Record<
+    string,
+    md.MetadataBuilder<md.HKTArg, unknown, unknown, TOutputContentTypes, never>
+  >,
+  TOutput,
+  TOutputContentTypes extends Record<string, unknown>,
+> {
+  endpointHandler: common.EndpointHandler<
+    TEndpointArgs & common.EndpointHandlerArgs<TRefinedContext, TState>,
+    TOutput
+  >;
+  output: data.DataValidatorResponseOutputSpec<TOutput, TOutputContentTypes>;
+  mdArgs: {
+    [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
+      infer TArg,
+      infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
+      unknown,
+      TOutputContentTypes,
+      never
+    >
+      ? md.Kind<
+          TArg,
+          TEndpointArgs extends common.EndpointHandlerArgsWithURL<unknown>
+            ? { [P in keyof TEndpointArgs["url"]]: unknown }
+            : undefined,
+          TEndpointArgs extends common.EndpointHandlerArgsWithQuery<unknown>
+            ? { [P in keyof TEndpointArgs["query"]]: unknown }
+            : undefined,
+          undefined,
+          { [P in keyof TOutputContentTypes]: TOutput }
+        >
+      : never;
+  };
+}
+
+export interface EndpointSpecArgsWithBody<
+  TRefinedContext,
+  TState,
+  TEndpointArgs,
   TMetadataProviders extends Record<
     string,
     md.MetadataBuilder<
       md.HKTArg,
-      any,
+      unknown,
       unknown,
       TOutputContentTypes,
       TInputContentTypes
     >
   >,
-  TMethod,
   TOutput,
   TOutputContentTypes extends Record<string, unknown>,
   TInput,
   TInputContentTypes extends Record<string, unknown>,
-> = {
-  method: TMethod;
-  query: data.QueryValidatorSpec<TQueryData, keyof TQueryData & string>;
-} & common.EndpointSpecArgsWithBody<
-  TRefinedContext,
-  TState,
-  TArgsURL,
-  common.EndpointHandlerArgsWithQuery<TQueryData>,
-  TMetadataProviders,
-  TOutput,
-  TOutputContentTypes,
-  TInput,
-  TInputContentTypes
->;
+> {
+  endpointHandler: common.EndpointHandler<
+    TEndpointArgs &
+      common.EndpointHandlerArgs<TRefinedContext, TState> &
+      common.EndpointHandlerArgsWithBody<TInput>,
+    // TArgsURL &
+    //   TArgsQuery &
+    //   common.EndpointHandlerArgs<TRefinedContext, TState> &
+    //   common.EndpointHandlerArgsWithBody<TInput>,
+    TOutput
+  >;
+  input: data.DataValidatorRequestInputSpec<TInput, TInputContentTypes>;
+  output: data.DataValidatorResponseOutputSpec<TOutput, TOutputContentTypes>;
+  mdArgs: {
+    [P in keyof TMetadataProviders]: TMetadataProviders[P] extends md.MetadataBuilder<
+      infer TArg,
+      infer _, // eslint-disable-line @typescript-eslint/no-unused-vars
+      unknown,
+      TOutputContentTypes,
+      TInputContentTypes
+    >
+      ? md.Kind<
+          TArg,
+          TEndpointArgs extends common.EndpointHandlerArgsWithURL<unknown>
+            ? { [P in keyof TEndpointArgs["url"]]: unknown }
+            : undefined,
+          TEndpointArgs extends common.EndpointHandlerArgsWithQuery<unknown>
+            ? { [P in keyof TEndpointArgs["query"]]: unknown }
+            : undefined,
+          { [P in keyof TInputContentTypes]: TInput },
+          { [P in keyof TOutputContentTypes]: TOutput }
+        >
+      : never;
+  };
+}

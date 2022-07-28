@@ -17,6 +17,12 @@ export interface ProtocolSpecQuery<TQueryData extends Record<string, unknown>> {
   query: TQueryData;
 }
 
+export interface ProtocolSpecHeaderData<
+  THeaderData extends Record<string, unknown>,
+> {
+  headerData: THeaderData;
+}
+
 export interface ProtocolSpecRequestBody<TInput> {
   requestBody: TInput;
 }

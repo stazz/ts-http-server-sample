@@ -27,6 +27,9 @@ export interface APIGetThing {
     includeDeleted?: boolean;
   };
   responseBody: string;
+  headerData: {
+    includeDelted?: boolean;
+  };
 }
 
 export interface APIConnectThings {

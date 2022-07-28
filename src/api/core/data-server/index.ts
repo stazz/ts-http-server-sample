@@ -1,4 +1,5 @@
 export * from "../data";
+export * from "./headers";
 export * from "./url";
 export * from "./query";
 export * from "./request-body";

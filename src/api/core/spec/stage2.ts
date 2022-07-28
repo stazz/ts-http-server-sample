@@ -11,6 +11,7 @@ export class AppEndpointBuilderForMethods<
   TState,
   TArgsURL,
   TAllowedMethods extends ep.HttpMethod,
+  TArgsHeaders,
   TArgsQuery,
   TOutputContents extends data.TOutputContentsBase,
   TInputContents extends data.TInputContentsBase,
@@ -36,6 +37,7 @@ export class AppEndpointBuilderForMethods<
     >,
     protected readonly _methods: Set<TAllowedMethods>,
     protected readonly _queryInfo: common.QueryInfo<TArgsQuery>,
+    protected readonly _headerInfo: common.HeaderDataInfo<TArgsHeaders>,
   ) {}
 
   public withoutBody<TOutput>(
@@ -156,6 +158,7 @@ export class AppEndpointBuilderForMethodsAndBody<
   TState,
   TArgsURL,
   TAllowedMethods extends ep.HttpMethod,
+  TArgsHeaders,
   TArgsQuery,
   TOutputContents extends data.TOutputContentsBase,
   TInputContents extends data.TInputContentsBase,
@@ -175,6 +178,7 @@ export class AppEndpointBuilderForMethodsAndBody<
   TState,
   TArgsURL,
   TAllowedMethods,
+  TArgsHeaders,
   TArgsQuery,
   TOutputContents,
   TInputContents,
