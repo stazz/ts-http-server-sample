@@ -50,14 +50,14 @@ export type MakeSpecWithoutBody<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TFunctionality extends (...args: any) => any,
 > = TProtocolSpec extends protocol.ProtocolSpecQuery<infer TQuery>
-  ? spec.BatchSpecificationWithQueryWithoutBody<
+  ? spec.BatchSpecificationWithoutBody<
       unknown,
       GetProtocolState<TProtocolSpec>,
-      TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>
-        ? spec.EndpointHandlerArgsWithURL<TURLData>
-        : // eslint-disable-next-line @typescript-eslint/ban-types
-          {},
-      protocol.RuntimeOf<TQuery>,
+      spec.EndpointHandlerArgsWithQuery<protocol.RuntimeOf<TQuery>> &
+        (TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>
+          ? spec.EndpointHandlerArgsWithURL<TURLData>
+          : // eslint-disable-next-line @typescript-eslint/ban-types
+            {}),
       TMetadataProviders,
       TProtocolSpec["method"],
       ExtractReturnType<TFunctionality>,
@@ -65,8 +65,9 @@ export type MakeSpecWithoutBody<
         ExtractReturnType<TFunctionality>,
         tPluginCommon.GetEncoded<TProtocolSpec["responseBody"]>
       >
-    >
-  : spec.BatchSpecificationWithoutQueryWithoutBody<
+    > &
+      spec.BatchSpecificationQueryArgs<protocol.RuntimeOf<TQuery>>
+  : spec.BatchSpecificationWithoutBody<
       unknown,
       GetProtocolState<TProtocolSpec>,
       TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>
@@ -88,14 +89,14 @@ export type MakeSpecWithBody<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   TFunctionality extends (...args: any) => any,
 > = TProtocolSpec extends protocol.ProtocolSpecQuery<infer TQuery>
-  ? spec.BatchSpecificationWithQueryWithBody<
+  ? spec.BatchSpecificationWithBody<
       unknown,
       GetProtocolState<TProtocolSpec>,
-      TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>
-        ? spec.EndpointHandlerArgsWithURL<TURLData>
-        : // eslint-disable-next-line @typescript-eslint/ban-types
-          {},
-      protocol.RuntimeOf<TQuery>,
+      spec.EndpointHandlerArgsWithQuery<protocol.RuntimeOf<TQuery>> &
+        (TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>
+          ? spec.EndpointHandlerArgsWithURL<TURLData>
+          : // eslint-disable-next-line @typescript-eslint/ban-types
+            {}),
       TMetadataProviders,
       TProtocolSpec["method"],
       ExtractReturnType<TFunctionality>,
@@ -107,8 +108,9 @@ export type MakeSpecWithBody<
       tPlugin.InputValidatorSpec<
         protocol.RuntimeOf<TProtocolSpec["requestBody"]>
       >
-    >
-  : spec.BatchSpecificationWithoutQueryWithBody<
+    > &
+      spec.BatchSpecificationQueryArgs<protocol.RuntimeOf<TQuery>>
+  : spec.BatchSpecificationWithBody<
       unknown,
       GetProtocolState<TProtocolSpec>,
       TProtocolSpec extends protocol.ProtocolSpecURL<infer TURLData>

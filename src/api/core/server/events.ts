@@ -14,6 +14,8 @@ export interface VirtualRequestProcessingEvents<TContext, TState> {
   // URL matched combined regex, but parameter validation failed
   onInvalidUrlParameters: EventArguments<TContext, TState> &
     ValidationErrorArgs;
+  onInvalidRequestHeaders: EventArguments<TContext, TState> &
+    ValidationErrorArgs;
   // Could not parse query string
   onInvalidQuery: EventArguments<TContext, TState> & ValidationErrorArgs;
   // No validator for body content type

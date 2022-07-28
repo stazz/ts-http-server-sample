@@ -49,6 +49,7 @@ export const createRoute = <TState>(
           handler: {
             contextValidator,
             urlValidator,
+            headerValidator,
             queryValidator,
             bodyValidator,
             handler,
@@ -83,6 +84,14 @@ export const createRoute = <TState>(
               Object.fromEntries(parsedUrl.searchParams.entries()),
             );
             if (proceedAfterQuery) {
+              server.checkHeadersForHandler(
+                eventArgs,
+                events,
+                headerValidator,
+                // TODO multi-headers
+                (hdrName) => req.headers[hdrName],
+              );
+
               const bodyStream =
                 req.body instanceof Readable ? req.body : undefined;
               const [proceedAfterBody, body] = await server.checkBodyForHandler(

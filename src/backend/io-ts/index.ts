@@ -94,6 +94,8 @@ const restModule: moduleApi.RESTAPISpecificationModule = {
       },
     };
 
+    const lel = api.createThing(endpointArgs);
+
     const things = prefix.atPrefix(
       "/thing",
       notAuthenticated.atURL``

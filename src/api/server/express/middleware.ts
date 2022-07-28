@@ -49,6 +49,7 @@ export const createMiddleware = <TState>(
           handler: {
             contextValidator,
             urlValidator,
+            headerValidator,
             queryValidator,
             bodyValidator,
             handler,
@@ -68,7 +69,7 @@ export const createMiddleware = <TState>(
             ctx: contextValidation.context as typeof ctx,
             state: contextValidation.state as TState,
           };
-          // State was OK, validate url & query & body
+          // State was OK, validate url & query & headers & body
           const [proceedAfterURL, url] = server.checkURLParametersForHandler(
             eventArgs,
             events,
@@ -83,6 +84,14 @@ export const createMiddleware = <TState>(
               Object.fromEntries(parsedUrl.searchParams.entries()),
             );
             if (proceedAfterQuery) {
+              server.checkHeadersForHandler(
+                eventArgs,
+                events,
+                headerValidator,
+                // TODO multi-headers
+                (hdrName) => ctx.req.get(hdrName),
+              );
+
               const [proceedAfterBody, body] = await server.checkBodyForHandler(
                 eventArgs,
                 events,

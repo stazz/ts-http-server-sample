@@ -198,6 +198,40 @@ export const checkQueryForHandler = <TContext, TState>(
   return [proceedToInvokeHandler, query];
 };
 
+export const checkHeadersForHandler = <TContext, TState>(
+  eventArgs: evt.EventArguments<TContext, TState>,
+  events:
+    | ServerEventEmitter<TContext, TState, "onInvalidRequestHeaders">
+    | undefined,
+  headersValidation:
+    | data.HeaderDataValidators<Record<string, unknown>>
+    | undefined,
+  getHeaderValue: (headerName: string) => string | Array<string> | undefined,
+) => {
+  const headers: data.RuntimeAnyHeaders = {};
+  let proceedToInvokeHandler = true;
+  if (headersValidation) {
+    const errors: Array<data.DataValidatorResultError> = [];
+    for (const [hdrName, hdrValidation] of Object.entries(headersValidation)) {
+      const validatedHeader = hdrValidation(getHeaderValue(hdrName));
+      if (validatedHeader.error === "none") {
+        headers[hdrName] = validatedHeader.data;
+      } else {
+        errors.push(validatedHeader);
+      }
+    }
+    proceedToInvokeHandler = errors.length === 0;
+    if (!proceedToInvokeHandler) {
+      events?.emit("onInvalidRequestHeaders", {
+        ...eventArgs,
+        validationError: data.combineErrorObjects(errors),
+      });
+    }
+  }
+
+  return [proceedToInvokeHandler, headers];
+};
+
 export const checkBodyForHandler = async <TContext, TState>(
   eventArgs: evt.EventArguments<TContext, TState>,
   events:

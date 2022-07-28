@@ -39,6 +39,7 @@ export const createMiddleware = <TState>(
           handler: {
             contextValidator,
             urlValidator,
+            headerValidator,
             queryValidator,
             bodyValidator,
             handler,
@@ -73,6 +74,14 @@ export const createMiddleware = <TState>(
               ctx.query,
             );
             if (proceedAfterQuery) {
+              server.checkHeadersForHandler(
+                eventArgs,
+                events,
+                headerValidator,
+                // Use ctx.request.headers instead of ctx.get, as ctx.get returns empty string if header not set.
+                // It may not be the desired behaviour.
+                (hdrName) => ctx.request.headers[hdrName],
+              );
               const [proceedAfterBody, body] = await server.checkBodyForHandler(
                 eventArgs,
                 events,

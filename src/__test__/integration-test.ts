@@ -73,6 +73,7 @@ export const testEveryCombination = <TTestArg>(
             onInvalidMethod: undefined,
             onInvalidContext: undefined,
             onInvalidUrlParameters: undefined,
+            onInvalidRequestHeaders: undefined,
             onInvalidQuery: undefined,
             onInvalidContentType: undefined,
             onInvalidBody: undefined,

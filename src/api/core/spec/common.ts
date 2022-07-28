@@ -1,5 +1,4 @@
 import type * as data from "../data-server";
-import type * as md from "../metadata";
 
 export interface EndpointHandlerArgs<TContext, TState> {
   context: TContext;
@@ -29,7 +28,7 @@ export interface QueryInfo<TArgs> {
 
 export interface HeaderDataInfo<TArgs> {
   headers?: data.HeaderDataValidatorSpec<Record<string, unknown>>;
-  getEndpointArgs: (headers: Record<string, unknown>) => TArgs;
+  getEndpointArgs: (headers: data.RuntimeAnyHeaders) => TArgs;
 }
 
 export type EndpointHandler<TArgs, THandlerResult> = (

@@ -43,6 +43,9 @@ export type StaticAppEndpointHandler<TContext> = {
         }
       >
     | undefined;
+  headerValidator:
+    | data.HeaderDataValidators<Record<string, unknown>>
+    | undefined;
   queryValidator: data.QueryValidator<unknown> | undefined;
   bodyValidator?: data.DataValidatorRequestInput<unknown>;
   handler: StaticAppEndpointHandlerFunction<TContext>;
@@ -52,6 +55,7 @@ export type StaticAppEndpointHandlerFunction<TContext> = (args: {
   context: TContext;
   state: unknown;
   url: unknown;
+  headers: Record<string, string | Array<string>>;
   query: unknown;
   body: unknown;
 }) => MaybePromise<
@@ -88,6 +92,7 @@ export const withCORSOptions = <
               },
               urlValidator: undefined,
               queryValidator: undefined,
+              headerValidator: undefined,
               handler: () => ({
                 error: "none",
                 data: {
@@ -136,4 +141,5 @@ export const withCORSOptions = <
 export interface CORSOptions {
   origin: string;
   allowHeaders: string | Array<string>;
+  // TODO allow methods, etc
 }

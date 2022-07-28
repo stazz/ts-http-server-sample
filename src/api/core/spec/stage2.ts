@@ -82,7 +82,9 @@ export class AppEndpointBuilderForMethods<
     TInputContents,
     TMetadataProviders
   > {
-    const { query, getEndpointArgs } = this._queryInfo;
+    const { query, getEndpointArgs: getQueryEndpointArgs } = this._queryInfo;
+    const { headers, getEndpointArgs: getHeaderEndpointArgs } =
+      this._headerInfo;
     const { contextTransform, urlValidation } = this._state;
     const handler: state.StaticAppEndpointBuilderSpec<
       TContext,
@@ -112,9 +114,11 @@ export class AppEndpointBuilderForMethods<
               )
             : undefined,
           queryValidator: query?.validator,
-          handler: async ({ context, state, url, query }) => {
+          headerValidator: headers?.validators,
+          handler: async ({ context, state, url, headers, query }) => {
             const handlerArgs = {
-              ...getEndpointArgs(query),
+              ...getQueryEndpointArgs(query),
+              ...getHeaderEndpointArgs(headers),
               context,
               state,
             };
@@ -231,7 +235,9 @@ export class AppEndpointBuilderForMethodsAndBody<
     TInputContents,
     TMetadataProviders
   > {
-    const { query, getEndpointArgs } = this._queryInfo;
+    const { query, getEndpointArgs: getQueryEndpointArgs } = this._queryInfo;
+    const { headers, getEndpointArgs: getHeaderEndpointArgs } =
+      this._headerInfo;
     const { contextTransform, urlValidation } = this._state;
     const handler: state.StaticAppEndpointBuilderSpec<
       TContext,
@@ -260,11 +266,13 @@ export class AppEndpointBuilderForMethodsAndBody<
                 ),
               )
             : undefined,
+          headerValidator: headers?.validators,
           queryValidator: query?.validator,
           bodyValidator: inputValidator,
-          handler: async ({ context, state, url, body, query }) => {
+          handler: async ({ context, state, url, headers, body, query }) => {
             const handlerArgs = {
-              ...getEndpointArgs(query),
+              ...getQueryEndpointArgs(query),
+              ...getHeaderEndpointArgs(headers),
               context,
               state,
               body: body as TBody,
